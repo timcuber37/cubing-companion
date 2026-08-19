@@ -1,0 +1,17 @@
+{
+  "name": "@cubing-companion/engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "3x3x3 cube state, moves, and notation. The dependency root of the project.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/generate-tables.ts",
+    "fetch-fixtures": "node scripts/fetch-fixtures.ts"
+  },
+  "dependencies": {
+    "cubing": "^0.63.3"
+  }
+}

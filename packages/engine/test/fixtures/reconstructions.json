@@ -1,0 +1,167 @@
+{
+  "_source": "https://reco.nz — solve reconstructions by the cubing community.",
+  "_note": "Test fixtures only. Each entry credits its solver and reconstructor via `title` and `attribution`.",
+  "_fetched": "2026-08-19",
+  "fixtures": [
+    {
+      "id": 9155,
+      "url": "https://reco.nz/solve/9155",
+      "title": "Max Park - 3.13 3x3 solve",
+      "attribution": "33 STM - 10.54 TPS - reconstruction by BlueAcidball",
+      "scramble": "D U F2' L2 U' B2 F2 D L2 U R' F' D R' F' U L D' F' D R2",
+      "solution": "x2 // inspection\nR' D D R' D L' U L D R' U' R D // xxcross\nL U' L' // 3rd pair\nU' R U R' d R' U' R // 4th pair\nr' U' R U' R' U U r // OLL(CP)\nU // AUF"
+    },
+    {
+      "id": 6370,
+      "url": "https://reco.nz/solve/6370",
+      "title": "Tymon Kolasiński - 4.54 3x3 solve",
+      "attribution": "44 STM - 9.69 TPS - 4.87 avg of 5 - reconstruction by Stewy",
+      "scramble": "B2 F2 R2 U L2 U L2 D2 B2 U2 F2 L2 B' R' D' R2 U2 R F L F2 D2",
+      "solution": "x y2 // inspection\nr' U' R2 D R' D' // cross\nu' R' U' R U L' U L y' L' U L U' L' U' L D // 1st & 2nd & 3rd pairs\nU R' U' R // 4th pair\nU U R' U2' R U R' U R U R' U' R U' R' U2 R U2' // ZBLL"
+    },
+    {
+      "id": 11583,
+      "url": "https://reco.nz/solve/11583",
+      "title": "Dylan Miller - 3.49 3x3 solve",
+      "attribution": "39 STM - 11.17 TPS - reconstruction by Stewy",
+      "scramble": "D U2 F2 R2 F U2 B R2 F' L2 F2 D2 F L' B U2 R B' D U2 F",
+      "solution": "x2 y // inspection\nR' U' B' D2 L' R2 // xcross\nU' R' U2 L' U' L // 2nd pair\nR' U' R2 U R' // 3rd/4th pairs\nr U2' R' U' R U' r' // OLL\nR U R' U' R' F R2 U' R' U' R U R' F' U' // PLL"
+    },
+    {
+      "id": 1200,
+      "url": "https://reco.nz/solve/1200",
+      "title": "Dan Cohen - 9.51 3x3 solve",
+      "attribution": "65 STM - 6.83 TPS - reconstruction by Brest",
+      "scramble": "z2 D F2 R2 U2 F2 U F2 U L2 F2 L2 F D B' U' L F2 L2 D U2 B' U",
+      "solution": "x // inspection\nD' U' L U' R' U' x' D' D2 R' u' // cross\nU' U y R U' R' U2 R U' R' // 1st pair\ny2' R' U' R d U R U' R' U2 R U' R' // 2nd pair\nU' R' U R U' R' U' R // 3rd pair\ny U' R' U' R U' R' U R // 4th pair\nR' F R U U' U R' U' F' U R // OLL(CP)\nM2' U M2' U2 M2' U M2' // EPLL"
+    },
+    {
+      "id": 2400,
+      "url": "https://reco.nz/solve/2400",
+      "title": "Feliks Zemdegs - 6.81 3x3 solve",
+      "attribution": "61 STM - 8.96 TPS - 6.44 avg of 100 - reconstruction by Brest",
+      "scramble": "B2 F2 R2 U2 R2 U R2 D B2 U B' L D2 F2 D2 B2 F R F L'",
+      "solution": "x y2 // inspection\nU (r' L') U R' D R D2 // cross\nL' U L y' L U L' // 1st pair\nR' U R U' R' U' R // 2nd pair\nU' U' F U F' // 3rd pair\nU' R U' R' y' R' U2 R U' R' U' R U R' U R // 4th pair / EOLS\nU R' U' R U R' U' R2 D R' U R D' R' U' U' R' U R U2' // ZBLL"
+    },
+    {
+      "id": 3100,
+      "url": "https://reco.nz/solve/3100",
+      "title": "Anthony Brooks - 7.40 3x3 solve",
+      "attribution": "65 STM - 8.78 TPS - 7.27 avg of 5 - reconstruction by Brest",
+      "scramble": "D F2 U2 B2 U' R2 U' B2 R2 U L' B L2 U R' B' D2 U' R2",
+      "solution": "y2 // inspection\nr' R' F' D' R2 D2 F' // cross\nL' U L U' L' U' L // 1st pair\nU' R' F R F' R' U' R // 2nd pair\nU R U' R' U y' L' U' L // 3rd pair\nR' U R U' R' U' R U' R' U R // 4th pair\nU' R U R' U R U' U' R' // OLL\nR' U R' U' y R' F' R2 U' R' U R' F R F U' // PLL"
+    },
+    {
+      "id": 3800,
+      "url": "https://reco.nz/solve/3800",
+      "title": "Jayden McNeill - 5.63 3x3 solve",
+      "attribution": "53 STM - 9.41 TPS - 6.78 avg of 12 - reconstruction by Stewy",
+      "scramble": "F' U' L' D' F L' B U2 B' R F2 D2 L B2 L U2 B2 L' F2 L F2",
+      "solution": "D R' F R2 D R U' R' L' // xcross\nL U2 L' U' L U2 L' // 2nd pair\nU' L' U' L U L' U' L // 3rd pair\nU R' U R U R' U2 R // 4th pair\nR' U' F' U F R // OLL\nU2 R U R' F' R U R' U' R' F R2 U' R' U' // PLL"
+    },
+    {
+      "id": 4500,
+      "url": "https://reco.nz/solve/4500",
+      "title": "Antonie Paterakis - 8.48 3x3 solve",
+      "attribution": "70 STM - 8.25 TPS - 7.11 avg of 58 - reconstruction by Stewy",
+      "scramble": "F2 U2 B' D R L' B' U' L F2 L D2 R D2 R' B2 R D2 B2 R D'",
+      "solution": "z' y' // inspection\nR D R' F R2 U' r' U r D D // xxcross\ny' U' D D' R' U R L' U L // 3rd pair\ny U R U' R' U R U' R' U U R U' R' d R' U2' R U R' U2' R // 4th pair\nU' R U U' R' R U2' R2' U' R2 U' R2' U2' R // OLL\nU R' U R' U' y R' F' R2 U' R' U l' U R U // PLL"
+    },
+    {
+      "id": 5200,
+      "url": "https://reco.nz/solve/5200",
+      "title": "Ruihang Xu - 3.85 3x3 solve",
+      "attribution": "45 STM - 11.69 TPS - reconstruction by Stewy",
+      "scramble": "D' U' L2 F2 L2 U2 F2 D' U2 F D F D2 R U' B' U R' F",
+      "solution": "y' // inspection\nL R' D R R D U' U' D // cross\nL' U L // 1st pair\nU' R' U R U L U L' // 2nd pair\nR U R' U R U' R' // 3rd pair\nU R' U R r' U' R U M' // 4th pair\nr U R' U' r' F R F' U // ZBLL"
+    },
+    {
+      "id": 5900,
+      "url": "https://reco.nz/solve/5900",
+      "title": "Max Park - 6.89 3x3 solve",
+      "attribution": "75 STM - 10.89 TPS - 5.76 avg of 240 - reconstruction by Stewy",
+      "scramble": "D2 B2 F2 L2 F2 D R2 U R2 D R' U' R2 B2 D' F D2 U' R' B' L2 U'",
+      "solution": "x' y2 // inspection\nr D F' r' U F // cross\nU L U L' // 1st pair\nD U' R U' R' D' // 2nd pair\nL' U L y U R U' U' R' D D U' U' R U R' U' R U R' D U D // 3rd pair\nU R' F R F' // 4th pair\nU' r r' U' F R U R' U' R U R' U' F' // OLL\nF R U' R' U' R U R' F' R U R' U' R' F R F' U // PLL"
+    },
+    {
+      "id": 6600,
+      "url": "https://reco.nz/solve/6600",
+      "title": "Tymon Kolasiński - 6.76 3x3 solve",
+      "attribution": "65 STM - 9.62 TPS - 5.76 avg of 5 - reconstruction by Stewy",
+      "scramble": "R' D2 L' D R L' D2 L2 F L2 B2 L2 F L2 D R2 U2",
+      "solution": "x2 // inspection\nF2 D' R2 U' F F // cross\nU R U' R2' U' R // 1st pair\nU2' R R' R U R' U L U L' // 2nd pair\nU L' U L U' L' U L // 3rd pair\ny' R' U2 R U2' R' U R // 4th pair\nU' F U R U' R' U R U' R' F' // OLL(CP)\nU R2' U R U R' R2 R2' R R' U' R3 U' R' U R' U' // EPLL"
+    },
+    {
+      "id": 7300,
+      "url": "https://reco.nz/solve/7300",
+      "title": "Max Park - 4.66 3x3 solve",
+      "attribution": "57 STM - 12.23 TPS - reconstruction by Stewy",
+      "scramble": "B2 L2 D2 R D2 R' B2 R2 U F2 D2 F' L D F' L' U B2 L'",
+      "solution": "D' r' U' r U' r' R u' R D D // cross\nR U' R' // 1st pair\nU' R' U R // 2nd pair\ny' U L' U L U L' U L U' L' U L // 3rd pair\nR U' R' d R' U' R // 4th pair\nU R U R' U' R' F R F' // OLL(CP)\nR U' R U R U R U' R' U' R2 // EPLL"
+    },
+    {
+      "id": 8000,
+      "url": "https://reco.nz/solve/8000",
+      "title": "Dylan Miller - 5.76 3x3 solve",
+      "attribution": "54 STM - 9.38 TPS - 6.9 avg of 25 - reconstruction by Stewy",
+      "scramble": "D L2 B2 D' L2 U L2 B2 D' U' B D2 R' U' R U' B' D2 L2 D2 U2",
+      "solution": "x2 y // inspection\nD' L U D' R D r U' r' D // cross\nL U' L' // 1st pair\ny' R U2' R' L U' L' // 2nd pair\nR U R' U' R U R' // 3rd pair\nU2' f R f' // 4th pair\nr U2' R' U' R U R' U' R U' r' // OLL\nF' U' F R2 u R' U R U' R u' R2' U' // PLL"
+    },
+    {
+      "id": 8700,
+      "url": "https://reco.nz/solve/8700",
+      "title": "Dwyane Ramos - 6.48 3x3 solve",
+      "attribution": "58 STM - 8.95 TPS - 6.4 avg of 24 - reconstruction by Stewy",
+      "scramble": "B L' U2 F2 R U2 F2 U2 B2 F2 L' U B' D' B L D2 B2 F R",
+      "solution": "z' x // inspection\nL' u l U' l' U R U R' F // FB\nU R U U' r U r U r' // SS\nR' r r2' R2 U2 M' U2 r' U' r // SP\nU2 U' R U2 R' U' R U R' U' R U' M' R' // CMLL\nU2 M' U2 M' U' M U2 M' U2 M U // EOLRb\nM U2 M' U2 // EP"
+    },
+    {
+      "id": 9400,
+      "url": "https://reco.nz/solve/9400",
+      "title": "Yiheng Wang - 5.86 3x3 solve",
+      "attribution": "65 STM - 11.09 TPS - 4.98 avg of 5 - reconstruction by Kyle Santucci",
+      "scramble": "F2 D' F2 D B' U2 R2 D' R' L2 D2 L2 F2 R2 D B2 L B'",
+      "solution": "x // inspection\nU2 D r U' D L' U L D' R2' F R2 // xcross\nR' U R U R R' R U R' // 2nd pair\nR' U R U F U F' // 3rd pair\nU R' U2' R U R' U2' R // 4th pair\nF R U R' U' R U R' U' F' // OLL\nU' F R U' R' U' R U R' F' R U R' U' R' F R F' U // PLL"
+    },
+    {
+      "id": 11000,
+      "url": "https://reco.nz/solve/11000",
+      "title": "Dylan Miller - 5.60 3x3 solve",
+      "attribution": "52 STM - 9.29 TPS - 5.86 avg of 5 - reconstruction by Stewy",
+      "scramble": "F2 U L2 U F2 U' R2 F2 L' B R F2 D' L' R2 F' D2 U R2",
+      "solution": "x2 y // inspection\nF D' L F' R D' // cross\ny' U' R U R' U' L U L' // 1st pair\nR U R' U' F U F' // 2nd pair\nU2' F' U F R' U2' R // 3rd pair\ny' U' R' U R // 4th pair\nL' U' L U' L' U2 L // OLL\nR2 U' R2' D R2 U' R2' U R2 D' U R2' U2' // PLL"
+    },
+    {
+      "id": 11200,
+      "url": "https://reco.nz/solve/11200",
+      "title": "Teodor Zajder - 5.55 3x3 solve",
+      "attribution": "59 STM - 10.63 TPS - 5.62 avg of 5 - reconstruction by Stewy",
+      "scramble": "D' U' L2 D2 B2 F2 R2 B2 U2 F' L D2 U' L R U2 B' U B2 R2",
+      "solution": "y2 // inspection\nR2 U R' U' R D R' // pseudo xcross\nL' U L U' L' U L r U' r' U r U' r' // 2nd pair/finish cross\nR U' R' U R' U' R // 3rd pair\nU' R U R' U' R U R' // 4th pair\nr U R' U R U2' r2' U' R U' R' U2 r // OLL\nU2 x R' U R' D2 R U' R' D2 R2 // PLL"
+    },
+    {
+      "id": 11400,
+      "url": "https://reco.nz/solve/11400",
+      "title": "Krzysztof Bloch - 5.26 3x3 solve",
+      "attribution": "47 STM - 8.94 TPS - 5.86 avg of 5 - reconstruction by yomie",
+      "scramble": "L2 D B2 U' B2 F2 U F2 U2 R2 B2 U' B U' R' D R' U' R U'",
+      "solution": "y2 // inspection\nF2 R U' F' D2 R' L2' // eocross\nU L U' L' U L U' L' // 1st pair\nR' U' R U R' U2' R2 // 2nd pair\nU2' R' U' L' U L // 3rd pair\nU' R U' R' U2 R U' R' // 4th pair\nU U R' F' r U R U' r' F U // ZBLL"
+    },
+    {
+      "id": 2000,
+      "url": "https://reco.nz/solve/2000",
+      "title": "Breandan Vallance - 10.11 3x3 solve",
+      "attribution": "59 STM - 5.84 TPS - 9.48 avg of 5 - reconstruction by Brest",
+      "scramble": "F2 L2 F2 L' R' F D R2 B2 L' B' F' R2 B' D' B2 R2 F2",
+      "solution": "y2 x // inspection\nR (U D') r' // cross\nU' U' R U R' // 1st pair\nU R' U2 R U' R' U R // 2nd pair\ny' y' U R U' R' U R U' R' U R U' R' // 3rd pair\nU' R' U' R U R' U' U R U R' U' R // 4th pair\nU R U' R2' r U' R U' R' U r' R2 U R' // OLL\nx R2' D D R U R' D D R U' R // PLL"
+    },
+    {
+      "id": 2800,
+      "url": "https://reco.nz/solve/2800",
+      "title": "Jayden McNeill - 6.83 3x3 solve",
+      "attribution": "49 STM - 7.17 TPS - 6.97 avg of 5 - reconstruction by Hagen Seah",
+      "scramble": "B' F D2 R2 D2 F' U2 F' L2 D2 U' L D' R' D U R2 U B D F'",
+      "solution": "y' // inspection\nR2 F R B U L U' L' U L D' // Xcross\ny U2 R U' R' // 2nd pair\ny' L U2 L' U L U' L' // 3rd pair\nR U' R' d U R' U' R U' R2 D' R U R' D R2 // 4th pair / VLS\nU R' x U R' D2 R U' R' D2 R2 B2 // PLL"
+    }
+  ]
+}
