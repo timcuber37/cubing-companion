@@ -12,13 +12,13 @@ See [PLAN.md](PLAN.md) for the full roadmap.
 
 ## Status
 
-**A0 — cube engine foundation: done.** Everything else is ahead.
+**A1 shipped: connect a GAN cube and the virtual one follows.** A0, A1 and B1 are done.
 
 | Track | Status |
 |---|---|
 | A0 — cube engine | shipped — [`packages/engine`](packages/engine) |
 | B1 — pro reconstruction corpus | shipped — [`packages/corpus`](packages/corpus), 9,865 verified CFOP solves |
-| A1 — smart cube link (GAN) | not started |
+| A1 — smart cube link (GAN) | shipped — [`packages/cube-link`](packages/cube-link) + [`apps/web`](apps/web) |
 | A2 — solve capture + phase segmentation | not started |
 | A3 — analysis + scoring | not started |
 | B2 — search baselines | not started |
@@ -32,11 +32,12 @@ against.
 ## Layout
 
 ```
-packages/engine/   3x3x3 state, moves, notation — the dependency root
-packages/corpus/   reco.nz reconstruction corpus: fetch, verify, segment, summarize
-apps/web/          Next.js app (A1+) — placeholder
-ml/                PyTorch training (B3) — placeholder, outside the npm workspaces
-data/              corpus cache and derived output — gitignored, reproducible
+packages/engine/     3x3x3 state, moves, notation, facelets — the dependency root
+packages/corpus/     reco.nz reconstruction corpus: fetch, verify, segment, summarize
+packages/cube-link/  cube input adapters: smart cube, manual entry, replay
+apps/web/            Next.js harness — connect a cube, watch the virtual one follow
+ml/                  PyTorch training (B3) — placeholder, outside the npm workspaces
+data/                corpus cache and derived output — gitignored, reproducible
 ```
 
 The workspace boundary is load-bearing: analysis code must never import the smart cube
@@ -50,7 +51,12 @@ without hardware.
 npm install
 npm test        # full suite, no hardware or network needed
 npm run typecheck
+npm run dev     # the A1 harness at localhost:3000
 ```
+
+Smart cube connection needs Web Bluetooth — Chrome or Edge on desktop, Chrome on Android.
+Manual input works in any browser, which is what keeps the rest of the plan testable
+without hardware.
 
 ## Credits
 

@@ -24,6 +24,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Build web app
+        run: npm run build -w @cubing-companion/web
+
       - name: Check generated tables are up to date
         run: |
           npm run generate -w @cubing-companion/engine

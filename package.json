@@ -12,10 +12,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck -w @cubing-companion/web",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "dev": "npm run dev -w @cubing-companion/web"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

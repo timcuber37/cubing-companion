@@ -41,6 +41,14 @@ export {
 } from "./notation.ts";
 
 export {
+  FaceletError,
+  faceletsEqual,
+  fromFacelets,
+  NUM_FACELETS,
+  toFacelets,
+} from "./facelets.ts";
+
+export {
   colorOnFace,
   isCornerSolved,
   isEdgeSolved,

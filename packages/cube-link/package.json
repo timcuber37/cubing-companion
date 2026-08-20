@@ -1,0 +1,14 @@
+{
+  "name": "@cubing-companion/cube-link",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cube input adapters: smart cube over Web Bluetooth, manual entry, and replay. One interface, so analysis never depends on the hardware.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/engine": "*",
+    "gan-web-bluetooth": "^3.0.2"
+  }
+}
