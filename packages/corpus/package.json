@@ -1,0 +1,18 @@
+{
+  "name": "@cubing-companion/corpus",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pro reconstruction corpus: fetch, parse, verify, segment, and summarize reco.nz solves.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "crawl": "node scripts/crawl.ts",
+    "build-corpus": "node scripts/build-corpus.ts",
+    "report": "node scripts/report.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/engine": "*"
+  }
+}

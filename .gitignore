@@ -14,3 +14,10 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# Corpus data. The raw cache and the derived corpus are reco.nz's data and are not
+# redistributed; both rebuild from a crawl. Aggregate statistics are ours and are kept.
+# Note the pattern excludes the directory *contents*, not the directory — a bare `data/`
+# would make the negation below unreachable.
+data/*
+!data/summary.json
