@@ -1,0 +1,453 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  applyMoves,
+  fromFacelets,
+  parseMoves,
+  serializeMove,
+  type CubeState,
+} from "@cubing-companion/engine";
+import { segmentRecord, type SolveRecord } from "@cubing-companion/session";
+import {
+  computeMetrics,
+  scoreSolve,
+  type Rated,
+  type SolveMetrics,
+} from "@cubing-companion/metrics";
+import { TwistyPlayer, type TwistyHandle } from "./TwistyPlayer";
+import { Timeline } from "./Timeline";
+import { PHASE_LABEL } from "./phaseLabels";
+
+/** Spacing used to lay out a solve that arrived without a usable clock. */
+const FALLBACK_GAP_MS = 120;
+const SPEEDS = [0.25, 0.5, 1] as const;
+
+/**
+ * One solve, opened up: replay, timeline, per-phase metrics, and how it compares.
+ *
+ * A2 could already tell you a solve took 9.4 seconds and where the moves went. This is the part
+ * that answers "and was that any good", which is the whole of A3.
+ */
+export function SolveDetail({
+  solve,
+  onClose,
+}: {
+  solve: SolveRecord;
+  onClose: () => void;
+}) {
+  const analysis = useMemo(() => analyse(solve), [solve]);
+  const [position, setPosition] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+
+  const playerRef = useRef<TwistyHandle>(null);
+  const positionRef = useRef(0);
+  positionRef.current = position;
+
+  // Scrubbing is a jump to a precomputed position rather than an animation. That keeps the cube
+  // exactly in step with the timeline at any speed: a real solve turns faster than the player
+  // animates, so animating each move would fall progressively behind the clock it is meant to
+  // be showing.
+  useEffect(() => {
+    if (!analysis) return;
+    playerRef.current?.setState(analysis.states[position]!);
+  }, [analysis, position]);
+
+  useEffect(() => {
+    if (!playing || !analysis) return;
+    const { offsets } = analysis;
+    // Anchored once, at the moment play begins, so a dropped frame does not lose time. Advancing
+    // the position must not re-anchor, or playback runs slow by the per-move overshoot.
+    const startedAt = performance.now();
+    const from = offsets[positionRef.current] ?? 0;
+    let frame = 0;
+
+    const tick = () => {
+      const target = from + (performance.now() - startedAt) * speed;
+      let next = positionRef.current;
+      while (next < offsets.length - 1 && offsets[next + 1]! <= target) next++;
+      if (next !== positionRef.current) {
+        positionRef.current = next;
+        setPosition(next);
+      }
+      if (next >= offsets.length - 1) {
+        setPlaying(false);
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [analysis, playing, speed]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const seek = (index: number) => {
+    setPlaying(false);
+    setPosition(index);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-neutral-950/90 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Solve analysis"
+    >
+      <div className="mx-auto max-w-5xl space-y-4 rounded-lg border border-neutral-800 bg-neutral-950 p-4">
+        <header className="flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline gap-3">
+            <span className="font-mono text-2xl tabular-nums text-neutral-100">
+              {solve.durationMs === null ? "—" : (solve.durationMs / 1000).toFixed(2)}
+            </span>
+            <span className="text-sm text-neutral-500">
+              {solve.moveCount} moves
+              {solve.tps !== null && ` · ${solve.tps.toFixed(1)} tps`}
+            </span>
+            <span className="text-xs text-neutral-600">
+              {new Date(solve.startedAt).toLocaleString()}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-800"
+          >
+            Close
+          </button>
+        </header>
+
+        {!analysis ? (
+          <p className="rounded-md border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">
+            This solve could not be segmented, so there is nothing to compare. Its moves are
+            still stored.
+          </p>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+            <section className="space-y-3">
+              <TwistyPlayer ref={playerRef} />
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => seek(Math.max(0, position - 1))}
+                  className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                  aria-label="Previous move"
+                >
+                  ◀
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Replaying from the end should start over rather than do nothing.
+                    if (position >= analysis.offsets.length - 1) setPosition(0);
+                    setPlaying((was) => !was);
+                  }}
+                  className="rounded bg-sky-600 px-3 py-1 text-xs font-medium text-white hover:bg-sky-500"
+                >
+                  {playing ? "Pause" : "Play"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => seek(Math.min(analysis.offsets.length - 1, position + 1))}
+                  className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                  aria-label="Next move"
+                >
+                  ▶
+                </button>
+
+                <div className="ml-auto flex gap-1">
+                  {SPEEDS.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setSpeed(option)}
+                      className={`rounded px-1.5 py-1 text-xs ${
+                        speed === option
+                          ? "bg-neutral-700 text-neutral-100"
+                          : "text-neutral-500 hover:text-neutral-300"
+                      }`}
+                    >
+                      {option}×
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Timeline
+                offsets={analysis.offsets}
+                phases={analysis.metrics.phases}
+                pauses={analysis.metrics.pauses}
+                position={position}
+                onSeek={seek}
+              />
+
+              <p className="font-mono text-xs leading-relaxed text-neutral-500">
+                {analysis.moveText.map((text, i) => (
+                  <span
+                    key={i}
+                    className={
+                      i < position
+                        ? "text-neutral-300"
+                        : i === position
+                          ? "bg-sky-900/70 text-sky-200"
+                          : ""
+                    }
+                  >
+                    {text}{" "}
+                  </span>
+                ))}
+              </p>
+              {!analysis.timed && (
+                <p className="text-[11px] text-amber-600">
+                  This solve has no usable per-move clock, so the timeline is laid out evenly and
+                  no time is scored.
+                </p>
+              )}
+            </section>
+
+            <section className="space-y-4">
+              <ScorePanel metrics={analysis.metrics} />
+              <PhaseTable analysis={analysis} onSeek={seek} />
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
+  const score = useMemo(() => scoreSolve(metrics), [metrics]);
+
+  return (
+    <div className="rounded-md border border-neutral-800 p-3">
+      <div className="flex items-baseline justify-between">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          Against the pro corpus
+        </h3>
+        {score.composite !== null && (
+          <span className="font-mono text-2xl tabular-nums text-neutral-100">
+            {score.composite.toFixed(0)}
+          </span>
+        )}
+      </div>
+
+      {/* The composite is only ever shown with the parts it averaged. A single number tells a
+          solver they were a 63 and gives them nothing to do about it. */}
+      <dl className="mt-2 space-y-1.5">
+        {score.components.map(({ label, rated }) => (
+          <div key={label} className="grid grid-cols-[5rem_1fr_2.5rem] items-center gap-2">
+            <dt className="text-xs text-neutral-400">{label}</dt>
+            <dd>
+              <ScoreBar rated={rated} />
+            </dd>
+            <dd className="text-right font-mono text-xs tabular-nums text-neutral-300">
+              {rated.score.toFixed(0)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <div className="mt-2 flex items-baseline justify-between gap-2 text-[11px] text-neutral-500">
+        <span>
+          fluidity{" "}
+          <span className="text-neutral-300">
+            {metrics.fluidity === null ? "—" : `${(100 * metrics.fluidity).toFixed(0)}%`}
+          </span>{" "}
+          {score.fluidityBand && `(${score.fluidityBand})`}
+        </span>
+        <span>
+          {metrics.pauses.length} pause{metrics.pauses.length === 1 ? "" : "s"}
+          {metrics.longestPause &&
+            `, longest ${(metrics.longestPause.durationMs / 1000).toFixed(2)}s`}
+        </span>
+      </div>
+
+      <p className="mt-2 border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
+        50 means the median solve in a corpus of {score.baselineNote.corpusSolves.toLocaleString()}{" "}
+        world-class reconstructions — for almost anyone that is a very good day. Fluidity and
+        pauses are measured but not scored: reconstructions carry no per-move timing, so there is
+        no baseline for them.
+      </p>
+    </div>
+  );
+}
+
+function ScoreBar({ rated }: { rated: Rated }) {
+  return (
+    <div
+      className="h-1.5 w-full overflow-hidden rounded-full bg-neutral-800"
+      title={`corpus median ${rated.distribution.median}, you ${rated.value.toFixed(2)}`}
+    >
+      <div
+        className={`h-full rounded-full ${rated.score >= 50 ? "bg-emerald-500" : "bg-sky-600"}`}
+        style={{ width: `${Math.max(2, rated.score)}%` }}
+      />
+    </div>
+  );
+}
+
+function PhaseTable({
+  analysis,
+  onSeek,
+}: {
+  analysis: NonNullable<ReturnType<typeof analyse>>;
+  onSeek: (index: number) => void;
+}) {
+  const score = useMemo(() => scoreSolve(analysis.metrics), [analysis.metrics]);
+  const windowFor = (phases: readonly string[]) =>
+    score.windows.find((w) => phases.length === 0 || w.window === phases[0]);
+
+  return (
+    <div className="rounded-md border border-neutral-800">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-neutral-800 text-left text-neutral-500">
+            <th className="px-2 py-1.5 font-medium">phase</th>
+            <th className="px-2 py-1.5 text-right font-medium">time</th>
+            <th className="px-2 py-1.5 text-right font-medium">turns</th>
+            <th className="px-2 py-1.5 text-right font-medium">tps</th>
+            <th className="px-2 py-1.5 text-right font-medium" title="Time before the phase's first move — finding the piece rather than turning it.">
+              recog
+            </th>
+            <th className="px-2 py-1.5 text-right font-medium">vs pros</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-neutral-900">
+          {analysis.metrics.phases.map((phase) => {
+            const rated = score.phases.find((p) => p.phase === phase.phase)?.turns ?? null;
+            return (
+              <tr
+                key={phase.phase}
+                onClick={() => onSeek(phase.start)}
+                className="cursor-pointer hover:bg-neutral-900/60"
+                title="Jump to the start of this phase"
+              >
+                <td className="px-2 py-1.5 text-neutral-300">
+                  {PHASE_LABEL[phase.phase] ?? phase.phase}
+                  {phase.slot && <span className="text-neutral-600"> {phase.slot}</span>}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-neutral-300">
+                  {phase.durationMs === null ? "—" : `${(phase.durationMs / 1000).toFixed(2)}`}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-neutral-400">
+                  {phase.turns}
+                  {phase.rotations > 0 && (
+                    <span className="text-neutral-600" title={`${phase.rotations} rotations`}>
+                      +{phase.rotations}
+                    </span>
+                  )}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-neutral-400">
+                  {phase.tps === null ? "—" : phase.tps.toFixed(1)}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-neutral-500">
+                  {phase.recognitionMs === null
+                    ? "—"
+                    : `${(phase.recognitionMs / 1000).toFixed(2)}`}
+                </td>
+                <td className="px-2 py-1.5 text-right font-mono tabular-nums">
+                  {rated === null ? (
+                    <span className="text-neutral-700">—</span>
+                  ) : (
+                    <span className={rated.score >= 50 ? "text-emerald-400" : "text-neutral-400"}>
+                      {rated.score.toFixed(0)}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {score.windows.length > 0 && (
+        <div className="border-t border-neutral-800 px-2 py-2">
+          <h4 className="mb-1 text-[11px] uppercase tracking-wide text-neutral-600">
+            Timed against the corpus
+          </h4>
+          <ul className="space-y-0.5">
+            {score.windows.map((window) => (
+              <li key={window.window} className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="text-neutral-400">
+                  {window.window}
+                  {window.time?.overheadCorrected && (
+                    <span
+                      className="ml-1 text-neutral-600"
+                      title="The pro baseline for this window had estimated stackmat grab/drop time removed, so it can be compared with a smart-cube clock. An estimate, not a measurement."
+                    >
+                      ✽
+                    </span>
+                  )}
+                </span>
+                <span className="font-mono tabular-nums text-neutral-500">
+                  {window.seconds.toFixed(2)}s
+                  {window.time && (
+                    <span
+                      className={`ml-2 ${window.time.score >= 50 ? "text-emerald-400" : "text-neutral-400"}`}
+                    >
+                      {window.time.score.toFixed(0)}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-neutral-600">
+            Cross, and pairs 1–3 individually, have no time baseline — reco.nz never published
+            splits that fine. ✽ marks a window whose baseline was corrected for timer overhead.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Everything derived from the stored record, computed once per solve. */
+function analyse(solve: SolveRecord) {
+  let states: CubeState[];
+  let moveText: string[];
+  let metrics: SolveMetrics;
+
+  try {
+    const moves = parseMoves(solve.solution);
+    const spans = segmentRecord(solve).segmentation.segmentation?.spans ?? [];
+    if (spans.length === 0) return null;
+
+    metrics = computeMetrics(spans, solve.moveTimestamps);
+    moveText = moves.map(serializeMove);
+    states = [fromFacelets(solve.startFacelets)];
+    for (const move of moves) {
+      states.push(applyMoves(states[states.length - 1]!, [move]));
+    }
+  } catch {
+    return null;
+  }
+
+  // `offsets[i]` is the moment the i-th move landed, relative to the first. A solve with no
+  // usable clock still gets a timeline, laid out evenly and labelled as such.
+  const base = solve.moveTimestamps.find((t) => t !== null) ?? null;
+  const timed = base !== null;
+  const offsets: number[] = [0];
+  for (let i = 0; i < moveText.length; i++) {
+    const stamp = solve.moveTimestamps[i] ?? null;
+    const previous = offsets[i]!;
+    offsets.push(
+      stamp === null || base === null
+        ? previous + FALLBACK_GAP_MS
+        : // Clamp: a retimed stream can hand back a stamp that moves backwards.
+          Math.max(previous, stamp - base),
+    );
+  }
+
+  return { states, offsets, moveText, metrics, timed };
+}

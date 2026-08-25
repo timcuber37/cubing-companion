@@ -12,14 +12,19 @@ See [PLAN.md](PLAN.md) for the full roadmap.
 
 ## Status
 
-**A2 shipped: scramble, solve, and see where the time went.** Solves are captured from
-the cube, segmented into CFOP phases at 97% agreement with human labels, and kept locally.
-A0, A1, A2, B1 and B2 are done.
+**A3 shipped — the MVP.** Scramble, solve, and get the solve back broken into phases,
+replayable at the tempo you actually turned, with every phase placed against a corpus of
+world-class solves. A0–A3, B1 and B2 are done.
 
-The solver's finding, now measured over both phases it can search: across 7,725 corpus
-crosses the world's best build the **optimal cross only 31% of the time**, and across 1,482
-pair insertions they hit the **optimal insertion 27% of the time** — averaging 1.95 and 1.59
-moves more than necessary. That gap is what A5 exists to show you.
+Two findings drive the whole product. From the solver: across 7,725 corpus crosses the world's
+best build the **optimal cross only 31% of the time**, and across 1,482 pair insertions they hit
+the **optimal insertion 27% of the time** — averaging 1.95 and 1.59 moves more than necessary.
+That gap is what A5 exists to show you.
+
+From the corpus timings: between 2013–16 and 2024+ median solve times fell **36%** while median
+move counts fell **9%**. Cubers got dramatically faster at turning and only slightly better at
+planning — which is why move-count percentiles are scored across every era and time percentiles
+only against 2021 onwards.
 
 | Track | Status |
 |---|---|
@@ -27,7 +32,7 @@ moves more than necessary. That gap is what A5 exists to show you.
 | B1 — pro reconstruction corpus | shipped — [`packages/corpus`](packages/corpus), 9,865 verified CFOP solves |
 | A1 — smart cube link (GAN) | shipped — [`packages/cube-link`](packages/cube-link) + [`apps/web`](apps/web) |
 | A2 — capture + phase segmentation | shipped — [`packages/analysis`](packages/analysis) + [`packages/session`](packages/session) |
-| A3 — analysis + scoring | not started |
+| A3 — analysis + scoring | shipped — [`packages/metrics`](packages/metrics) + solve replay in [`apps/web`](apps/web) |
 | B2 — search baselines | shipped — [`packages/solver`](packages/solver), cross + xcross + F2L insertion |
 | B3 — ranking model | not started |
 
@@ -45,6 +50,7 @@ packages/cube-link/  cube input adapters: smart cube, manual entry, replay
 packages/analysis/   CFOP phase segmentation from cube state
 packages/session/    solve capture and local-first storage
 packages/solver/     cross, xcross and F2L-insertion candidate enumerators
+packages/metrics/    per-phase metrics and percentile scoring against the corpus
 apps/web/            the app — connect a cube, scramble, solve, review
 ml/                  PyTorch training (B3) — placeholder, outside the npm workspaces
 data/                corpus cache and derived output — gitignored, reproducible

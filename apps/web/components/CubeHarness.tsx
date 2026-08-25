@@ -23,6 +23,7 @@ import { MoveLog } from "./MoveLog";
 import { ManualInput } from "./ManualInput";
 import { SessionPanel } from "./SessionPanel";
 import { SolveList } from "./SolveList";
+import { SolveDetail } from "./SolveDetail";
 
 const MAC_STORAGE_KEY = "cubing-companion.gan-mac";
 const SESSION_KEY = "cubing-companion.session-id";
@@ -98,6 +99,9 @@ export function CubeHarness() {
   const [scrambling, setScrambling] = useState(false);
   const [storageNote, setStorageNote] = useState<string | null>(null);
   const [scrambleKind, setScrambleKind] = useState<"random-state" | "random-move" | null>(null);
+  // The id rather than the record: the list is reloaded from storage after every change, and
+  // holding a stale copy would keep showing a solve that had been deleted.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Checked after mount: `navigator` does not exist during server rendering.
   useEffect(() => {
@@ -298,6 +302,7 @@ export function CubeHarness() {
   }, []);
 
   const connected = status.state === "connected";
+  const selected = solves.find((solve) => solve.id === selectedId) ?? null;
   const scrambleMatched =
     recorderState.phase === "ready" || recorderState.phase === "solving";
 
@@ -362,10 +367,18 @@ export function CubeHarness() {
             {storageNote}
           </p>
         )}
-        <SolveList solves={solves} onDelete={(id) => void deleteSolve(id)} />
+        <SolveList
+          solves={solves}
+          onDelete={(id) => void deleteSolve(id)}
+          onSelect={(solve) => setSelectedId(solve.id)}
+        />
         <DesyncPanel events={desyncs} />
         <MoveLog moves={moves} />
       </section>
+
+      {selected && (
+        <SolveDetail solve={selected} onClose={() => setSelectedId(null)} />
+      )}
     </div>
   );
 }

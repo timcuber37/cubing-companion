@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { segmentRecord, type SolveRecord } from "@cubing-companion/session";
-import type { Phase } from "@cubing-companion/analysis";
+import { PHASE_LABEL } from "./phaseLabels";
 
 /**
  * Recorded solves, newest first, each broken into CFOP phases.
@@ -14,9 +14,11 @@ import type { Phase } from "@cubing-companion/analysis";
 export function SolveList({
   solves,
   onDelete,
+  onSelect,
 }: {
   solves: SolveRecord[];
   onDelete: (id: string) => void;
+  onSelect: (solve: SolveRecord) => void;
 }) {
   return (
     <div className="rounded-md border border-neutral-800">
@@ -34,16 +36,20 @@ export function SolveList({
       ) : (
         <ul className="max-h-[32rem] divide-y divide-neutral-900 overflow-y-auto">
           {solves.map((solve) => (
-            <SolveRow key={solve.id} solve={solve} onDelete={onDelete} />
+            <SolveRow
+              key={solve.id}
+              solve={solve}
+              onDelete={onDelete}
+              onSelect={onSelect}
+            />
           ))}
         </ul>
       )}
 
       {solves.length > 0 && (
         <p className="border-t border-neutral-800 px-3 py-2 text-[11px] leading-relaxed text-neutral-600">
-          Times run from the first move to the last. That is not a stackmat time — it excludes
-          inspection and the hand movement a timer would capture — so it is not directly
-          comparable with the pro corpus.
+          Times run from the first move to the last — not a stackmat time. Open a solve to see
+          the full breakdown, where the pro baselines are corrected for that difference.
         </p>
       )}
     </div>
@@ -53,9 +59,11 @@ export function SolveList({
 function SolveRow({
   solve,
   onDelete,
+  onSelect,
 }: {
   solve: SolveRecord;
   onDelete: (id: string) => void;
+  onSelect: (solve: SolveRecord) => void;
 }) {
   // Segmentation is derived on read; memoised so scrolling does not re-run it.
   const analysed = useMemo(() => {
@@ -70,7 +78,11 @@ function SolveRow({
   const durations = analysed?.phaseDurations ?? [];
 
   return (
-    <li className="px-3 py-2">
+    <li
+      className="cursor-pointer px-3 py-2 hover:bg-neutral-900/60"
+      onClick={() => onSelect(solve)}
+      title="Open the full analysis"
+    >
       <div className="flex items-baseline justify-between gap-2">
         <div className="flex items-baseline gap-3">
           <span className="font-mono text-lg tabular-nums text-neutral-100">
@@ -96,7 +108,10 @@ function SolveRow({
         </div>
         <button
           type="button"
-          onClick={() => onDelete(solve.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete(solve.id);
+          }}
           className="text-xs text-neutral-600 hover:text-neutral-300"
           aria-label="Delete solve"
         >
@@ -112,7 +127,7 @@ function SolveRow({
               className="rounded bg-neutral-900 px-1.5 py-0.5 text-[11px] text-neutral-400"
               title={`${span.turns} turns, ${span.rotations} rotations${span.slot ? `, slot ${span.slot}` : ""}`}
             >
-              <span className="text-neutral-500">{shortName(span.phase)}</span>{" "}
+              <span className="text-neutral-500">{PHASE_LABEL[span.phase] ?? span.phase}</span>{" "}
               {durations[i] == null ? "—" : `${(durations[i]! / 1000).toFixed(2)}s`}
               <span className="text-neutral-600"> / {span.turns}</span>
             </span>
@@ -126,15 +141,3 @@ function SolveRow({
     </li>
   );
 }
-
-const SHORT: Record<string, string> = {
-  cross: "cross",
-  f2l1: "F2L1",
-  f2l2: "F2L2",
-  f2l3: "F2L3",
-  f2l4: "F2L4",
-  oll: "OLL",
-  pll: "PLL",
-  auf: "AUF",
-};
-const shortName = (phase: Phase) => SHORT[phase] ?? phase;

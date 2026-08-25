@@ -11,6 +11,7 @@
     "@cubing-companion/analysis": "*",
     "@cubing-companion/cube-link": "*",
     "@cubing-companion/engine": "*",
+    "@cubing-companion/metrics": "*",
     "idb": "^8.0.3"
   }
 }

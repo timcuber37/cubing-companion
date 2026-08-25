@@ -12,6 +12,7 @@ import {
   segmentFromState,
   type SegmentationResult,
 } from "@cubing-companion/analysis";
+import { phaseDurationsMs } from "@cubing-companion/metrics";
 import type { SolveRecord } from "./types.ts";
 
 export interface SegmentedSolve {
@@ -39,21 +40,13 @@ export function segmentRecord(record: SolveRecord): SegmentedSolve {
   const solution = parseMoves(record.solution);
   const segmentation = segmentFromState(startState, solution);
 
-  const phaseDurations = (segmentation.segmentation?.spans ?? []).map((span) => {
-    if (span.end === span.start) return 0;
-    // A phase runs from the move before it to its last move: the elapsed time *of* the phase
-    // is the gap between the previous move landing and this phase's final move landing.
-    //
-    // The first phase has no previous move, so it falls back to its own first — meaning it
-    // covers one interval fewer than a later phase of the same move count. That is correct
-    // rather than an off-by-one: the clock starts when the first move lands, so the time
-    // before it belongs to nobody, and it is what makes the phase durations sum to the
-    // solve duration exactly.
-    const from = record.moveTimestamps[span.start - 1] ?? record.moveTimestamps[span.start];
-    const to = record.moveTimestamps[span.end - 1];
-    if (from == null || to == null) return null;
-    return to - from;
-  });
+  // The rule for what a phase's elapsed time means lives in `metrics`, which owns the whole
+  // per-phase breakdown; keeping a second copy of it here would be two things free to drift
+  // apart. `metrics` depends only on `analysis` and `engine`, so this adds no cycle.
+  const phaseDurations = phaseDurationsMs(
+    segmentation.segmentation?.spans ?? [],
+    record.moveTimestamps,
+  );
 
   return { record, segmentation, phaseDurations };
 }

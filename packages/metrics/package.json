@@ -1,0 +1,20 @@
+{
+  "name": "@cubing-companion/metrics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-phase solve metrics and percentile scoring against the pro corpus.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "node scripts/generate-baselines.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/analysis": "*",
+    "@cubing-companion/engine": "*"
+  },
+  "devDependencies": {
+    "@cubing-companion/corpus": "*"
+  }
+}
