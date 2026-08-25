@@ -14,7 +14,12 @@ See [PLAN.md](PLAN.md) for the full roadmap.
 
 **A2 shipped: scramble, solve, and see where the time went.** Solves are captured from
 the cube, segmented into CFOP phases at 97% agreement with human labels, and kept locally.
-A0, A1, A2 and B1 are done.
+A0, A1, A2, B1 and B2 are done.
+
+The solver's finding, now measured over both phases it can search: across 7,725 corpus
+crosses the world's best build the **optimal cross only 31% of the time**, and across 1,482
+pair insertions they hit the **optimal insertion 27% of the time** — averaging 1.95 and 1.59
+moves more than necessary. That gap is what A5 exists to show you.
 
 | Track | Status |
 |---|---|
@@ -23,7 +28,7 @@ A0, A1, A2 and B1 are done.
 | A1 — smart cube link (GAN) | shipped — [`packages/cube-link`](packages/cube-link) + [`apps/web`](apps/web) |
 | A2 — capture + phase segmentation | shipped — [`packages/analysis`](packages/analysis) + [`packages/session`](packages/session) |
 | A3 — analysis + scoring | not started |
-| B2 — search baselines | not started |
+| B2 — search baselines | shipped — [`packages/solver`](packages/solver), cross + xcross + F2L insertion |
 | B3 — ranking model | not started |
 
 B1 landed ahead of A2 rather than after it. The reconstructions carry the reconstructor's
@@ -39,6 +44,7 @@ packages/corpus/     reco.nz reconstruction corpus: fetch, verify, segment, summ
 packages/cube-link/  cube input adapters: smart cube, manual entry, replay
 packages/analysis/   CFOP phase segmentation from cube state
 packages/session/    solve capture and local-first storage
+packages/solver/     cross, xcross and F2L-insertion candidate enumerators
 apps/web/            the app — connect a cube, scramble, solve, review
 ml/                  PyTorch training (B3) — placeholder, outside the npm workspaces
 data/                corpus cache and derived output — gitignored, reproducible

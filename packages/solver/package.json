@@ -1,0 +1,18 @@
+{
+  "name": "@cubing-companion/solver",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross and xcross candidate enumerators. Answers what could have been done, not what was.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "bench": "node bench/run.ts",
+    "corpus-check": "node bench/corpus-check.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/analysis": "*",
+    "@cubing-companion/engine": "*"
+  }
+}
