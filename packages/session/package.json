@@ -1,0 +1,16 @@
+{
+  "name": "@cubing-companion/session",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Solve capture and local-first storage: turns a move stream into segmented solve records.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/analysis": "*",
+    "@cubing-companion/cube-link": "*",
+    "@cubing-companion/engine": "*",
+    "idb": "^8.0.3"
+  }
+}

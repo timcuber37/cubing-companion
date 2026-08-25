@@ -12,14 +12,16 @@ See [PLAN.md](PLAN.md) for the full roadmap.
 
 ## Status
 
-**A1 shipped: connect a GAN cube and the virtual one follows.** A0, A1 and B1 are done.
+**A2 shipped: scramble, solve, and see where the time went.** Solves are captured from
+the cube, segmented into CFOP phases at 97% agreement with human labels, and kept locally.
+A0, A1, A2 and B1 are done.
 
 | Track | Status |
 |---|---|
 | A0 — cube engine | shipped — [`packages/engine`](packages/engine) |
 | B1 — pro reconstruction corpus | shipped — [`packages/corpus`](packages/corpus), 9,865 verified CFOP solves |
 | A1 — smart cube link (GAN) | shipped — [`packages/cube-link`](packages/cube-link) + [`apps/web`](apps/web) |
-| A2 — solve capture + phase segmentation | not started |
+| A2 — capture + phase segmentation | shipped — [`packages/analysis`](packages/analysis) + [`packages/session`](packages/session) |
 | A3 — analysis + scoring | not started |
 | B2 — search baselines | not started |
 | B3 — ranking model | not started |
@@ -35,7 +37,9 @@ against.
 packages/engine/     3x3x3 state, moves, notation, facelets — the dependency root
 packages/corpus/     reco.nz reconstruction corpus: fetch, verify, segment, summarize
 packages/cube-link/  cube input adapters: smart cube, manual entry, replay
-apps/web/            Next.js harness — connect a cube, watch the virtual one follow
+packages/analysis/   CFOP phase segmentation from cube state
+packages/session/    solve capture and local-first storage
+apps/web/            the app — connect a cube, scramble, solve, review
 ml/                  PyTorch training (B3) — placeholder, outside the npm workspaces
 data/                corpus cache and derived output — gitignored, reproducible
 ```

@@ -217,4 +217,23 @@ export function faceletsEqual(a: CubeState, b: CubeState): boolean {
   return toFacelets(a) === toFacelets(b);
 }
 
+/**
+ * The nine facelets of one face, reading left-to-right and top-to-bottom.
+ *
+ * Useful for questions about what a face *looks like* rather than where its pieces are —
+ * "is this face a single colour?" is the definition of a finished OLL, and asking it this
+ * way avoids the orientation conventions that make `co`/`eo` awkward for any face other
+ * than U and D.
+ */
+export function faceletsOfFace(facelets: string, face: Face): string {
+  const start = FACE_TO_STRING_INDEX[face]! * 9;
+  return facelets.slice(start, start + 9);
+}
+
+/** Whether a face shows a single colour. */
+export function isFaceUniform(state: CubeState, face: Face): boolean {
+  const nine = faceletsOfFace(toFacelets(state), face);
+  return nine === nine[0]!.repeat(9);
+}
+
 export { Face };

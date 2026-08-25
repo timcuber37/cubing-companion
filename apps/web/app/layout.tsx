@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cubing Companion — smart cube link",
-  description: "Connect a smart cube and watch a virtual one follow.",
+  title: "Cubing Companion",
+  description: "Record solves from a smart cube and see where the time went.",
 };
 
 export default function RootLayout({

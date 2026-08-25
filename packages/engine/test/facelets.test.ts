@@ -11,13 +11,15 @@ import fc from "fast-check";
 import {
   FaceletError,
   faceletsEqual,
+  faceletsOfFace,
   fromFacelets,
+  isFaceUniform,
   NUM_FACELETS,
   toFacelets,
 } from "../src/facelets.ts";
 import { parseMoves } from "../src/notation.ts";
 import { stateAfter, type Move } from "../src/moves.ts";
-import { CubeState } from "../src/state.ts";
+import { CubeState, Face } from "../src/state.ts";
 import { FAMILIES } from "../src/tables.ts";
 
 const SOLVED =
@@ -126,5 +128,45 @@ describe("faceletsEqual", () => {
       ),
       { numRuns: 200 },
     );
+  });
+});
+
+describe("reading a single face", () => {
+  it("returns nine facelets per face, in string order", () => {
+    const solved = toFacelets(CubeState.solved());
+    expect(faceletsOfFace(solved, Face.U)).toBe("UUUUUUUUU");
+    expect(faceletsOfFace(solved, Face.R)).toBe("RRRRRRRRR");
+    expect(faceletsOfFace(solved, Face.L)).toBe("LLLLLLLLL");
+    expect(faceletsOfFace(solved, Face.B)).toBe("BBBBBBBBB");
+  });
+
+  it("reads the face the engine means, not the one the string order implies", () => {
+    // Our Face order is U L F R B D; the string's is U R F D L B. Getting this wrong is
+    // silent — it returns nine plausible characters from the wrong face.
+    const afterY = toFacelets(stateAfter(parseMoves("y")));
+    expect(faceletsOfFace(afterY, Face.F)).toBe("RRRRRRRRR");
+    expect(faceletsOfFace(afterY, Face.L)).toBe("FFFFFFFFF");
+  });
+});
+
+describe("isFaceUniform", () => {
+  it("is true for every face of a solved cube", () => {
+    for (const face of [Face.U, Face.L, Face.F, Face.R, Face.B, Face.D]) {
+      expect(isFaceUniform(CubeState.solved(), face), String(face)).toBe(true);
+    }
+  });
+
+  it("is the question OLL actually asks", () => {
+    // A last layer that is oriented but not permuted still shows one colour: that is a
+    // finished OLL, and the reason orientation is asked in facelets rather than in co/eo.
+    const sune = stateAfter(parseMoves("R U R' U R U2 R'"));
+    expect(isFaceUniform(sune, Face.U)).toBe(false);
+    const oriented = stateAfter(parseMoves("R U R' U R U2 R' R U2 R' U' R U' R'"));
+    expect(isFaceUniform(oriented, Face.U)).toBe(true);
+  });
+
+  it("is false for a face a single turn has disturbed", () => {
+    expect(isFaceUniform(stateAfter(parseMoves("R")), Face.U)).toBe(false);
+    expect(isFaceUniform(stateAfter(parseMoves("F")), Face.U)).toBe(false);
   });
 });

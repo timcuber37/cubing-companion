@@ -5,10 +5,11 @@ export default function Home() {
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-8">
         <h1 className="text-2xl font-semibold text-neutral-100">
-          Smart cube link
+          Cubing Companion
         </h1>
         <p className="mt-1 text-sm text-neutral-400">
-          Track A1 — connect a GAN cube, or drive the virtual one by hand.
+          Connect a GAN cube or drive it by hand, then scramble and solve — every
+          attempt is timed, segmented into CFOP phases, and kept.
         </p>
       </header>
       <CubeHarness />

@@ -43,7 +43,9 @@ export {
 export {
   FaceletError,
   faceletsEqual,
+  faceletsOfFace,
   fromFacelets,
+  isFaceUniform,
   NUM_FACELETS,
   toFacelets,
 } from "./facelets.ts";
@@ -54,11 +56,21 @@ export {
   isEdgeSolved,
   isSolvedIgnoringOrientation,
   isStandardOrientation,
+  normalizeOrientation,
   ORIENTATION_COUNT,
   whereIsCorner,
   whereIsEdge,
 } from "./predicates.ts";
 
-export { randomScramble, randomScrambleString } from "./scramble.ts";
+export {
+  generateScramble,
+  RANDOM_MOVE_LENGTH,
+  RANDOM_STATE_TIMEOUT_MS,
+  randomMoveScramble,
+  randomScramble,
+  randomScrambleString,
+  type GeneratedScramble,
+  type ScrambleKind,
+} from "./scramble.ts";
 
 export { FAMILIES, type Family } from "./tables.ts";

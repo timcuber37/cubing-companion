@@ -1,0 +1,16 @@
+{
+  "name": "@cubing-companion/analysis",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CFOP phase segmentation from cube state. Input-agnostic: never depends on how the moves arrived.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "evaluate": "node scripts/evaluate.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/engine": "*"
+  }
+}

@@ -10,13 +10,45 @@ import {
   type DesyncEvent,
   type TimedMove,
 } from "@cubing-companion/cube-link";
-import { NotationError } from "@cubing-companion/engine";
+import { generateScramble, NotationError } from "@cubing-companion/engine";
+import {
+  MemoryStore,
+  SolveRecorder,
+  type RecorderState,
+  type SolveRecord,
+  type SolveStore,
+} from "@cubing-companion/session";
 import { TwistyPlayer, type TwistyHandle } from "./TwistyPlayer";
 import { MoveLog } from "./MoveLog";
 import { ManualInput } from "./ManualInput";
+import { SessionPanel } from "./SessionPanel";
+import { SolveList } from "./SolveList";
 
 const MAC_STORAGE_KEY = "cubing-companion.gan-mac";
+const SESSION_KEY = "cubing-companion.session-id";
 const MAX_LOG = 200;
+
+const IDLE_RECORDER: RecorderState = {
+  phase: "idle",
+  scrambleText: null,
+  moveCount: 0,
+  elapsedMs: null,
+  record: null,
+};
+
+/**
+ * One session per browser, reused across reloads.
+ *
+ * Keyed in localStorage rather than created fresh each load, so refreshing mid-session does
+ * not split the solves into two groups.
+ */
+function sessionId(): string {
+  const existing = window.localStorage.getItem(SESSION_KEY);
+  if (existing) return existing;
+  const created = `session-${Date.now()}`;
+  window.localStorage.setItem(SESSION_KEY, created);
+  return created;
+}
 
 type Status =
   | { state: "idle" }
@@ -59,10 +91,61 @@ export function CubeHarness() {
   const [desyncs, setDesyncs] = useState<DesyncEvent[]>([]);
   const [skew, setSkew] = useState<number | null>(null);
   const [bluetoothAvailable, setBluetoothAvailable] = useState(true);
+  const recorderRef = useRef<SolveRecorder | null>(null);
+  const storeRef = useRef<SolveStore | null>(null);
+  const [recorderState, setRecorderState] = useState<RecorderState>(IDLE_RECORDER);
+  const [solves, setSolves] = useState<SolveRecord[]>([]);
+  const [scrambling, setScrambling] = useState(false);
+  const [storageNote, setStorageNote] = useState<string | null>(null);
+  const [scrambleKind, setScrambleKind] = useState<"random-state" | "random-move" | null>(null);
 
   // Checked after mount: `navigator` does not exist during server rendering.
   useEffect(() => {
     setBluetoothAvailable(isWebBluetoothAvailable());
+  }, []);
+
+  // Storage is opened lazily and client-only: `IndexedDbStore` is imported here rather than
+  // at module scope so server rendering never touches `indexedDB`, the same pattern the
+  // twisty player and the BLE library use.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { IndexedDbStore, isIndexedDbAvailable } = await import(
+        "@cubing-companion/session"
+      );
+      if (cancelled) return;
+      let store: SolveStore;
+      if (isIndexedDbAvailable()) {
+        store = new IndexedDbStore();
+      } else {
+        // Private browsing can refuse to open a database. Falling back keeps the app usable
+        // rather than failing to load; the note tells the user solves will not persist.
+        store = new MemoryStore();
+        setStorageNote("Storage unavailable — solves will be lost on reload.");
+      }
+      try {
+        const id = sessionId();
+        await store.ensureSession({ id, startedAt: Date.now(), label: "Session" });
+        storeRef.current = store;
+        setSolves(await store.listSolves(id));
+      } catch (cause) {
+        storeRef.current = new MemoryStore();
+        setStorageNote(
+          `Storage failed to open (${cause instanceof Error ? cause.message : String(cause)}); solves will not persist.`,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Persist a finished record and refresh the list. */
+  const saveRecord = useCallback(async (record: SolveRecord) => {
+    const store = storeRef.current;
+    if (!store) return;
+    await store.putSolve(record);
+    setSolves(await store.listSolves(record.sessionId));
   }, []);
 
   const teardown = useCallback(async () => {
@@ -85,10 +168,28 @@ export function CubeHarness() {
     setMoves([]);
     setDesyncs([]);
 
+    const recorder = new SolveRecorder({
+      sessionId: sessionId(),
+      source: source.kind,
+    });
+    recorderRef.current = recorder;
+    setRecorderState(recorder.getState());
+
     tracker.onMove((move) => {
       playerRef.current?.addMove(move.move);
       setMoves((previous) => [move, ...previous].slice(0, MAX_LOG));
       setSkew(tracker.skewPercent());
+
+      // Order matters: the move that solves the cube must be recorded as part of the solve,
+      // so the recorder sees it before it sees the resulting position.
+      const before = recorder.getState().phase;
+      recorder.handleMove(move);
+      recorder.handleState(tracker.getState());
+      const after = recorder.getState();
+      setRecorderState(after);
+      if (before !== "complete" && after.phase === "complete" && after.record) {
+        void saveRecord(after.record);
+      }
     });
 
     tracker.onDesync((event) => {
@@ -97,7 +198,13 @@ export function CubeHarness() {
 
     // A re-seed means the tracked position was replaced; the virtual cube has to jump
     // rather than animate, because the moves in between were never observed.
-    tracker.onReseed((state) => playerRef.current?.setState(state));
+    tracker.onReseed((state) => {
+      playerRef.current?.setState(state);
+      // The position changed without any move arriving, so the recorder has to be told —
+      // otherwise a cube that was re-seeded straight onto the scramble would never arm.
+      recorder.handleState(state);
+      setRecorderState(recorder.getState());
+    });
 
     source.onDisconnect(() => {
       setStatus({ state: "idle" });
@@ -150,7 +257,49 @@ export function CubeHarness() {
     return manualRef.current?.pressKey(key) ?? false;
   }, []);
 
+  const newScramble = useCallback(async () => {
+    const recorder = recorderRef.current;
+    const tracker = trackerRef.current;
+    if (!recorder || !tracker) return;
+    setScrambling(true);
+    try {
+      // Random-state scrambles need a WASM solver in a worker, which some bundlers cannot
+      // instantiate; `generateScramble` falls back to random-move and says which it produced.
+      const { text, kind } = await generateScramble();
+      setScrambleKind(kind);
+      recorder.arm(text, tracker.getState());
+      setRecorderState(recorder.getState());
+    } finally {
+      setScrambling(false);
+    }
+  }, []);
+
+  const startFromHere = useCallback(() => {
+    const recorder = recorderRef.current;
+    const tracker = trackerRef.current;
+    if (!recorder || !tracker) return;
+    recorder.startFrom(tracker.getState());
+    setRecorderState(recorder.getState());
+  }, []);
+
+  const discardSolve = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+    const record = recorder.discard();
+    setRecorderState(recorder.getState());
+    if (record) void saveRecord(record);
+  }, [saveRecord]);
+
+  const deleteSolve = useCallback(async (id: string) => {
+    const store = storeRef.current;
+    if (!store) return;
+    await store.deleteSolve(id);
+    setSolves(await store.listSolves(sessionId()));
+  }, []);
+
   const connected = status.state === "connected";
+  const scrambleMatched =
+    recorderState.phase === "ready" || recorderState.phase === "solving";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -190,12 +339,30 @@ export function CubeHarness() {
           bluetoothAvailable={bluetoothAvailable}
         />
 
+        {connected && (
+          <SessionPanel
+            state={recorderState}
+            scrambleKind={scrambleKind}
+            scrambleMatched={scrambleMatched}
+            onNewScramble={() => void newScramble()}
+            onStartFromHere={startFromHere}
+            onDiscard={discardSolve}
+            busy={scrambling}
+          />
+        )}
+
         {connected && status.kind === "manual" && (
           <ManualInput onApply={applyAlg} onKey={pressKey} />
         )}
       </section>
 
       <section className="space-y-4">
+        {storageNote && (
+          <p className="rounded-md border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
+            {storageNote}
+          </p>
+        )}
+        <SolveList solves={solves} onDelete={(id) => void deleteSolve(id)} />
         <DesyncPanel events={desyncs} />
         <MoveLog moves={moves} />
       </section>

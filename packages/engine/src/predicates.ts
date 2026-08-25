@@ -6,7 +6,7 @@
  * same primitives. Keeping method assumptions out of the engine is what lets both consume
  * it without inheriting the other's opinions.
  */
-import { applyMoves } from "./moves.ts";
+import { applyMoves, invertMoves } from "./moves.ts";
 import type { Move } from "./moves.ts";
 import {
   CubeState,
@@ -91,6 +91,64 @@ const ORIENTATIONS: ReadonlyMap<string, CubeState> = (() => {
   }
   return byCenters;
 })();
+
+/**
+ * The rotation that produced each centre arrangement, as a move sequence.
+ *
+ * Same breadth-first search as {@link ORIENTATIONS}, but keeping the path rather than the
+ * state, so an arrangement can be undone rather than merely recognised.
+ */
+const ROTATION_TO_ORIENTATION: ReadonlyMap<string, readonly Move[]> = (() => {
+  const byCenters = new Map<string, readonly Move[]>();
+  const seen = new Set<string>();
+  const queue: { state: CubeState; path: Move[] }[] = [
+    { state: CubeState.solved(), path: [] },
+  ];
+  seen.add(queue[0]!.state.key());
+  byCenters.set(queue[0]!.state.centers.join(","), []);
+
+  for (let head = 0; head < queue.length; head++) {
+    const current = queue[head]!;
+    for (const rotation of [X, Y, Z]) {
+      const next = applyMoves(current.state, [rotation]);
+      const key = next.key();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const path = [...current.path, rotation];
+      queue.push({ state: next, path });
+      const centersKey = next.centers.join(",");
+      // Breadth-first, so the first path to reach an arrangement is a shortest one.
+      if (!byCenters.has(centersKey)) byCenters.set(centersKey, path);
+    }
+  }
+  return byCenters;
+})();
+
+/**
+ * Rotate a state so its centres sit in the standard arrangement.
+ *
+ * Whole-cube rotations change which slot every piece occupies without changing anything
+ * about the solve, so any predicate written against fixed slots — "is this corner home?",
+ * "is the cross built?" — gives the wrong answer on a rotated cube. Normalising first makes
+ * those predicates orientation-agnostic.
+ *
+ * This is what lets one segmenter handle both reconstructions, which are full of rotations,
+ * and smart-cube streams, which contain none because a cube cannot sense them.
+ *
+ * A useful consequence: in the normalised frame a face's index *is* its colour, since face
+ * `i` holds centre piece `i`. Cross colour therefore needs no separate bookkeeping.
+ */
+export function normalizeOrientation(state: CubeState): CubeState {
+  const rotation = ROTATION_TO_ORIENTATION.get(state.centers.join(","));
+  if (rotation === undefined) {
+    // Only reachable if the centres are not a legal arrangement, which the engine's own
+    // moves cannot produce — so this means the state came from outside and is malformed.
+    throw new RangeError(
+      `centres are not in any legal orientation: ${state.centers.join(",")}`,
+    );
+  }
+  return applyMoves(state, invertMoves(rotation));
+}
 
 /** The number of distinct whole-cube orientations. Exposed for testing. */
 export const ORIENTATION_COUNT = ORIENTATIONS.size;
