@@ -27,8 +27,11 @@ export {
 } from "./pauses.ts";
 
 export {
-  asRating,
   corpusRank,
+  CORPUS_ANCHORS,
+  distributionOf,
+  MIN_OWN_SOLVES,
+  SELF_ANCHORS,
   FLUIDITY_BANDS,
   fluidityBand,
   rateRotations,
@@ -38,6 +41,8 @@ export {
   scoreWindows,
   type PhaseScore,
   type Rated,
+  type Reference,
+  type ScoreOptions,
   type SolveScore,
   type WindowScore,
 } from "./score.ts";

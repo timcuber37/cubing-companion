@@ -11,6 +11,24 @@
 /** Where a solve's moves came from. Recorded so timings are never compared across kinds. */
 export type SolveSource = "smart-cube" | "manual" | "replay";
 
+/**
+ * Whether this kind of source can see whole-cube rotations at all.
+ *
+ * A rotation turns no face against the core, so the sensors that produce a smart cube's move
+ * stream register nothing — no smart cube on the market reports one as a move. Some GAN
+ * generations carry an orientation sensor that could be used to infer them, but that is a
+ * different signal we do not yet read.
+ *
+ * This matters because "no rotations observed" and "no rotations performed" are indistinguishable
+ * in the record and mean opposite things. A solve captured from a smart cube always shows zero,
+ * and scoring that against a corpus whose median solver rotates four times awards a perfect mark
+ * for a quantity nobody measured. Scoring uses this to leave rotations out entirely rather than
+ * to count them as zero.
+ */
+export function observesRotations(source: SolveSource): boolean {
+  return source !== "smart-cube";
+}
+
 /** How a solve ended. */
 export type SolveOutcome = "solved" | "discarded";
 
@@ -78,6 +96,18 @@ export type RecorderPhase =
   | "ready"
   | "solving"
   | "complete";
+
+/**
+ * Whether this phase is a position worth planning a cross from.
+ *
+ * Only `ready` is. During `scrambling` the cube is part-way through a scramble, and every turn
+ * is a different position — planning each of them costs a colour-neutral sweep to answer a
+ * question nobody asked, since the cross for a half-built scramble is not a thing anyone wants.
+ * `idle` has no scramble to plan, and by `solving` the cross is already behind you.
+ */
+export function worthPlanning(phase: RecorderPhase): boolean {
+  return phase === "ready";
+}
 
 export interface RecorderState {
   readonly phase: RecorderPhase;

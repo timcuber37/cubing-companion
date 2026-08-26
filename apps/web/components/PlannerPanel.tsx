@@ -10,6 +10,7 @@ import {
   type Face,
 } from "@cubing-companion/engine";
 import { COLOURS, colourOf, type ColourPlan, type PlannedSolution } from "@cubing-companion/planner";
+import { worthPlanning, type RecorderPhase } from "@cubing-companion/session";
 import { usePlanner } from "./usePlanner";
 
 /** WCA inspection. The point of practice mode is that it is the real budget, not a comfortable one. */
@@ -25,7 +26,14 @@ type Mode = "live" | "practice" | "next-pair";
  * The first feature that helps *before* a solve rather than after it. Two modes over one results
  * view: plan from the cube as it stands, or take a scramble and plan it under inspection time.
  */
-export function PlannerPanel({ facelets }: { facelets: string | null }) {
+export function PlannerPanel({
+  facelets,
+  phase,
+}: {
+  facelets: string | null;
+  /** Where the recorder is, so the cross planner only runs on a position worth planning. */
+  phase: RecorderPhase;
+}) {
   const [mode, setMode] = useState<Mode>("live");
   const [faces, setFaces] = useState<Set<Face>>(() => new Set(COLOURS.map((c) => c.face)));
   const {
@@ -52,12 +60,28 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
     [faces, plan],
   );
 
-  // Live mode re-plans as the cube changes, debounced so a burst of turns costs one sweep.
+  /**
+   * Plan the cross only once the cube is scrambled and waiting to start.
+   *
+   * Every turn of the scramble is a different position, and a colour-neutral sweep over each of
+   * them costs a couple of seconds to answer a question nobody asked — the cross for a half-built
+   * scramble is not a thing anyone wants to know. `ready` is the one moment the answer matters:
+   * the cube is on the scramble and you are about to look at it.
+   */
+  const planReady = worthPlanning(phase);
+
   useEffect(() => {
-    if (mode !== "live" || !facelets || faces.size === 0) return;
+    if (mode !== "live" || !planReady || !facelets || faces.size === 0) return;
     const timer = setTimeout(() => request(facelets), DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [mode, facelets, faces, request]);
+  }, [mode, planReady, facelets, faces, request]);
+
+  // A plan belongs to the scramble it was made for. Once a new one is being applied the old
+  // answer is about a position that no longer exists, so it goes rather than sitting there
+  // looking current. It survives into the solve, where it is what you meant to do.
+  useEffect(() => {
+    if (mode === "live" && (phase === "scrambling" || phase === "idle")) reset();
+  }, [mode, phase, reset]);
 
   // Pair order, from B3's learned ranker. Same debounce, same live position.
   useEffect(() => {
@@ -204,6 +228,14 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
           <p className="text-sm text-neutral-600">
             Connect a cube, or use manual input, and the planner will read whatever position it is
             in.
+          </p>
+        )}
+
+        {mode === "live" && facelets && !planReady && plans.length === 0 && (
+          <p className="text-sm text-neutral-600">
+            {phase === "solving"
+              ? "Solving — the cross is behind you."
+              : "Waiting for the cube to reach the scramble."}
           </p>
         )}
 

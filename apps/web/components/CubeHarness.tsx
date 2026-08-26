@@ -6,8 +6,10 @@ import {
   CubeTracker,
   isWebBluetoothAvailable,
   ManualSource,
+  GanCubeSource,
   type CubeSource,
   type DesyncEvent,
+  type GanHardwareInfo,
   type TimedMove,
 } from "@cubing-companion/cube-link";
 import {
@@ -72,14 +74,30 @@ type Status =
  * not expose it. The library recovers it automatically on most platforms; this is the
  * fallback for when it cannot, and it is the most likely first-run snag.
  */
+/**
+ * Ask for the cube's MAC address, but only once it is genuinely needed.
+ *
+ * The library calls this **twice**: once before it tries to detect the address itself, and again
+ * as a last resort if that failed. Answering the first call put a dialog in front of every user,
+ * including the great majority whose cube is detected automatically — so the first call declines
+ * and lets the library do its job.
+ *
+ * The fallback is kept rather than deleted: browsers without `watchAdvertisements` cannot detect
+ * it at all, and for them typing it in is the difference between a working cube and a dead one.
+ */
 function promptForMac(deviceName: string | undefined, isRetry: boolean): string | null {
-  const stored = window.localStorage.getItem(MAC_STORAGE_KEY);
-  if (stored && !isRetry) return stored;
+  // Not the last resort yet — let the library try the advertisement data first. It is more
+  // reliable than anything remembered here, which could be a different cube entirely.
+  if (!isRetry) return null;
 
+  const stored = window.localStorage.getItem(MAC_STORAGE_KEY);
   const entered = window.prompt(
     `Enter the MAC address for ${deviceName ?? "your cube"} (format AB:CD:EF:12:34:56).\n\n` +
-      "GAN cubes need this to decrypt their traffic, and the browser will not reveal it. " +
-      "You can find it in the GAN app, or on some cubes printed inside the battery cover.",
+      "This cube's address could not be detected automatically. GAN cubes need it to decrypt " +
+      "their traffic, and the browser will not reveal it.\n\n" +
+      "Enabling chrome://flags/#enable-experimental-web-platform-features usually fixes this " +
+      "for good. Otherwise read it from chrome://bluetooth-internals (Devices \u2192 Start Scan), " +
+      "a phone Bluetooth scanner, or inside the battery cover.",
     stored ?? "",
   );
   if (!entered) return null;
@@ -110,6 +128,12 @@ export function CubeHarness() {
   // The id rather than the record: the list is reloaded from storage after every change, and
   // holding a stale copy would keep showing a solve that had been deleted.
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // What the cube says it is. Chiefly for `gyroSupported`: it decides whether whole-cube
+  // rotations can ever be observed, and the answer depends on the protocol generation rather
+  // than on the model name printed on the box.
+  const [hardware, setHardware] = useState<GanHardwareInfo | null>(null);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
   // The live position, as a facelet string, for the planner to read. Kept as facelets rather
   // than a `CubeState` because that is what crosses into the worker anyway.
   const [facelets, setFacelets] = useState<string | null>(null);
@@ -180,6 +204,16 @@ export function CubeHarness() {
 
     const tracker = new CubeTracker(source);
     trackerRef.current = tracker;
+
+    setHardware(null);
+    if (source instanceof GanCubeSource) {
+      source.onHardware((info) => {
+        setHardware(info);
+        // Logged as well as shown: this is the first thing worth knowing when a cube behaves
+        // unexpectedly, and pasting a console line is quicker than reading it off the screen.
+        console.info("[cube] hardware", info);
+      });
+    }
     setMoves([]);
     setDesyncs([]);
 
@@ -305,6 +339,80 @@ export function CubeHarness() {
     }
   }, []);
 
+  /**
+   * Ask the cube what it actually shows, and put both the tracker and the display there.
+   *
+   * There are **two** things that can be out of step, and only one of them is what `verify`
+   * fixes. It reconciles the *tracked* position against the cube. The cube on screen is a
+   * separate thing again, driven move by move through the player's animation queue, and it can
+   * fall behind on its own — a move that arrives while the previous one is still animating is
+   * one way, and no amount of agreement between tracker and cube will pull it back.
+   *
+   * So the display is pushed unconditionally, not only when `verify` reports a mismatch.
+   * Otherwise the common case — tracker right, screen wrong — reports "already in sync" and
+   * changes nothing, which is precisely the complaint that prompted this.
+   */
+  const resync = useCallback(async () => {
+    const tracker = trackerRef.current;
+    if (!tracker) return;
+    setSyncing(true);
+    try {
+      const trackerWasRight = await tracker.verify();
+      // `verify` only emits a re-seed when it found a mismatch, so the display has to be set
+      // here rather than left to the re-seed handler.
+      const state = tracker.getState();
+      playerRef.current?.setState(state);
+      setFacelets(toFacelets(state));
+      setSyncNote(
+        trackerWasRight
+          ? "display re-synced from the cube"
+          : "re-synced — the tracked position was off",
+      );
+    } catch (cause) {
+      setSyncNote(cause instanceof Error ? cause.message : "could not reach the cube");
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
+
+  // The note is a confirmation, not a status: it should not linger as though it still applied.
+  useEffect(() => {
+    if (syncNote === null) return;
+    const timer = setTimeout(() => setSyncNote(null), 4000);
+    return () => clearTimeout(timer);
+  }, [syncNote]);
+
+  /**
+   * Declare the cube solved, and re-base everything on that.
+   *
+   * `Sync` reads the cube's position and trusts it. When the cube itself has lost track — and
+   * they do, if turned while asleep or if a fast half turn reads as a quarter — reading it just
+   * copies the mistake faithfully, which looks exactly like sync being broken. This is the other
+   * direction: put a solved cube in your hand and tell it so.
+   */
+  const markSolved = useCallback(async () => {
+    const tracker = trackerRef.current;
+    const source = sourceRef.current;
+    if (!tracker) return;
+    setSyncing(true);
+    try {
+      const solved = CubeState.solved();
+      if (source instanceof GanCubeSource) {
+        await source.resetToSolved();
+      } else if (source instanceof ManualSource) {
+        source.setState(solved);
+      }
+      tracker.reseed(solved);
+      playerRef.current?.setState(solved);
+      setFacelets(toFacelets(solved));
+      setSyncNote("cube re-based as solved");
+    } catch (cause) {
+      setSyncNote(cause instanceof Error ? cause.message : "could not reach the cube");
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
+
   const startFromHere = useCallback(() => {
     const recorder = recorderRef.current;
     const tracker = trackerRef.current;
@@ -357,6 +465,29 @@ export function CubeHarness() {
           {connected && (
             <button
               type="button"
+              onClick={() => void resync()}
+              disabled={syncing}
+              title="Read the cube's actual position and match the virtual one to it."
+              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {syncing ? "Syncing…" : "Sync"}
+            </button>
+          )}
+          {connected && (
+            <button
+              type="button"
+              onClick={() => void markSolved()}
+              disabled={syncing}
+              title="Use when the cube itself has lost track: hold a solved cube and press this to re-base it."
+              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
+            >
+              Cube is solved
+            </button>
+          )}
+          {syncNote && <span className="text-xs text-neutral-500">{syncNote}</span>}
+          {connected && (
+            <button
+              type="button"
               onClick={() => void teardown().then(() => setStatus({ state: "idle" }))}
               className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-800"
             >
@@ -369,6 +500,7 @@ export function CubeHarness() {
           status={status}
           skew={skew}
           bluetoothAvailable={bluetoothAvailable}
+          hardware={hardware}
         />
 
         {connected && (
@@ -394,7 +526,7 @@ export function CubeHarness() {
             {storageNote}
           </p>
         )}
-        <PlannerPanel facelets={facelets} />
+        <PlannerPanel facelets={facelets} phase={recorderState.phase} />
         <SolveList
           solves={solves}
           onDelete={(id) => void deleteSolve(id)}
@@ -405,7 +537,16 @@ export function CubeHarness() {
       </section>
 
       {selected && (
-        <SolveDetail solve={selected} onClose={() => setSelectedId(null)} />
+        <SolveDetail
+          solve={selected}
+          onClose={() => setSelectedId(null)}
+          // Every other timed solve, so speed is rated against you rather than against pros.
+          // The solve being examined is excluded: comparing it with itself would pull the
+          // reference towards whatever it happens to be.
+          recentDurationsMs={solves
+            .filter((s) => s.id !== selected.id && s.durationMs !== null)
+            .map((s) => s.durationMs!)}
+        />
       )}
     </div>
   );
@@ -422,10 +563,12 @@ function StatusLine({
   status,
   skew,
   bluetoothAvailable,
+  hardware,
 }: {
   status: Status;
   skew: number | null;
   bluetoothAvailable: boolean;
+  hardware: GanHardwareInfo | null;
 }) {
   if (!bluetoothAvailable) {
     return (
@@ -458,6 +601,25 @@ function StatusLine({
     <p className="text-sm text-neutral-400">
       <span className="font-medium text-emerald-400">Connected</span> to {status.name}{" "}
       <span className="text-neutral-600">({status.kind})</span>
+      {hardware && (
+        <>
+          {" · "}
+          <span title={`hardware ${hardware.hardwareVersion ?? "?"}, firmware ${hardware.softwareVersion ?? "?"}`}>
+            {hardware.hardwareName ?? "unknown model"}
+          </span>
+          {" · "}
+          <span
+            className={hardware.gyroSupported ? "text-neutral-400" : "text-neutral-600"}
+            title={
+              hardware.gyroSupported
+                ? "This cube reports its orientation, so whole-cube rotations could be detected."
+                : "This cube does not report orientation. A rotation turns no face against the core, so nothing observes it — rotations will not appear in your solves, and are left out of the score rather than counted as zero."
+            }
+          >
+            gyro {hardware.gyroSupported === null ? "?" : hardware.gyroSupported ? "yes" : "no"}
+          </span>
+        </>
+      )}
       {skew !== null && (
         <>
           {" · "}cube clock {skew >= 0 ? "+" : ""}

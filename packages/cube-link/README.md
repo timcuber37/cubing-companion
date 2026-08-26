@@ -105,6 +105,22 @@ verified against a vector from GAN's own documentation.
 | `GanCubeSource` | The real cube. Needs Chromium and a user gesture. |
 | `ManualSource` | Keyboard and pasted algorithms. A first-class input, not a fallback — it is what keeps A2 and A3 buildable without hardware. |
 
+### When things fall out of step
+
+Three different things can disagree, and they need different remedies:
+
+| what is wrong | fix |
+|---|---|
+| the tracked position drifted from the cube | `CubeTracker.verify()` — asks the cube and adopts its answer |
+| the *display* drifted, while tracker and cube agree | push `tracker.getState()` at the player; `verify()` will not do it, because from its point of view nothing is wrong |
+| the **cube itself** lost track | `GanCubeSource.resetToSolved()` — hold a solved cube and say so |
+
+The third is the one that looks like a broken sync. A cube keeps its own idea of the position from
+its sensors and can be wrong — turned while asleep, or a fast half turn read as a quarter. Reading
+it then reports the mistake faithfully, and no amount of re-reading helps. `REQUEST_RESET` is the
+only way back, and it is destructive: it discards whatever the cube believed, so it is only
+correct when the cube really is solved.
+
 ### Placing a virtual cube
 
 A real cube gets scrambled by hand; a virtual one has to be put there. `ManualSource.setState`
@@ -120,6 +136,11 @@ asked for a new scramble.
 
 ## MAC addresses
 
-GAN cubes derive their encryption key from the device MAC, and Web Bluetooth deliberately
-does not expose it. The library recovers it automatically on most platforms; pass
-`macAddressPrompt` for when it cannot. Expect this to be the most common first-run snag.
+GAN cubes derive their encryption key from the device MAC, and Web Bluetooth deliberately does
+not expose it. The library recovers it from the cube's advertisement data on platforms that
+support `watchAdvertisements()`, which is most of them.
+
+`macAddressPrompt` is called **twice**: once before the library tries to detect the address, and
+again as a last resort if that failed. Answer only the second. Answering the first puts a dialog
+in front of every user, including the great majority who never needed one — which is exactly what
+the app did until somebody pointed out that their cube connected fine on its own.

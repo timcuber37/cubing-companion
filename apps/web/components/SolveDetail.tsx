@@ -9,7 +9,7 @@ import {
   type CubeState,
   type Move,
 } from "@cubing-companion/engine";
-import { segmentRecord, type SolveRecord } from "@cubing-companion/session";
+import { observesRotations, segmentRecord, type SolveRecord } from "@cubing-companion/session";
 import {
   computeMetrics,
   scoreSolve,
@@ -35,9 +35,12 @@ const SPEEDS = [0.25, 0.5, 1] as const;
 export function SolveDetail({
   solve,
   onClose,
+  recentDurationsMs = [],
 }: {
   solve: SolveRecord;
   onClose: () => void;
+  /** Your other recent solves, so speed can be rated against you rather than against pros. */
+  recentDurationsMs?: readonly number[];
 }) {
   const analysis = useMemo(() => analyse(solve), [solve]);
   const [position, setPosition] = useState(0);
@@ -244,7 +247,11 @@ export function SolveDetail({
             </section>
 
             <section className="space-y-4">
-              <ScorePanel metrics={analysis.metrics} />
+              <ScorePanel
+                metrics={analysis.metrics}
+                solve={solve}
+                recentDurationsMs={recentDurationsMs}
+              />
               <DiffPanel
                 startFacelets={solve.startFacelets}
                 solution={solve.solution}
@@ -261,14 +268,29 @@ export function SolveDetail({
   );
 }
 
-function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
-  const score = useMemo(() => scoreSolve(metrics), [metrics]);
+function ScorePanel({
+  metrics,
+  solve,
+  recentDurationsMs,
+}: {
+  metrics: SolveMetrics;
+  solve: SolveRecord;
+  recentDurationsMs: readonly number[];
+}) {
+  const score = useMemo(
+    () =>
+      scoreSolve(metrics, {
+        rotationsObserved: observesRotations(solve.source),
+        recentDurationsMs,
+      }),
+    [metrics, solve.source, recentDurationsMs],
+  );
 
   return (
     <div className="rounded-md border border-neutral-800 p-3">
       <div className="flex items-baseline justify-between">
         <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-          Against the pro corpus
+          How this solve rates
         </h3>
         {score.rating !== null && (
           <span className="font-mono tabular-nums text-neutral-100">
@@ -282,8 +304,20 @@ function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
           solver they were a 63 and gives them nothing to do about it. */}
       <dl className="mt-2 space-y-1.5">
         {score.components.map(({ label, rated }) => (
-          <div key={label} className="grid grid-cols-[5rem_1fr_2.5rem] items-center gap-2">
-            <dt className="text-xs text-neutral-400">{label}</dt>
+          <div key={label} className="grid grid-cols-[7.5rem_1fr_2.5rem] items-center gap-2">
+            <dt className="whitespace-nowrap text-xs text-neutral-400">
+              {label}
+              <span
+                className="ml-1 text-[10px] text-neutral-600"
+                title={
+                  rated.reference === "you"
+                    ? `Against your own recent solves — median ${(rated.distribution.median / 1000).toFixed(2)}s over ${rated.distribution.n} of them.`
+                    : `Against the pro corpus — median ${rated.distribution.median}.`
+                }
+              >
+                {rated.reference === "you" ? "vs you" : "vs pros"}
+              </span>
+            </dt>
             <dd>
               <ScoreBar rated={rated} />
             </dd>
@@ -293,6 +327,12 @@ function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
           </div>
         ))}
       </dl>
+
+      {score.omitted.map((entry) => (
+        <p key={entry.label} className="mt-1.5 text-[11px] leading-relaxed text-amber-600/90">
+          {entry.label} not scored — {entry.reason}.
+        </p>
+      ))}
 
       <div className="mt-2 flex items-baseline justify-between gap-2 text-[11px] text-neutral-500">
         <span>
@@ -310,11 +350,14 @@ function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
       </div>
 
       <p className="mt-2 border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
-        Rated against {score.baselineNote.corpusSolves.toLocaleString()} world-class
-        reconstructions: <strong className="text-neutral-400">5.0 is the median one of those</strong>,
-        so anything near it is a very good day and 10 means you beat the lot. Fluidity and pauses
-        are measured but not scored — reconstructions carry no per-move timing, so there is no
-        baseline for them.
+        Move counts are rated against {score.baselineNote.corpusSolves.toLocaleString()}{" "}
+        world-class reconstructions, on a scale where{" "}
+        <strong className="text-neutral-400">the median one of those is 8</strong> and their
+        slowest tenth is 6 — being anywhere in that band is a very good day. Speed is rated
+        against <strong className="text-neutral-400">your own recent solves</strong> instead,
+        where 5 is a typical day for you: pros are far enough ahead that scoring your time
+        against theirs would read zero however much you improved. Fluidity and pauses are
+        measured but not scored — reconstructions carry no per-move timing.
       </p>
     </div>
   );

@@ -16,6 +16,7 @@ import {
 } from "@cubing-companion/engine";
 import { CubeTracker, serialGap } from "../src/tracker.ts";
 import { ManualSource } from "../src/manual.ts";
+import { GanCubeSource } from "../src/gan.ts";
 import { recordingFromAlg, ReplaySource } from "../src/replay.ts";
 import type { DesyncEvent } from "../src/source.ts";
 
@@ -283,5 +284,37 @@ describe("setting the position directly", () => {
     // Nothing to reconcile: the two were placed together.
     expect(await tracker.verify()).toBe(true);
     await tracker.stop();
+  });
+});
+
+/**
+ * Telling the cube it is solved.
+ *
+ * The remedy for the cube itself losing track, which reading its position cannot fix: a faithful
+ * read of a mistaken cube reports the mistake.
+ */
+describe("resetting a cube's own idea of the position", () => {
+  it("sends the reset command the protocol defines for it", async () => {
+    const sent: { type: string }[] = [];
+    const source = new GanCubeSource({
+      events$: { subscribe: () => ({ unsubscribe: () => {} }) },
+      sendCubeCommand: async (command) => {
+        sent.push(command);
+      },
+      disconnect: async () => {},
+    });
+
+    await source.resetToSolved();
+    expect(sent).toEqual([{ type: "REQUEST_RESET" }]);
+  });
+
+  it("refuses once the cube is gone, rather than resolving as though it worked", async () => {
+    const source = new GanCubeSource({
+      events$: { subscribe: () => ({ unsubscribe: () => {} }) },
+      sendCubeCommand: async () => {},
+      disconnect: async () => {},
+    });
+    await source.disconnect();
+    await expect(source.resetToSolved()).rejects.toThrow(/disconnected/);
   });
 });

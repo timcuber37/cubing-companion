@@ -20,6 +20,7 @@ import {
   ReplaySource,
 } from "@cubing-companion/cube-link";
 import { SolveRecorder } from "../src/recorder.ts";
+import { observesRotations, worthPlanning } from "../src/types.ts";
 import type { SolveRecord } from "../src/types.ts";
 
 const SCRAMBLE = "D2 F R2 U' L B2 R'";
@@ -381,5 +382,34 @@ describe("inspection rotations", () => {
 
     const record = recorder.getState().record!;
     expect(record.moveCount).toBe(9);
+  });
+});
+
+describe("which sources can see a rotation", () => {
+  it("says no for a smart cube, and yes for everything hand-driven", () => {
+    // Not a preference: a rotation turns no face against the core, so a smart cube's sensors
+    // register nothing. Keyboard and replay sources carry whatever moves they were given,
+    // rotations included.
+    expect(observesRotations("smart-cube")).toBe(false);
+    expect(observesRotations("manual")).toBe(true);
+    expect(observesRotations("replay")).toBe(true);
+  });
+});
+
+describe("which positions are worth planning a cross from", () => {
+  it("is only the one where the cube is scrambled and waiting", () => {
+    expect(worthPlanning("ready")).toBe(true);
+  });
+
+  it("is not a cube part-way through being scrambled", () => {
+    // The case this exists for: every turn of a scramble is a new position, and a
+    // colour-neutral sweep over each costs seconds to answer a question nobody asked.
+    expect(worthPlanning("scrambling")).toBe(false);
+  });
+
+  it("is not a solve already under way, nor an idle cube", () => {
+    expect(worthPlanning("solving")).toBe(false);
+    expect(worthPlanning("idle")).toBe(false);
+    expect(worthPlanning("complete")).toBe(false);
   });
 });

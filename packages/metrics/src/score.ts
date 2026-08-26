@@ -11,7 +11,10 @@ import { BASELINES } from "./baselines.generated.ts";
 import { TimeWindow, type Distribution } from "./baselines.ts";
 import type { SolveMetrics } from "./metrics.ts";
 
-/** One measurement placed against the corpus. */
+/** Which population a rating was measured against. */
+export type Reference = "corpus" | "you";
+
+/** One measurement placed against a reference. */
 export interface Rated {
   /**
    * 0–100, higher is better: the share of pro solves this beats.
@@ -31,6 +34,8 @@ export interface Rated {
   readonly rating: number;
   readonly value: number;
   readonly distribution: Distribution;
+  /** What this was measured against — the corpus, or the user's own recent solves. */
+  readonly reference: Reference;
   /**
    * True when the baseline had stackmat dead time removed to make it comparable.
    *
@@ -71,18 +76,106 @@ export function corpusRank(value: number, d: Distribution): number {
   return 1;
 }
 
-/** Percentile out of ten, to one decimal — more precision than the corpus can justify. */
-export const asRating = (score: number): number => Math.round(score) / 10;
+/**
+ * How a measurement becomes a rating out of ten.
+ *
+ * **Not a percentile.** A percentile is the honest answer to "what share of these solves did you
+ * beat", and a poor rating, because it is only as sensitive as the reference is wide. Half of all
+ * world-class solves land inside a nine-move band, so four moves either side of their median
+ * swings a percentile by two and a half points — and above 70 moves it saturates completely, with
+ * 80 and 95 moves scoring the same 0.8. The number stops discriminating exactly where most people
+ * are.
+ *
+ * So the rating is linear in the **measured quantity**, with its slope taken from the reference's
+ * own spread: `p10` and `p90` are pinned to the two anchors below and the same slope continues
+ * past them. Every constant comes from the distribution rather than from taste, and the scale
+ * keeps separating solves well outside the reference range.
+ */
+interface RatingAnchors {
+  /** Rating at the reference's 10th percentile — its better end, since less is better here. */
+  readonly best: number;
+  /** Rating at its 90th percentile. */
+  readonly worst: number;
+}
+
+/**
+ * Against the pro corpus, being anywhere in the band at all is excellent.
+ *
+ * The reference is world-class solves, not people like the user, so matching the *slowest* tenth
+ * of them still deserves a 6 and matching the median deserves an 8.
+ */
+export const CORPUS_ANCHORS: RatingAnchors = { best: 10, worst: 6 };
+
+/**
+ * Against your own recent solves, the scale has to be centred on you.
+ *
+ * Here the reference *is* the user, so a typical solve should read as typical: their median lands
+ * at 5, a good one at 8, a bad one at 2. Using the corpus anchors would tell everybody that their
+ * average day was an eight.
+ */
+export const SELF_ANCHORS: RatingAnchors = { best: 8, worst: 2 };
+
+/**
+ * The narrowest spread a reference is allowed to have, as a share of its own median.
+ *
+ * Without this the scale reproduces the exact fault it was built to fix, just somewhere else. A
+ * very consistent solver — every solve between 10.0s and 10.5s — has a spread of 0.4s, so a solve
+ * a tenth of a second off their usual would swing more than a full anchor width and land on zero.
+ * Nobody's times are meaningfully distinguishable at that resolution; treating a 1% difference as
+ * the whole scale is amplifying noise.
+ *
+ * It never binds on the corpus, whose spreads are far wider than a tenth of their medians. It
+ * exists for references built from one person's handful of solves.
+ */
+const MIN_SPREAD_FRACTION = 0.1;
+
+function ratingFrom(value: number, d: Distribution, anchors: RatingAnchors): number {
+  const width = Math.max(d.p90 - d.p10, Math.abs(d.median) * MIN_SPREAD_FRACTION);
+  // A reference with no spread at all cannot rank anything; put everything at the midpoint
+  // rather than dividing by zero.
+  if (!(width > 0)) return (anchors.best + anchors.worst) / 2;
+  const raw =
+    anchors.best - (anchors.best - anchors.worst) * ((value - d.p10) / width);
+  return Math.round(Math.max(0, Math.min(10, raw)) * 10) / 10;
+}
 
 /** Every metric scored here is one where less is better: fewer moves, fewer seconds. */
-function rate(value: number, d: Distribution, overheadCorrected = false): Rated {
-  const score = 100 * (1 - corpusRank(value, d));
+function rate(
+  value: number,
+  d: Distribution,
+  options: { overheadCorrected?: boolean; anchors?: RatingAnchors; reference?: Reference } = {},
+): Rated {
+  const anchors = options.anchors ?? CORPUS_ANCHORS;
   return {
     value,
-    score,
-    rating: asRating(score),
+    score: 100 * (1 - corpusRank(value, d)),
+    rating: ratingFrom(value, d, anchors),
     distribution: d,
-    overheadCorrected,
+    reference: options.reference ?? "corpus",
+    overheadCorrected: options.overheadCorrected ?? false,
+  };
+}
+
+/** Percentiles of a raw sample, so a user's own solves can be a reference like any other. */
+export function distributionOf(values: readonly number[]): Distribution | null {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (sorted.length === 0) return null;
+  const at = (p: number) => {
+    const position = p * (sorted.length - 1);
+    const lower = Math.floor(position);
+    const upper = Math.ceil(position);
+    return sorted[lower]! + (sorted[upper]! - sorted[lower]!) * (position - lower);
+  };
+  return {
+    n: sorted.length,
+    mean: sorted.reduce((a, b) => a + b, 0) / sorted.length,
+    min: sorted[0]!,
+    p10: at(0.1),
+    p25: at(0.25),
+    median: at(0.5),
+    p75: at(0.75),
+    p90: at(0.9),
+    max: sorted[sorted.length - 1]!,
   };
 }
 
@@ -104,7 +197,9 @@ export function rateRotations(key: string, rotations: number): Rated | null {
 export function rateTime(window: TimeWindow, seconds: number): Rated | null {
   const baseline = timeBaseline(window);
   if (!baseline) return null;
-  return rate(seconds, baseline.seconds, baseline.overheadCorrectionSeconds > 0);
+  return rate(seconds, baseline.seconds, {
+    overheadCorrected: baseline.overheadCorrectionSeconds > 0,
+  });
 }
 
 /**
@@ -170,19 +265,56 @@ export interface PhaseScore {
   readonly turns: Rated | null;
 }
 
+export interface ScoreOptions {
+  /**
+   * Whether whole-cube rotations were observable at all.
+   *
+   * When false, rotations are left out of the score entirely rather than counted as zero. A
+   * smart cube reports no rotations because nothing can see them — a rotation turns no face
+   * against the core — and zero rotations rates better than every solve in the corpus, whose
+   * median solver rotates four times. Scoring it would hand out a perfect mark for a quantity
+   * nobody measured, and quietly lift the composite with it.
+   *
+   * Defaults to true, which is right for anything hand-entered or replayed.
+   */
+  readonly rotationsObserved?: boolean;
+  /**
+   * Durations of the solver's other recent solves, for rating speed against themselves.
+   *
+   * Speed is the one measurement where the corpus is the wrong reference. Pros are far enough
+   * ahead that any corpus-anchored scale bottoms out around thirteen seconds — a twenty-second
+   * solve and a forty-second one both score zero, which says nothing and cannot improve. Rated
+   * against your own recent solves it answers the question actually worth asking, and it is the
+   * only reference the solver is genuinely a member of.
+   *
+   * Move counts stay corpus-anchored: efficiency is a matter of what you know rather than how
+   * fast your hands are, and a good hobbyist really can approach pro numbers.
+   */
+  readonly recentDurationsMs?: readonly number[];
+}
+
+/** Below this there is not enough of your own history for a median to mean anything. */
+export const MIN_OWN_SOLVES = 5;
+
 export interface SolveScore {
-  /** Named sub-scores, each 0–100. Always shown; the composite is just their mean. */
+  /** Named sub-scores, each out of ten. Always shown; the headline is just their mean. */
   readonly components: readonly { readonly label: string; readonly rated: Rated }[];
   /**
-   * Mean of the components, or `null` when nothing could be scored. 0–100.
+   * Mean of the component ratings, out of ten, or `null` when nothing could be scored.
    *
-   * Never display this without the components beside it.
+   * Never display this without the components beside it: a single figure averaging things
+   * measured against different references tells a solver they were a 7 and gives them nothing
+   * to do about it.
    */
-  readonly composite: number | null;
-  /** The composite out of ten, which is the headline figure the UI shows. */
   readonly rating: number | null;
   readonly phases: readonly PhaseScore[];
   readonly windows: readonly WindowScore[];
+  /**
+   * Metrics left unscored, and why — so the UI can say what is missing instead of hiding it.
+   *
+   * A score that quietly drops a component looks the same as one that never had it.
+   */
+  readonly omitted: readonly { readonly label: string; readonly reason: string }[];
   /** Measured, banded, and deliberately not part of the composite: no corpus baseline exists. */
   readonly fluidity: number | null;
   readonly fluidityBand: string | null;
@@ -194,27 +326,52 @@ export interface SolveScore {
   };
 }
 
-export function scoreSolve(metrics: SolveMetrics): SolveScore {
+export function scoreSolve(
+  metrics: SolveMetrics,
+  options: ScoreOptions = {},
+): SolveScore {
   const windows = scoreWindows(metrics);
   const total = windows.find((w) => w.window === TimeWindow.Total);
+  const rotationsObserved = options.rotationsObserved ?? true;
 
   const components: { label: string; rated: Rated }[] = [];
+  const omitted: { label: string; reason: string }[] = [];
   const add = (label: string, rated: Rated | null) => {
     if (rated) components.push({ label, rated });
   };
   add("efficiency", rateTurns("total", metrics.turns));
-  add("rotations", rateRotations("total", metrics.rotations));
-  if (total) add("speed", total.time);
+  if (rotationsObserved) {
+    add("rotations", rateRotations("total", metrics.rotations));
+  } else {
+    omitted.push({
+      label: "rotations",
+      reason: "this cube cannot report them, so none were seen rather than none were made",
+    });
+  }
 
-  const composite =
+  const own = distributionOf(options.recentDurationsMs ?? []);
+  if (metrics.durationMs === null) {
+    omitted.push({ label: "speed", reason: "this solve has no usable clock" });
+  } else if (!own || own.n < MIN_OWN_SOLVES) {
+    omitted.push({
+      label: "speed",
+      reason: `rated against your own solves, and there are fewer than ${MIN_OWN_SOLVES} to compare with yet`,
+    });
+  } else {
+    add("speed", rate(metrics.durationMs, own, { anchors: SELF_ANCHORS, reference: "you" }));
+  }
+
+  const rating =
     components.length === 0
       ? null
-      : components.reduce((sum, c) => sum + c.rated.score, 0) / components.length;
+      : Math.round(
+          (components.reduce((sum, c) => sum + c.rated.rating, 0) / components.length) * 10,
+        ) / 10;
 
   return {
     components,
-    composite,
-    rating: composite === null ? null : asRating(composite),
+    rating,
+    omitted,
     phases: metrics.phases.map((p) => ({
       phase: p.phase,
       turns: rateTurns(p.phase, p.turns),

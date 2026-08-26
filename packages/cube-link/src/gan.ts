@@ -18,7 +18,12 @@ import {
   makeMove,
   type Move,
 } from "@cubing-companion/engine";
-import { Listeners, type CubeSource, type MoveEvent } from "./source.ts";
+import {
+  Listeners,
+  type CubeSource,
+  type MoveEvent,
+  type Unsubscribe,
+} from "./source.ts";
 
 /**
  * Supplies the cube's MAC address.
@@ -108,8 +113,32 @@ export type GanEventLike =
       localTimestamp: number | null;
     }
   | { type: "FACELETS"; serial: number; facelets: string }
+  | {
+      type: "HARDWARE";
+      hardwareName?: string;
+      hardwareVersion?: string;
+      softwareVersion?: string;
+      gyroSupported?: boolean;
+    }
   | { type: "DISCONNECT" }
   | { type: string; [key: string]: unknown };
+
+/**
+ * What the cube says about itself, once it has said it.
+ *
+ * Worth surfacing rather than discarding, because `gyroSupported` decides whether whole-cube
+ * rotations are observable at all. A rotation turns no face against the core, so it produces no
+ * move event on any smart cube; the orientation sensor is the only thing that could see one, and
+ * only some protocol generations report it. Which one a given cube speaks is decided by its BLE
+ * service UUID, not by its name, so the honest way to find out is to ask the cube.
+ */
+export interface GanHardwareInfo {
+  readonly hardwareName: string | null;
+  readonly hardwareVersion: string | null;
+  readonly softwareVersion: string | null;
+  /** `null` until the cube has reported, which it does shortly after connecting. */
+  readonly gyroSupported: boolean | null;
+}
 
 /**
  * A GAN smart cube presented as a {@link CubeSource}.
@@ -127,6 +156,8 @@ export class GanCubeSource implements CubeSource {
   private pendingState: ((state: CubeState) => void)[] = [];
   private latestState: CubeState | null = null;
   private connected = true;
+  private hardware: GanHardwareInfo | null = null;
+  private readonly hardwareListeners = new Listeners<GanHardwareInfo>();
 
   constructor(connection: GanConnectionLike) {
     this.connection = connection;
@@ -164,6 +195,24 @@ export class GanCubeSource implements CubeSource {
     return wait;
   }
 
+  /**
+   * Tell the cube it is solved, re-basing the state it tracks internally.
+   *
+   * The cube keeps its own idea of the position from its sensors, and it can be wrong — turned
+   * while asleep, or a fast half turn read as a quarter. When it is, nothing downstream can
+   * recover: reading its position faithfully reports the mistake, because the mistake is what
+   * the cube believes. The only fix is to put a solved cube in your hand and say so.
+   *
+   * Destructive in the sense that it discards whatever the cube thought: only call it when the
+   * cube really is solved.
+   */
+  async resetToSolved(): Promise<void> {
+    if (!this.connected) {
+      throw new SmartCubeError("cube is disconnected");
+    }
+    await this.connection.sendCubeCommand({ type: "REQUEST_RESET" });
+  }
+
   /** The most recent state the cube reported, without a round trip. */
   lastKnownState(): CubeState | null {
     return this.latestState?.clone() ?? null;
@@ -175,6 +224,17 @@ export class GanCubeSource implements CubeSource {
     this.subscription.unsubscribe();
     await this.connection.disconnect();
     this.disconnectListeners.emit();
+  }
+
+  /** What the cube reported about itself, or `null` before it has. */
+  getHardware(): GanHardwareInfo | null {
+    return this.hardware;
+  }
+
+  /** Fires once the cube describes itself, which happens shortly after connecting. */
+  onHardware(listener: (info: GanHardwareInfo) => void): Unsubscribe {
+    if (this.hardware) listener(this.hardware);
+    return this.hardwareListeners.add(listener);
   }
 
   private handleEvent(event: GanEventLike): void {
@@ -199,6 +259,17 @@ export class GanCubeSource implements CubeSource {
         for (const resolve of this.pendingState.splice(0)) resolve(state.clone());
         break;
       }
+      case "HARDWARE": {
+        const info = event as Extract<GanEventLike, { type: "HARDWARE" }>;
+        this.hardware = {
+          hardwareName: info.hardwareName ?? null,
+          hardwareVersion: info.hardwareVersion ?? null,
+          softwareVersion: info.softwareVersion ?? null,
+          gyroSupported: info.gyroSupported ?? null,
+        };
+        this.hardwareListeners.emit(this.hardware);
+        break;
+      }
       case "DISCONNECT": {
         if (this.connected) {
           this.connected = false;
@@ -207,7 +278,7 @@ export class GanCubeSource implements CubeSource {
         break;
       }
       default:
-        break; // GYRO, BATTERY, HARDWARE — not used here.
+        break; // GYRO and BATTERY are not used here.
     }
   }
 }

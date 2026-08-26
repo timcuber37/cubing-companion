@@ -44,4 +44,5 @@ export {
   type GanCubeSourceOptions,
   type GanEventLike,
   type MacAddressPrompt,
+  type GanHardwareInfo,
 } from "./gan.ts";

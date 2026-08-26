@@ -12,6 +12,7 @@ export { MemoryStore, type SolveStore } from "./store.ts";
 export { IndexedDbStore, isIndexedDbAvailable } from "./indexeddb.ts";
 
 export { segmentRecord, type SegmentedSolve } from "./segmented.ts";
+export { observesRotations, worthPlanning } from "./types.ts";
 
 export type {
   RecorderPhase,

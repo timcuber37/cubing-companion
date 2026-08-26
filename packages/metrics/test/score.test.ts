@@ -14,8 +14,11 @@ import { computeMetrics } from "../src/metrics.ts";
 import { BASELINES } from "../src/baselines.generated.ts";
 import { TimeWindow } from "../src/baselines.ts";
 import {
-  asRating,
   corpusRank,
+  CORPUS_ANCHORS,
+  distributionOf,
+  MIN_OWN_SOLVES,
+  SELF_ANCHORS,
   fluidityBand,
   rateRotations,
   rateTime,
@@ -44,6 +47,9 @@ const SPANS: readonly PhaseSpan[] = [
   span(Phase.PLL, 50, 62),
   span(Phase.AUF, 62, 63),
 ];
+
+/** Six earlier solves, so speed has something of your own to be measured against. */
+const OWN_SOLVES = [9_000, 9_500, 10_000, 10_500, 11_000, 12_000];
 
 /** Move `i` lands at `i * gapMs`, so every duration is a round number. */
 const timeline = (count: number, gapMs = 200) =>
@@ -213,13 +219,15 @@ describe("time windows", () => {
 });
 
 describe("the composite", () => {
-  const score = scoreSolve(computeMetrics(SPANS, timeline(63)));
+  const score = scoreSolve(computeMetrics(SPANS, timeline(63)), {
+    recentDurationsMs: OWN_SOLVES,
+  });
 
   it("is exactly the mean of its named components", () => {
     expect(score.components.length).toBeGreaterThan(0);
     const mean =
-      score.components.reduce((sum, c) => sum + c.rated.score, 0) / score.components.length;
-    expect(score.composite).toBeCloseTo(mean, 9);
+      score.components.reduce((sum, c) => sum + c.rated.rating, 0) / score.components.length;
+    expect(score.rating).toBeCloseTo(mean, 1);
   });
 
   it("names every component, so it can be taken apart", () => {
@@ -277,53 +285,196 @@ describe("fluidity bands", () => {
  * "matched the median world record".
  */
 describe("out of ten", () => {
-  it("is the percentile on a ten-point scale", () => {
-    for (const baseline of BASELINES.turns) {
-      const rated = rateTurns(baseline.key, baseline.turns.median)!;
-      // The median pro solve sits halfway up the scale.
-      expect(rated.rating, baseline.key).toBeCloseTo(5, 1);
-    }
-    const baseline = BASELINES.turns.find((t) => t.key === "total")!.turns;
-    expect(rateTurns("total", baseline.p10)!.rating).toBeCloseTo(9, 1);
-    expect(rateTurns("total", baseline.p90)!.rating).toBeCloseTo(1, 1);
+  const turns = BASELINES.turns.find((t) => t.key === "total")!.turns;
+
+  it("pins the corpus anchors to the corpus spread", () => {
+    // The whole scale is these two points plus a straight line; nothing else is chosen.
+    expect(rateTurns("total", turns.p10)!.rating).toBeCloseTo(CORPUS_ANCHORS.best, 1);
+    expect(rateTurns("total", turns.p90)!.rating).toBeCloseTo(CORPUS_ANCHORS.worst, 1);
+    // The median falls halfway between them, because it is halfway between the anchors.
+    expect(rateTurns("total", turns.median)!.rating).toBeCloseTo(8, 0);
+  });
+
+  it("keeps discriminating past the reference, where a percentile gives up", () => {
+    // The complaint that prompted this: fifteen more moves barely moves a percentile, because
+    // both solves are simply "worse than nearly every pro".
+    const eighty = rateTurns("total", 80)!;
+    const ninetyFive = rateTurns("total", 95)!;
+    // On the same ten-point scale, so the two are comparable.
+    expect((eighty.score - ninetyFive.score) / 10).toBeLessThan(0.5);
+    expect(eighty.rating - ninetyFive.rating).toBeGreaterThan(2);
+  });
+
+  it("is not brutal about a few moves either side of the median", () => {
+    // 65 moves against a median of 61 scored 2.5 before, which is what prompted the change.
+    const rated = rateTurns("total", 65)!;
+    expect(rated.rating).toBeGreaterThan(6.5);
+    expect(rated.rating).toBeLessThan(8);
   });
 
   it("stays inside the scale at both ends", () => {
-    const baseline = BASELINES.turns.find((t) => t.key === "total")!.turns;
-    expect(rateTurns("total", baseline.min - 100)!.rating).toBe(10);
-    expect(rateTurns("total", baseline.max + 100)!.rating).toBe(0);
+    expect(rateTurns("total", turns.min - 100)!.rating).toBe(10);
+    expect(rateTurns("total", turns.max + 500)!.rating).toBe(0);
   });
 
   it("keeps one decimal, which is already more than the corpus can justify", () => {
     for (const value of [40, 47, 52, 61, 70]) {
-      const rating = rateTurns("total", value)!.rating;
-      expect(Number.isInteger(rating * 10)).toBe(true);
+      expect(Number.isInteger(rateTurns("total", value)!.rating * 10)).toBe(true);
     }
   });
 
-  it("moves in step with the score it comes from", () => {
-    const better = rateTurns("total", 45)!;
-    const worse = rateTurns("total", 70)!;
-    expect(better.score).toBeGreaterThan(worse.score);
-    expect(better.rating).toBeGreaterThan(worse.rating);
+  it("moves in step with the measurement it comes from", () => {
+    expect(rateTurns("total", 45)!.rating).toBeGreaterThan(rateTurns("total", 70)!.rating);
   });
 
-  it("gives the composite the same treatment", () => {
-    const score = scoreSolve(computeMetrics(SPANS, timeline(63)));
-    expect(score.rating).toBeCloseTo(asRating(score.composite!), 6);
-    expect(score.rating!).toBeGreaterThanOrEqual(0);
-    expect(score.rating!).toBeLessThanOrEqual(10);
+  it("still reports the percentile underneath, which is a different question", () => {
+    // "How far outside the world-class band" and "what share of it did you beat" are both
+    // worth knowing, and only the first makes a usable rating.
+    const rated = rateTurns("total", turns.median)!;
+    expect(rated.score).toBeCloseTo(50, 4);
+    expect(rated.rating).toBeCloseTo(8, 0);
+    expect(rated.reference).toBe("corpus");
+  });
+});
+
+
+/**
+ * Rotations that nobody could see.
+ *
+ * A smart cube reports no rotations because nothing observes one — a rotation turns no face
+ * against the core. The record then looks identical to a solve performed without rotating, and
+ * the two mean opposite things. Since the corpus median solver rotates four times, counting the
+ * unobserved zero awards a perfect mark for a quantity never measured.
+ */
+describe("when rotations cannot be observed", () => {
+  const metrics = computeMetrics(SPANS, timeline(63));
+
+  it("would otherwise hand out a perfect mark", () => {
+    // The bug this guards against, stated plainly.
+    expect(metrics.rotations).toBe(0);
+    expect(rateRotations("total", 0)!.rating).toBe(10);
   });
 
-  it("is exactly the composite, rescaled — never a separate judgement", () => {
-    // The two must never drift: the percentile is what the calibration tests pin, and the
-    // rating is only how it is written down.
-    for (const count of [40, 50, 63]) {
-      const score = scoreSolve(computeMetrics(SPANS, timeline(count)));
-      expect(score.rating).toBe(asRating(score.composite!));
-      for (const { rated } of score.components) {
-        expect(rated.rating).toBe(asRating(rated.score));
-      }
-    }
+  it("leaves rotations out of the components entirely", () => {
+    const scored = scoreSolve(metrics, {
+      rotationsObserved: false,
+      recentDurationsMs: OWN_SOLVES,
+    });
+    expect(scored.components.map((c) => c.label)).not.toContain("rotations");
+    expect(scored.components.map((c) => c.label)).toContain("efficiency");
+  });
+
+  it("says what it left out, rather than quietly dropping it", () => {
+    // A score missing a component looks exactly like one that never had it.
+    const scored = scoreSolve(metrics, {
+      rotationsObserved: false,
+      recentDurationsMs: OWN_SOLVES,
+    });
+    expect(scored.omitted.map((o) => o.label)).toEqual(["rotations"]);
+    expect(scored.omitted[0]!.reason).toMatch(/cannot report/);
+  });
+
+  it("lowers the rating, because the free ten is gone", () => {
+    const counted = scoreSolve(metrics, {
+      rotationsObserved: true,
+      recentDurationsMs: OWN_SOLVES,
+    });
+    const honest = scoreSolve(metrics, {
+      rotationsObserved: false,
+      recentDurationsMs: OWN_SOLVES,
+    });
+    expect(honest.rating!).toBeLessThan(counted.rating!);
+    // And what remains is still the plain mean of what is left.
+    const mean =
+      honest.components.reduce((sum, c) => sum + c.rated.rating, 0) / honest.components.length;
+    expect(honest.rating).toBeCloseTo(mean, 1);
+  });
+
+  it("still counts them when they were observable", () => {
+    const scored = scoreSolve(metrics, { recentDurationsMs: OWN_SOLVES });
+    expect(scored.components.map((c) => c.label)).toContain("rotations");
+    expect(scored.omitted).toEqual([]);
+  });
+});
+
+/**
+ * Speed, measured against you.
+ *
+ * The corpus is the wrong reference for time and no rescaling fixes it: pros are far enough ahead
+ * that a twenty-second solve and a forty-second one both land on zero, so the number cannot
+ * reward improvement. Your own recent solves are the only reference you are actually in.
+ */
+describe("speed against your own solves", () => {
+  /** A solve of a given duration, with the move counts held constant. */
+  const solveOf = (durationMs: number) =>
+    computeMetrics(SPANS, Array.from({ length: 63 }, (_, i) => 10_000 + (i * durationMs) / 62));
+
+  it("puts a typical day for you in the middle of the scale", () => {
+    // Median of OWN_SOLVES is 10.25s, and the self anchors centre that at 5.
+    const scored = scoreSolve(solveOf(10_250), { recentDurationsMs: OWN_SOLVES });
+    const speed = scored.components.find((c) => c.label === "speed")!;
+    expect(speed.rated.rating).toBeCloseTo(5, 0);
+    expect(speed.rated.reference).toBe("you");
+  });
+
+  it("rewards a fast solve and marks down a slow one", () => {
+    const fast = scoreSolve(solveOf(8_500), { recentDurationsMs: OWN_SOLVES });
+    const slow = scoreSolve(solveOf(13_000), { recentDurationsMs: OWN_SOLVES });
+    const rating = (s: typeof fast) =>
+      s.components.find((c) => c.label === "speed")!.rated.rating;
+    expect(rating(fast)).toBeGreaterThan(7);
+    expect(rating(slow)).toBeLessThan(3);
+  });
+
+  it("keeps discriminating where a corpus-anchored score would read zero", () => {
+    // Both of these are far outside the pro range; against yourself they are clearly different.
+    const slower = [20_000, 21_000, 22_000, 23_000, 24_000, 25_000];
+    const good = scoreSolve(solveOf(20_500), { recentDurationsMs: slower });
+    const bad = scoreSolve(solveOf(24_500), { recentDurationsMs: slower });
+    const rating = (s: typeof good) =>
+      s.components.find((c) => c.label === "speed")!.rated.rating;
+    expect(rating(good)).toBeGreaterThan(rating(bad) + 2);
+    // And the corpus would have flattened both to nothing.
+    expect(rateTime(TimeWindow.Total, 20.5)!.rating).toBe(0);
+    expect(rateTime(TimeWindow.Total, 24.5)!.rating).toBe(0);
+  });
+
+  it("declines to rate speed until it has enough of your history", () => {
+    const scored = scoreSolve(solveOf(10_000), { recentDurationsMs: [9_000, 10_000] });
+    expect(scored.components.map((c) => c.label)).not.toContain("speed");
+    expect(scored.omitted.map((o) => o.label)).toContain("speed");
+    expect(scored.omitted.find((o) => o.label === "speed")!.reason).toMatch(
+      new RegExp(`${MIN_OWN_SOLVES}`),
+    );
+  });
+
+  it("declines when the solve itself has no clock", () => {
+    const scored = scoreSolve(computeMetrics(SPANS, Array(63).fill(null)), {
+      recentDurationsMs: OWN_SOLVES,
+    });
+    expect(scored.omitted.find((o) => o.label === "speed")!.reason).toMatch(/no usable clock/);
+  });
+
+  it("uses your own spread, so a consistent solver is not punished for noise", () => {
+    // Someone very consistent has a narrow spread; a small slip should still not read as zero.
+    const consistent = [10_000, 10_100, 10_200, 10_300, 10_400, 10_500];
+    const scored = scoreSolve(solveOf(10_600), { recentDurationsMs: consistent });
+    expect(scored.components.find((c) => c.label === "speed")!.rated.rating).toBeGreaterThan(0);
+  });
+
+  it("builds a distribution from raw numbers the same way it reads the corpus", () => {
+    const d = distributionOf([1, 2, 3, 4, 5])!;
+    expect(d.n).toBe(5);
+    expect(d.min).toBe(1);
+    expect(d.median).toBe(3);
+    expect(d.max).toBe(5);
+    expect(distributionOf([])).toBeNull();
+  });
+
+  it("centres the self scale differently from the corpus one, deliberately", () => {
+    // Against world-class solves, matching the median deserves an 8. Against yourself it is a 5:
+    // the reference is you, so a typical day has to read as typical.
+    expect(SELF_ANCHORS.best).toBeLessThan(CORPUS_ANCHORS.best);
+    expect(SELF_ANCHORS.worst).toBeLessThan(CORPUS_ANCHORS.worst);
   });
 });

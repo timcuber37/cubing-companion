@@ -30,6 +30,19 @@ Reconstructions carry no per-move timestamps. So the pause, fluidity and recogni
 have that the corpus does not — but they can never be given a percentile. They stay out of the
 composite rather than being folded in with an invented weight.
 
+### Rotations, when nothing can see them
+
+The mirror image of that problem, and a nastier one because it hides. A whole-cube rotation turns
+no face against the core, so a smart cube's sensors register nothing and the solve records **zero
+rotations** — indistinguishable in the record from a solve performed without rotating, and meaning
+the opposite.
+
+The corpus median solver rotates four times, so a scored zero comes out at a flat **10 / 10**.
+Left alone, every smart-cube solve would collect a perfect mark for a quantity nobody measured,
+and quietly carry the composite up with it. `scoreSolve` takes `rotationsObserved` and drops the
+component entirely when it is false, listing it in `omitted` so the UI can say so rather than
+present a score that is silently missing a leg.
+
 ## Times drift; move counts don't
 
 Median totals fell **7.61s → 4.88s** from 2013–16 to 2024+, a 36% drop. Over the same span the
@@ -114,17 +127,52 @@ contributor without it can still build and test, and the browser bundle needs no
 
 ## Scoring
 
-Every figure is a percentile — the share of pro solves you beat — and it is **shown out of ten**.
-`Rated.score` keeps the 0–100 percentile, because that is the quantity the calibration tests pin;
-`Rated.rating` is the same number on the scale people read.
+Every rating is out of ten, and **none of them is a percentile**. A percentile is the honest
+answer to "what share of these solves did you beat", and a poor rating, because it is only as
+sensitive as the reference is wide.
 
-The scale matters more than it looks. Out of a hundred, 50 reads as a bare pass; out of ten, 5.0
-reads as the middle of the range, which is what it is — **5.0 is the median solve in a corpus of
-world records**. For almost any user that is a very good day, and a number that looks like a
-school grade would be actively discouraging about it.
+The corpus is very tight: half of all world-class solves land inside a **nine-move band**
+(p25 56 → p75 65). So a percentile swings 2.5 points over four moves, and above 70 moves it
+saturates — 80 moves and 95 moves both score about 0.8. It stops discriminating exactly where
+most people are.
 
-Lower is better for every metric scored here, so the percentile is inverted: the 10th percentile
-by move count is the 90th by score, or 9.0 out of 10.
+So a rating is **linear in the measured quantity**, with its slope taken from the reference's own
+spread: `p10` and `p90` are pinned to two anchors and the same slope continues past them. Nothing
+is invented; every constant comes from the distribution.
 
-The composite is the plain mean of its components and is never displayed without them. A number
-that cannot be taken apart tells a solver they were a 4.5 and gives them nothing to do about it.
+```
+moves   percentile   rating
+   52       9.0        10.0   ← fastest tenth of pros
+   61       5.0         8.0   ← median pro
+   65       2.5         7.1
+   70       1.0         6.0   ← slowest tenth of pros
+   80       0.8         3.8
+   95       0.4         0.4
+```
+
+`Rated.score` still carries the percentile, because it answers a different and genuinely
+interesting question — and it is what the calibration tests pin.
+
+### Two references, two sets of anchors
+
+| measured against | p10 → | p90 → | because |
+|---|---|---|---|
+| the corpus | 10 | 6 | the reference is world-class, so being anywhere in the band is excellent |
+| your own recent solves | 8 | 2 | the reference is *you*, so a typical day has to read as typical |
+
+**Speed is the one thing rated against you.** Pros are far enough ahead that no corpus-anchored
+scale survives contact: a twenty-second solve and a forty-second one both land on zero, so the
+number cannot reward improvement and says nothing about it. Against your own recent solves it
+answers the question actually worth asking, and it is the only reference you are a member of. It
+needs five of your solves before it will say anything, and stays in `omitted` until then.
+
+Move counts stay corpus-anchored, because efficiency is a matter of what you know rather than how
+fast your hands are — a good hobbyist really can approach pro move counts.
+
+A reference is never allowed a spread narrower than a tenth of its own median. Without that floor
+the scale reproduces the fault it was built to fix: a very consistent solver, every solve between
+10.0s and 10.5s, would see a tenth of a second swing the rating by more than a full anchor width.
+
+The headline is the plain mean of its components and is never displayed without them — it
+averages things measured against different references, so on its own it would tell a solver they
+were a 7 and give them nothing to do about it.
