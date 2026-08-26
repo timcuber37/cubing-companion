@@ -14,15 +14,23 @@
  * request to the same worker skips the ~490 ms of table building the first one paid.
  */
 import { fromFacelets, normalizeOrientation, type Face } from "@cubing-companion/engine";
-import { GEOMETRY, isSlotSolved, slotName } from "@cubing-companion/analysis";
+import { GEOMETRY, isSlotSolved, segmentFromState, slotName } from "@cubing-companion/analysis";
 import { crossDistance, enumerateF2LInsertion } from "@cubing-companion/solver";
 import {
+  attribute,
+  colourName,
+  confidenceWording,
+  crossDecision,
+  pairDecisions,
   planColour,
   rankByMoveCount,
   rankNextPair,
+  reasons,
   rerankCross,
   type ColourPlan,
 } from "@cubing-companion/planner";
+import { enumerateCross } from "@cubing-companion/solver";
+import { parseMoves, serializeMoves, type Move } from "@cubing-companion/engine";
 import { loadScorer } from "./model";
 
 export interface PlanRequest {
@@ -61,6 +69,51 @@ export type NextPairCross = number | null;
  * shipped loader — model URL, tensor shape, output name and all — rather than a parallel copy
  * that could be right while production is wrong.
  */
+/** A5: score a recorded solve decision by decision, and say what a pro would likely have done. */
+export interface DiffRequest {
+  readonly id: number;
+  readonly kind: "diff";
+  /** The position the solve began from. */
+  readonly startFacelets: string;
+  readonly solution: string;
+}
+
+export interface DiffOption {
+  readonly slot: string;
+  readonly optimal: number;
+  readonly moves: string;
+  readonly confidence: number;
+  readonly mine: boolean;
+}
+
+export interface PairDiff {
+  readonly step: number;
+  /** Move index the decision was acted on, for jumping the replay there. */
+  readonly at: number;
+  readonly yours: string;
+  readonly theirs: string;
+  /** Every open slot, ranked by the model, with yours marked. */
+  readonly options: readonly DiffOption[];
+  /** "would most likely take", softened when the model is unsure. */
+  readonly wording: string;
+  readonly reasons: readonly string[];
+  /** Turns you actually spent filling it, against the optimum. */
+  readonly playedTurns: number;
+  readonly optimalTurns: number;
+  /** The alternative's moves, for branch playback. */
+  readonly branch: string;
+}
+
+export interface CrossDiff {
+  readonly at: number;
+  readonly end: number;
+  readonly playedTurns: number;
+  readonly optimalTurns: number;
+  readonly best: string;
+  readonly hold: string;
+  readonly branch: string;
+}
+
 export interface ParityRequest {
   readonly id: number;
   readonly kind: "parity";
@@ -77,6 +130,15 @@ export type PlanResponse =
     }
   | { readonly id: number; readonly kind: "done"; readonly elapsedMs: number }
   | { readonly id: number; readonly kind: "error"; readonly message: string }
+  | {
+      readonly id: number;
+      readonly kind: "diff";
+      readonly cross: CrossDiff | null;
+      readonly pairs: readonly PairDiff[];
+      /** False when the model would not load and only the search-based numbers are present. */
+      readonly learned: boolean;
+      readonly failure?: string;
+    }
   | {
       readonly id: number;
       readonly kind: "parity";
@@ -97,7 +159,9 @@ const post = (message: PlanResponse): void => {
   (self as unknown as Worker).postMessage(message);
 };
 
-self.onmessage = (event: MessageEvent<PlanRequest | NextPairRequest | ParityRequest>) => {
+self.onmessage = (
+  event: MessageEvent<PlanRequest | NextPairRequest | ParityRequest | DiffRequest>,
+) => {
   const request = event.data;
   const startedAt = Date.now();
 
@@ -107,6 +171,10 @@ self.onmessage = (event: MessageEvent<PlanRequest | NextPairRequest | ParityRequ
   }
   if (request.kind === "parity") {
     void checkParity(request);
+    return;
+  }
+  if (request.kind === "diff") {
+    void diffSolve(request);
     return;
   }
 
@@ -154,6 +222,139 @@ async function reviseWithModel(id: number, plans: readonly ColourPlan[]): Promis
     } catch {
       // A model that misbehaves on one colour should not take the others down with it.
     }
+  }
+}
+
+const notation = (moves: readonly Move[]) => serializeMoves([...moves]);
+
+/**
+ * A5: walk a recorded solve and say, at each decision, what a top solver would likely have done.
+ *
+ * Two independent kinds of feedback, deliberately kept apart. **Choice** comes from the model and
+ * is uncertain — it agrees with a real pro 69.6% of the time, so it reports a distribution and
+ * never a verdict. **Execution** comes from the search and is not uncertain at all: nine moves
+ * against six is a fact, model or no model.
+ */
+async function diffSolve(request: DiffRequest): Promise<void> {
+  try {
+    const start = fromFacelets(request.startFacelets);
+    const solution = parseMoves(request.solution);
+    const { segmentation } = segmentFromState(start, solution);
+    const spans = segmentation?.spans;
+    if (!segmentation || !spans) {
+      post({
+        id: request.id,
+        kind: "diff",
+        cross: null,
+        pairs: [],
+        learned: false,
+        failure: "this solve could not be segmented, so there are no decisions to compare",
+      });
+      return;
+    }
+
+    const crossFace = segmentation.crossFace;
+    const score = await loadScorer("pair");
+
+    // The cross needs no model to be useful: your length against the optimum is a fact. The
+    // model only picks which of the optimal crosses to show you.
+    let cross: CrossDiff | null = null;
+    const crossSearch = enumerateCross(normalizeOrientation(start), crossFace, {
+      maxSolutions: 1,
+    });
+    const crossPart = crossDecision(start, solution, spans, crossFace, crossSearch.optimal);
+    if (crossPart) {
+      const plan = planColour(crossPart.state, crossFace, { keep: 1, crossOnly: true });
+      const crossScore = await loadScorer("cross");
+      const ranked = crossScore ? await rerankCross(plan.cross, crossScore) : plan.cross;
+      const best = ranked[0];
+      cross = {
+        at: crossPart.at,
+        end: crossPart.end,
+        playedTurns: crossPart.played,
+        optimalTurns: crossPart.optimal,
+        best: best?.text ?? "",
+        hold: best
+          ? `${colourName(best.hold.down)} down, ${colourName(best.hold.front)} front`
+          : "",
+        branch: best?.text ?? "",
+      };
+    }
+
+    const pairs: PairDiff[] = [];
+    for (const decision of pairDecisions(start, solution, spans, crossFace)) {
+      const yours = decision.options[decision.chosen]!;
+      const playedTurns = decision.playedMoves.filter((m) => !"xyz".includes(m.family)).length;
+
+      if (!score) {
+        // Without the model there is no "which pair" advice, but the execution half still holds.
+        pairs.push({
+          step: decision.step,
+          at: decision.at,
+          yours: yours.name,
+          theirs: yours.name,
+          options: decision.options.map((option) => ({
+            slot: option.name,
+            optimal: option.optimal,
+            moves: notation(option.bestMoves),
+            confidence: 0,
+            mine: option === yours,
+          })),
+          wording: "",
+          reasons: [],
+          playedTurns,
+          optimalTurns: yours.optimal,
+          branch: notation(yours.bestMoves),
+        });
+        continue;
+      }
+
+      const ranked = await rankNextPair(
+        decision.state,
+        GEOMETRY[crossFace]!,
+        [...decision.options],
+        { previous: null, step: decision.step },
+        score,
+      );
+      const top = ranked[0]!;
+      const theirs = decision.options.find((option) => option.slot === top.slot)!;
+
+      pairs.push({
+        step: decision.step,
+        at: decision.at,
+        yours: yours.name,
+        theirs: theirs.name,
+        options: ranked.map((entry) => {
+          const option = decision.options.find((o) => o.slot === entry.slot)!;
+          return {
+            slot: option.name,
+            optimal: option.optimal,
+            moves: notation(option.bestMoves),
+            confidence: entry.confidence,
+            mine: option === yours,
+          };
+        }),
+        wording: confidenceWording(top.confidence),
+        reasons:
+          theirs === yours
+            ? []
+            : reasons(await attribute(yours.features, theirs.features, score), {
+                yours: yours.name,
+                theirs: theirs.name,
+              }),
+        playedTurns,
+        optimalTurns: yours.optimal,
+        branch: notation(theirs.bestMoves),
+      });
+    }
+
+    post({ id: request.id, kind: "diff", cross, pairs, learned: score !== null });
+  } catch (error) {
+    post({
+      id: request.id,
+      kind: "error",
+      message: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

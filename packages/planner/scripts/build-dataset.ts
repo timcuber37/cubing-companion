@@ -26,17 +26,11 @@ import {
   type Face,
   type Move,
 } from "@cubing-companion/engine";
-import {
-  GEOMETRY,
-  isSlotSolved,
-  Phase,
-  segmentSolve,
-  slotName,
-  type Slot,
-} from "@cubing-companion/analysis";
-import { crossDistance, enumerateCross, enumerateF2LInsertion } from "@cubing-companion/solver";
-import { crossFeatures, pairFeatures } from "../src/features.ts";
-import { ORIENTATIONS, orientationsWithColourDown, renameMoves } from "../src/orientation.ts";
+import { GEOMETRY, Phase, segmentSolve, slotName, type Slot } from "@cubing-companion/analysis";
+import { enumerateCross } from "@cubing-companion/solver";
+import { crossFeatures } from "../src/features.ts";
+import { pairDecisions } from "../src/decisions.ts";
+import { orientationsWithColourDown, renameMoves } from "../src/orientation.ts";
 
 const CORPUS = fileURLToPath(new URL("../../../data/corpus.jsonl", import.meta.url));
 const OUT = fileURLToPath(new URL("../../../data/decisions.jsonl", import.meta.url));
@@ -49,10 +43,6 @@ const lenient = (text: string): Move[] => {
     return parseMoves(text.split(APOSTROPHE).join(`${APOSTROPHE} `));
   }
 };
-
-const F2L_PHASES = [Phase.F2L1, Phase.F2L2, Phase.F2L3, Phase.F2L4];
-/** Enough to make `logWays` informative without paying for an exhaustive sweep every decision. */
-const WAYS_CAP = 60;
 
 interface Record {
   id: number;
@@ -165,62 +155,23 @@ for (const [index, record] of records.entries()) {
   }
 
   // ---------------------------------------------------------------------------------------
-  // Pair order: which slot next. The fourth pair is forced, so it is not a decision.
+  // Pair order: which slot next. Extraction lives in `decisions.ts` because A5's diff needs
+  // exactly the same thing from a user's solve, and two copies of it could drift apart without
+  // anything failing.
   // ---------------------------------------------------------------------------------------
-  const spans = F2L_PHASES.map((phase) =>
-    segmentation.spans.find((s) => s.phase === phase),
-  );
-  if (spans.every((span) => span?.slot)) {
-    for (let step = 0; step < 3; step++) {
-      const span = spans[step]!;
-      const before = normalizeOrientation(
-        applyMoves(scrambled, solution.slice(0, span.start)),
-      );
-      if (crossDistance(before, crossFace) !== 0) break;
-
-      const open = geometry.slots.filter((slot) => !isSlotSolved(before, slot));
-      if (open.length !== 4 - step) break;
-      const chosenSlot = bySlotName.get(span.slot!);
-      if (!chosenSlot || !open.includes(chosenSlot)) break;
-
-      const searched = open.map((slot) => {
-        const result = enumerateF2LInsertion(before, crossFace, slot, {
-          maxSolutions: WAYS_CAP,
-        });
-        return {
-          slot,
-          optimal: result.optimal,
-          ways: result.candidates.length,
-          bestMoves: result.candidates[0]?.moves ?? [],
-        };
-      });
-      if (searched.some((option) => option.optimal < 0)) break;
-
-      const bestLength = Math.min(...searched.map((option) => option.optimal));
-      const previous = step > 0 ? (bySlotName.get(spans[step - 1]!.slot!) ?? null) : null;
-      const options = searched.map((candidate) =>
-        pairFeatures(before, geometry, candidate, {
-          bestLength,
-          previous,
-          step,
-          openCount: open.length,
-        }),
-      );
-      const chosen = searched.findIndex((option) => option.slot === chosenSlot);
-
-      buffer.push(
-        JSON.stringify({
-          kind: "pair",
-          ...meta,
-          step,
-          chosen,
-          options,
-          // Kept for the eval so the baseline can be recomputed without re-deriving features.
-          lengths: searched.map((option) => option.optimal),
-        }),
-      );
-      pairGroups++;
-    }
+  for (const decision of pairDecisions(scrambled, solution, segmentation.spans, crossFace)) {
+    buffer.push(
+      JSON.stringify({
+        kind: "pair",
+        ...meta,
+        step: decision.step,
+        chosen: decision.chosen,
+        options: decision.options.map((option) => option.features),
+        // Kept for the eval so the baseline can be recomputed without re-deriving features.
+        lengths: decision.options.map((option) => option.optimal),
+      }),
+    );
+    pairGroups++;
   }
 
   if (buffer.length >= 200) flush();

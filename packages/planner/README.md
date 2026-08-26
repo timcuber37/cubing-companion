@@ -92,6 +92,33 @@ here, because nobody orients a cube by thinking "rotate x y'". `colours.ts` name
 scheme (white up, green front, red right). A differently stickered cube would be *named* wrongly;
 nothing would compute wrongly, since every calculation runs on indices.
 
+## Telling you what you missed
+
+A5's diff asks the same question backwards: not "what should I do" but "at the moments that
+mattered, what would a top solver have done instead, and why".
+
+`decisions.ts` is the single definition of what a decision point *is*, shared between the dataset
+builder that trained the model and the diff that queries it. Two copies of that would let A5 score
+inputs subtly unlike the ones the model learned from — and nothing would fail, the advice would
+just get quietly worse. Same rule as `features.ts`, same reason.
+
+`explain.ts` does the "show why" half, and the interpretable part is the harder one. Listing which
+feature values differ is easy and useless: two pairs usually differ in most of their features, and
+only one or two of those differences moved anything. So the attribution is **counterfactual** —
+give your option one of the model's feature values, re-score, and see how much of the gap closes:
+
+> *A top solver would more often take **FR** (53%, against 1% for what you did).*
+> — FR's corner was already up top where you can see it, while FL's was buried in a slot
+
+Both of those pairs go in in six moves. Nothing about move count separates them, which is why the
+diff has something to say that A3's scoring cannot: A3 rates that solve **95 for efficiency** while
+the diff matches **none** of its three pair choices.
+
+One trap worth recording, since it looks like a reasonable thing to do: rank the attributions by
+raw score delta **per decision**, never by averaging each feature's share across many. A single
+swap can overshoot the gap, and the average then crowns `backTurns`, whose actual permutation
+importance is ~0.005.
+
 ## Features for the models
 
 `features.ts` is the one definition of what the B3 models see, shared between the dataset builder

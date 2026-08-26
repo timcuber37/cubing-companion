@@ -7,6 +7,7 @@ import {
   parseMoves,
   serializeMove,
   type CubeState,
+  type Move,
 } from "@cubing-companion/engine";
 import { segmentRecord, type SolveRecord } from "@cubing-companion/session";
 import {
@@ -18,6 +19,7 @@ import {
 import { TwistyPlayer, type TwistyHandle } from "./TwistyPlayer";
 import { Timeline } from "./Timeline";
 import { PHASE_LABEL } from "./phaseLabels";
+import { DiffPanel } from "./DiffPanel";
 
 /** Spacing used to lay out a solve that arrived without a usable clock. */
 const FALLBACK_GAP_MS = 120;
@@ -40,6 +42,16 @@ export function SolveDetail({
   const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const [branch, setBranch] = useState<Branch | null>(null);
+
+  /**
+   * Whichever line is on the cube — your solve, or an alternative someone asked to see.
+   *
+   * Playback and scrubbing read from this rather than from the solve, which is the whole of what
+   * branch playback needed: the transport, the timeline and the cube plumbing never learn that
+   * branches exist.
+   */
+  const line = branch ?? analysis;
 
   const playerRef = useRef<TwistyHandle>(null);
   const positionRef = useRef(0);
@@ -50,13 +62,13 @@ export function SolveDetail({
   // animates, so animating each move would fall progressively behind the clock it is meant to
   // be showing.
   useEffect(() => {
-    if (!analysis) return;
-    playerRef.current?.setState(analysis.states[position]!);
-  }, [analysis, position]);
+    if (!line) return;
+    playerRef.current?.setState(line.states[Math.min(position, line.states.length - 1)]!);
+  }, [line, position]);
 
   useEffect(() => {
-    if (!playing || !analysis) return;
-    const { offsets } = analysis;
+    if (!playing || !line) return;
+    const { offsets } = line;
     // Anchored once, at the moment play begins, so a dropped frame does not lose time. Advancing
     // the position must not re-anchor, or playback runs slow by the per-move overshoot.
     const startedAt = performance.now();
@@ -80,7 +92,7 @@ export function SolveDetail({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [analysis, playing, speed]);
+  }, [line, playing, speed]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -93,6 +105,21 @@ export function SolveDetail({
   const seek = (index: number) => {
     setPlaying(false);
     setPosition(index);
+  };
+
+  /** Swap the cube onto an alternative line, parked at the moment it diverges. */
+  const playBranch = (at: number, moves: string, label: string) => {
+    if (!analysis) return;
+    setBranch(buildBranch(analysis, at, moves, label));
+    setPlaying(false);
+    setPosition(at);
+  };
+
+  const returnToSolve = () => {
+    const at = branch?.at ?? position;
+    setBranch(null);
+    setPlaying(false);
+    setPosition(at);
   };
 
   return (
@@ -125,7 +152,7 @@ export function SolveDetail({
           </button>
         </header>
 
-        {!analysis ? (
+        {!analysis || !line ? (
           <p className="rounded-md border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">
             This solve could not be segmented, so there is nothing to compare. Its moves are
             still stored.
@@ -148,7 +175,7 @@ export function SolveDetail({
                   type="button"
                   onClick={() => {
                     // Replaying from the end should start over rather than do nothing.
-                    if (position >= analysis.offsets.length - 1) setPosition(0);
+                    if (position >= line.offsets.length - 1) setPosition(0);
                     setPlaying((was) => !was);
                   }}
                   className="rounded bg-sky-600 px-3 py-1 text-xs font-medium text-white hover:bg-sky-500"
@@ -157,7 +184,7 @@ export function SolveDetail({
                 </button>
                 <button
                   type="button"
-                  onClick={() => seek(Math.min(analysis.offsets.length - 1, position + 1))}
+                  onClick={() => seek(Math.min(line.offsets.length - 1, position + 1))}
                   className="rounded border border-neutral-700 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                   aria-label="Next move"
                 >
@@ -183,15 +210,16 @@ export function SolveDetail({
               </div>
 
               <Timeline
-                offsets={analysis.offsets}
-                phases={analysis.metrics.phases}
-                pauses={analysis.metrics.pauses}
+                offsets={line.offsets}
+                // A branch has no phases of its own and never had pauses: nobody turned it.
+                phases={branch ? [] : analysis.metrics.phases}
+                pauses={branch ? [] : analysis.metrics.pauses}
                 position={position}
                 onSeek={seek}
               />
 
               <p className="font-mono text-xs leading-relaxed text-neutral-500">
-                {analysis.moveText.map((text, i) => (
+                {line.moveText.map((text, i) => (
                   <span
                     key={i}
                     className={
@@ -216,6 +244,13 @@ export function SolveDetail({
 
             <section className="space-y-4">
               <ScorePanel metrics={analysis.metrics} />
+              <DiffPanel
+                startFacelets={solve.startFacelets}
+                solution={solve.solution}
+                onPlayBranch={playBranch}
+                onReturn={returnToSolve}
+                branchLabel={branch?.label ?? null}
+              />
               <PhaseTable analysis={analysis} onSeek={seek} />
             </section>
           </div>
@@ -410,6 +445,55 @@ function PhaseTable({
       )}
     </div>
   );
+}
+
+/**
+ * An alternative continuation, built onto the front of your own solve.
+ *
+ * It keeps the real prefix so the branch has context — you see the solve arrive at the decision
+ * and then go the other way — and appends the alternative at an even tempo, because nobody
+ * actually turned it and inventing timings for it would be a lie the timeline would then draw.
+ */
+export interface Branch {
+  readonly at: number;
+  readonly label: string;
+  readonly states: readonly CubeState[];
+  readonly offsets: readonly number[];
+  readonly moveText: readonly string[];
+  readonly timed: boolean;
+}
+
+function buildBranch(
+  analysis: NonNullable<ReturnType<typeof analyse>>,
+  at: number,
+  moves: string,
+  label: string,
+): Branch | null {
+  let parsed: Move[];
+  try {
+    parsed = parseMoves(moves);
+  } catch {
+    return null;
+  }
+
+  const states = [...analysis.states.slice(0, at + 1)];
+  for (const move of parsed) {
+    states.push(applyMoves(states[states.length - 1]!, [move]));
+  }
+
+  const offsets = [...analysis.offsets.slice(0, at + 1)];
+  for (let i = 0; i < parsed.length; i++) {
+    offsets.push(offsets[offsets.length - 1]! + FALLBACK_GAP_MS);
+  }
+
+  return {
+    at,
+    label,
+    states,
+    offsets,
+    moveText: [...analysis.moveText.slice(0, at), ...parsed.map(serializeMove)],
+    timed: false,
+  };
 }
 
 /** Everything derived from the stored record, computed once per solve. */

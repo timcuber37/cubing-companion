@@ -31,6 +31,24 @@ export {
 } from "./features.ts";
 
 export {
+  crossDecision,
+  pairDecisions,
+  WAYS_CAP,
+  type CrossDecision,
+  type PairDecision,
+  type PairOption,
+} from "./decisions.ts";
+
+export {
+  attribute,
+  confidenceWording,
+  phrase,
+  reasons,
+  type Attribution,
+  type Named,
+} from "./explain.ts";
+
+export {
   rankByMoveCount,
   rankNextPair,
   rerankCross,

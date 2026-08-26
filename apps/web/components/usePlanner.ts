@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColourPlan } from "@cubing-companion/planner";
 import type {
+  CrossDiff,
+  DiffRequest,
   NextPairRequest,
+  PairDiff,
   ParityRequest,
   PlanRequest,
   PlanResponse,
@@ -26,6 +29,13 @@ export interface PlannerState {
   readonly parity: { readonly rows: number; readonly worst: number } | null;
   /** True once B3's cross model has re-ranked at least one colour. */
   readonly revised: boolean;
+  /** A5's decision-by-decision comparison of a recorded solve. */
+  readonly diff: {
+    readonly cross: CrossDiff | null;
+    readonly pairs: readonly PairDiff[];
+    readonly learned: boolean;
+    readonly failure?: string;
+  } | null;
 }
 
 const IDLE: PlannerState = {
@@ -38,6 +48,7 @@ const IDLE: PlannerState = {
   rankedCross: null,
   parity: null,
   revised: false,
+  diff: null,
 };
 
 /**
@@ -90,6 +101,17 @@ export function usePlanner() {
               ranked: message.ranked,
               learned: message.learned,
               rankedCross: message.crossFace,
+            };
+          case "diff":
+            return {
+              ...previous,
+              running: false,
+              diff: {
+                cross: message.cross,
+                pairs: message.pairs,
+                learned: message.learned,
+                ...(message.failure === undefined ? {} : { failure: message.failure }),
+              },
             };
           case "parity":
             return {
@@ -145,11 +167,21 @@ export function usePlanner() {
     worker.postMessage({ kind: "parity", model, id } satisfies ParityRequest);
   }, []);
 
+  /** A5: compare a recorded solve against what a top solver would likely have done. */
+  const diffSolve = useCallback((request: Omit<DiffRequest, "id" | "kind">) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+    const id = requestRef.current + 1;
+    requestRef.current = id;
+    setState({ ...IDLE, running: true });
+    worker.postMessage({ ...request, kind: "diff", id } satisfies DiffRequest);
+  }, []);
+
   const reset = useCallback(() => {
     // Bumping the id abandons anything still in flight.
     requestRef.current += 1;
     setState(IDLE);
   }, []);
 
-  return { ...state, plan, rankPairs, checkParity, reset };
+  return { ...state, plan, rankPairs, checkParity, diffSolve, reset };
 }

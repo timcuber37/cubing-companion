@@ -12,11 +12,11 @@ See [PLAN.md](PLAN.md) for the full roadmap.
 
 ## Status
 
-**B3 shipped — the model.** Scramble, solve, and get the solve back broken into phases,
-replayable at the tempo you actually turned and scored against world-class solves. Before you
-start, which cross to build and how to hold the cube to build it. And now, mid-solve, which pair
-a top solver would do next — from a model trained on what they actually did. A0–A4, B1, B2 and
-B3 are done; only A5 is left.
+**A5 shipped — the roadmap is complete.** Scramble, solve, and get the solve back broken into
+phases, replayable at the tempo you actually turned and scored against world-class solves. Before
+you start, which cross to build and how to hold the cube. And afterwards, decision by decision,
+what a top solver would have done instead — with the reason, and the alternative playable on the
+cube. A0–A5 and B1–B3 are done.
 
 **The headline number:** predicting which F2L pair a pro fills next, the model is right **69.5%**
 of the time against a **58.7%** "fewest moves wins" baseline, on solvers it has never seen. Where
@@ -43,6 +43,10 @@ what decides is whether the **corner is reachable rather than buried** — pros 
 one 89.9% of the time against 52.7% by chance. Move count already prices digging a corner out. It
 cannot price not being able to see the pair.
 
+That is also the gap A5 exists to close. A solve can score **95 for efficiency** against the corpus
+and still match none of a top solver's pair choices, because move count is not what a good solver
+is optimising.
+
 | Track | Status |
 |---|---|
 | A0 — cube engine | shipped — [`packages/engine`](packages/engine) |
@@ -52,7 +56,7 @@ cannot price not being able to see the pair.
 | A3 — analysis + scoring | shipped — [`packages/metrics`](packages/metrics) + solve replay in [`apps/web`](apps/web) |
 | B2 — search baselines | shipped — [`packages/solver`](packages/solver), cross + xcross + F2L insertion |
 | A4 — cross+1 / xcross planner | shipped — [`packages/planner`](packages/planner) + planner panel in [`apps/web`](apps/web) |
-| A5 — "what would a pro do" diff | not started |
+| A5 — "what would a pro do" diff | shipped — diff + branch playback in [`apps/web`](apps/web) |
 | B3 — ranking model | shipped — [`ml/`](ml), 69.5% vs a 58.7% baseline on held-out solvers |
 
 B1 landed ahead of A2 rather than after it. The reconstructions carry the reconstructor's
