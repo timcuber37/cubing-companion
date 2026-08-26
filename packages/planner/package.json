@@ -1,0 +1,15 @@
+{
+  "name": "@cubing-companion/planner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ranks solver candidates into advice: which cross, and how to hold the cube.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cubing-companion/analysis": "*",
+    "@cubing-companion/engine": "*",
+    "@cubing-companion/solver": "*"
+  }
+}

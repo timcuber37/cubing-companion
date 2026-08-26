@@ -10,7 +10,7 @@ import {
   type DesyncEvent,
   type TimedMove,
 } from "@cubing-companion/cube-link";
-import { generateScramble, NotationError } from "@cubing-companion/engine";
+import { generateScramble, NotationError, toFacelets } from "@cubing-companion/engine";
 import {
   MemoryStore,
   SolveRecorder,
@@ -24,6 +24,7 @@ import { ManualInput } from "./ManualInput";
 import { SessionPanel } from "./SessionPanel";
 import { SolveList } from "./SolveList";
 import { SolveDetail } from "./SolveDetail";
+import { PlannerPanel } from "./PlannerPanel";
 
 const MAC_STORAGE_KEY = "cubing-companion.gan-mac";
 const SESSION_KEY = "cubing-companion.session-id";
@@ -102,6 +103,9 @@ export function CubeHarness() {
   // The id rather than the record: the list is reloaded from storage after every change, and
   // holding a stale copy would keep showing a solve that had been deleted.
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The live position, as a facelet string, for the planner to read. Kept as facelets rather
+  // than a `CubeState` because that is what crosses into the worker anyway.
+  const [facelets, setFacelets] = useState<string | null>(null);
 
   // Checked after mount: `navigator` does not exist during server rendering.
   useEffect(() => {
@@ -183,6 +187,7 @@ export function CubeHarness() {
       playerRef.current?.addMove(move.move);
       setMoves((previous) => [move, ...previous].slice(0, MAX_LOG));
       setSkew(tracker.skewPercent());
+      setFacelets(toFacelets(tracker.getState()));
 
       // Order matters: the move that solves the cube must be recorded as part of the solve,
       // so the recorder sees it before it sees the resulting position.
@@ -204,6 +209,7 @@ export function CubeHarness() {
     // rather than animate, because the moves in between were never observed.
     tracker.onReseed((state) => {
       playerRef.current?.setState(state);
+      setFacelets(toFacelets(state));
       // The position changed without any move arriving, so the recorder has to be told —
       // otherwise a cube that was re-seeded straight onto the scramble would never arm.
       recorder.handleState(state);
@@ -367,6 +373,7 @@ export function CubeHarness() {
             {storageNote}
           </p>
         )}
+        <PlannerPanel facelets={facelets} />
         <SolveList
           solves={solves}
           onDelete={(id) => void deleteSolve(id)}
