@@ -86,7 +86,7 @@ export class SolveRecorder {
     return {
       phase: this.phase,
       scrambleText: this.scrambleText,
-      moveCount: this.moves.length,
+      moveCount: this.moves.length - this.inspectionMoves(this.moves),
       elapsedMs: this.elapsedMs(),
       record: this.finished,
     };
@@ -194,10 +194,28 @@ export class SolveRecorder {
     this.finished = null;
   }
 
+  /**
+   * How many moves at the front are rotations, and so belong to inspection.
+   *
+   * A rotation solves nothing — it is the solver deciding how to hold the cube, which under WCA
+   * rules happens during the 15 seconds of inspection, before the attempt has started. The corpus
+   * says that is exactly what it is used for: pros rotate 1.45 times before their first turn and
+   * only 0.23 times during the whole cross.
+   *
+   * They stay in the recorded solution, because *which* way you chose to hold it is precisely
+   * what A4 recommends and B3 models. They are just not counted as moves, and the clock does not
+   * start until the first real turn.
+   */
+  private inspectionMoves(moves: readonly TimedMove[]): number {
+    const first = moves.findIndex((m) => !ROTATIONS.has(m.move.family));
+    return first === -1 ? moves.length : first;
+  }
+
   private elapsedMs(): number | null {
     if (this.finished) return this.finished.durationMs;
     if (this.phase !== "solving") return null;
     const timestamps = this.moves
+      .slice(this.inspectionMoves(this.moves))
       .map((m) => m.timestamp)
       .filter((t): t is number => t !== null);
     if (timestamps.length < 2) return 0;
@@ -210,7 +228,12 @@ export class SolveRecorder {
     // stream — but with the solve complete every move can be fitted.
     const retimed = MoveTimeline.retime(this.moves);
     const timestamps = retimed.map((m) => m.timestamp);
-    const known = timestamps.filter((t): t is number => t !== null);
+
+    // The clock starts on the first real turn, not on an inspection rotation. `timestamps` keeps
+    // every move so it stays index-aligned with the solution; only the span measured over it
+    // moves.
+    const inspection = this.inspectionMoves(retimed);
+    const known = timestamps.slice(inspection).filter((t): t is number => t !== null);
     const durationMs =
       known.length >= 2 ? known[known.length - 1]! - known[0]! : null;
 
@@ -236,7 +259,7 @@ export class SolveRecorder {
       scrambleText: this.scrambleText,
       scrambleMatched: this.scrambleMatched,
       solution: serializeMoves(moveList),
-      moveCount: moveList.length,
+      moveCount: moveList.length - inspection,
       durationMs: reportedDuration,
       tps: reportedDuration === null ? null : turns / (reportedDuration / 1000),
       source: this.options.source,

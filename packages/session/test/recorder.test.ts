@@ -303,3 +303,83 @@ describe("record shape", () => {
     expect(typeof record.solution).toBe("string");
   });
 });
+
+/**
+ * Rotations before the first turn are inspection, not solving.
+ *
+ * Under WCA rules the 15 seconds of inspection are where you decide how to hold the cube, and a
+ * rotation changes nothing about the cube's state — so neither the move count nor the clock
+ * should include them. The corpus agrees about what they are for: pros rotate 1.45 times before
+ * their first turn and only 0.23 times across the whole cross.
+ */
+describe("inspection rotations", () => {
+  const SOLUTION = "R U R' U' R U R' U'";
+
+  it("are left out of the move count", async () => {
+    const plain = await harness({ start: scrambledState(SCRAMBLE), moves: SOLUTION });
+    plain.recorder.arm(SCRAMBLE, plain.tracker.getState());
+    plain.source.stepAll();
+
+    const rotated = await harness({
+      start: scrambledState(SCRAMBLE),
+      moves: `y x' ${SOLUTION}`,
+    });
+    rotated.recorder.arm(SCRAMBLE, rotated.tracker.getState());
+    rotated.source.stepAll();
+
+    // Two rotations up front, and the same number of moves reported.
+    expect(rotated.recorder.getState().moveCount).toBe(
+      plain.recorder.getState().moveCount,
+    );
+  });
+
+  it("stay in the solution, because the grip they chose is worth knowing", async () => {
+    const { source, tracker, recorder } = await harness({
+      start: scrambledState(SCRAMBLE),
+      moves: `y ${SOLUTION}`,
+    });
+    recorder.arm(SCRAMBLE, tracker.getState());
+    source.stepAll();
+    recorder.discard();
+
+    const record = recorder.getState().record!;
+    // A4 recommends a grip and B3 models it; throwing the rotation away would lose that.
+    expect(record.solution.startsWith("y ")).toBe(true);
+    expect(record.moveCount).toBe(parseMoves(SOLUTION).length);
+  });
+
+  it("do not start the clock", async () => {
+    // The replay spaces moves 150 ms apart, so two leading rotations would add 300 ms to any
+    // duration that counted them.
+    const plain = await harness({ start: scrambledState(SCRAMBLE), moves: SOLUTION });
+    plain.recorder.arm(SCRAMBLE, plain.tracker.getState());
+    plain.source.stepAll();
+    plain.recorder.discard();
+
+    const rotated = await harness({
+      start: scrambledState(SCRAMBLE),
+      moves: `y x' ${SOLUTION}`,
+    });
+    rotated.recorder.arm(SCRAMBLE, rotated.tracker.getState());
+    rotated.source.stepAll();
+    rotated.recorder.discard();
+
+    expect(rotated.recorder.getState().record!.durationMs).toBe(
+      plain.recorder.getState().record!.durationMs,
+    );
+  });
+
+  it("leave a mid-solve rotation alone, which really did cost time", async () => {
+    // Only the leading run is inspection. A rotation in the middle is a regrip you paid for.
+    const { source, tracker, recorder } = await harness({
+      start: scrambledState(SCRAMBLE),
+      moves: "R U y R' U' R U R' U'",
+    });
+    recorder.arm(SCRAMBLE, tracker.getState());
+    source.stepAll();
+    recorder.discard();
+
+    const record = recorder.getState().record!;
+    expect(record.moveCount).toBe(9);
+  });
+});

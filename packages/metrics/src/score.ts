@@ -13,14 +13,23 @@ import type { SolveMetrics } from "./metrics.ts";
 
 /** One measurement placed against the corpus. */
 export interface Rated {
-  readonly value: number;
   /**
    * 0–100, higher is better: the share of pro solves this beats.
    *
-   * A solve at the corpus median scores 50. It is not a grade — 50 means "as good as the median
-   * world-class solve", which for almost every user is a very good day.
+   * The underlying quantity, and a percentile rather than a grade — 50 means "as good as the
+   * median world-class solve", which for almost every user is a very good day. {@link rating}
+   * is what gets shown; this is what it is derived from, and what the calibration tests pin.
    */
   readonly score: number;
+  /**
+   * The same thing out of ten, which is what the UI shows.
+   *
+   * A bare percentile invites being read as a mark out of a hundred, where 50 looks like a
+   * failure rather than like matching the median solve in a corpus of world records. Out of ten
+   * it reads as a rating, which is what it is.
+   */
+  readonly rating: number;
+  readonly value: number;
   readonly distribution: Distribution;
   /**
    * True when the baseline had stackmat dead time removed to make it comparable.
@@ -62,11 +71,16 @@ export function corpusRank(value: number, d: Distribution): number {
   return 1;
 }
 
+/** Percentile out of ten, to one decimal — more precision than the corpus can justify. */
+export const asRating = (score: number): number => Math.round(score) / 10;
+
 /** Every metric scored here is one where less is better: fewer moves, fewer seconds. */
 function rate(value: number, d: Distribution, overheadCorrected = false): Rated {
+  const score = 100 * (1 - corpusRank(value, d));
   return {
     value,
-    score: 100 * (1 - corpusRank(value, d)),
+    score,
+    rating: asRating(score),
     distribution: d,
     overheadCorrected,
   };
@@ -160,11 +174,13 @@ export interface SolveScore {
   /** Named sub-scores, each 0–100. Always shown; the composite is just their mean. */
   readonly components: readonly { readonly label: string; readonly rated: Rated }[];
   /**
-   * Mean of the components, or `null` when nothing could be scored.
+   * Mean of the components, or `null` when nothing could be scored. 0–100.
    *
    * Never display this without the components beside it.
    */
   readonly composite: number | null;
+  /** The composite out of ten, which is the headline figure the UI shows. */
+  readonly rating: number | null;
   readonly phases: readonly PhaseScore[];
   readonly windows: readonly WindowScore[];
   /** Measured, banded, and deliberately not part of the composite: no corpus baseline exists. */
@@ -190,12 +206,15 @@ export function scoreSolve(metrics: SolveMetrics): SolveScore {
   add("rotations", rateRotations("total", metrics.rotations));
   if (total) add("speed", total.time);
 
+  const composite =
+    components.length === 0
+      ? null
+      : components.reduce((sum, c) => sum + c.rated.score, 0) / components.length;
+
   return {
     components,
-    composite:
-      components.length === 0
-        ? null
-        : components.reduce((sum, c) => sum + c.rated.score, 0) / components.length,
+    composite,
+    rating: composite === null ? null : asRating(composite),
     phases: metrics.phases.map((p) => ({
       phase: p.phase,
       turns: rateTurns(p.phase, p.turns),

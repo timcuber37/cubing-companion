@@ -64,7 +64,13 @@ export function SessionPanel({
         >
           {busy ? "Scrambling…" : "New scramble"}
         </button>
-        {state.phase === "scrambling" && (
+        {/*
+          Available whenever a solve is not already under way, not just while waiting for the
+          cube to reach a scramble. Manual input now scrambles the virtual cube for you and lands
+          straight in `ready`, so gating this on `scrambling` would leave no way at all to start
+          from a position you set yourself — a competition scramble, or one from a tutorial.
+        */}
+        {state.phase !== "solving" && (
           <button
             type="button"
             onClick={onStartFromHere}

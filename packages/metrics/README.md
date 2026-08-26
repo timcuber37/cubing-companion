@@ -10,7 +10,7 @@ Pure: it takes spans and timestamps rather than a stored record, so it depends o
 ```ts
 const metrics = computeMetrics(spans, moveTimestamps);
 const score = scoreSolve(metrics);
-//    composite 45, from efficiency 70, rotations 25, speed 41
+//    4.5 / 10, from efficiency 7.0, rotations 2.5, speed 4.1
 ```
 
 ## Three kinds of number, and they are not interchangeable
@@ -114,10 +114,17 @@ contributor without it can still build and test, and the browser bundle needs no
 
 ## Scoring
 
-50 is the median solve in the corpus. That framing is deliberate: for almost any user, matching
-the median world-class reconstruction is a very good day, and a score that reads like a school
-grade would be actively discouraging. Lower is better for every metric scored here, so the
-percentile is inverted — the 10th percentile by move count is the 90th by score.
+Every figure is a percentile — the share of pro solves you beat — and it is **shown out of ten**.
+`Rated.score` keeps the 0–100 percentile, because that is the quantity the calibration tests pin;
+`Rated.rating` is the same number on the scale people read.
+
+The scale matters more than it looks. Out of a hundred, 50 reads as a bare pass; out of ten, 5.0
+reads as the middle of the range, which is what it is — **5.0 is the median solve in a corpus of
+world records**. For almost any user that is a very good day, and a number that looks like a
+school grade would be actively discouraging about it.
+
+Lower is better for every metric scored here, so the percentile is inverted: the 10th percentile
+by move count is the 90th by score, or 9.0 out of 10.
 
 The composite is the plain mean of its components and is never displayed without them. A number
-that cannot be taken apart tells a solver they were a 45 and gives them nothing to do about it.
+that cannot be taken apart tells a solver they were a 4.5 and gives them nothing to do about it.

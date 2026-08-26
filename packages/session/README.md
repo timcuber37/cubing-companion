@@ -58,10 +58,24 @@ solve. Reversing the order files it after the solve has already ended.
 
 ## Timing, and what it is not
 
-Duration runs from the first move to the last. **That is not a stackmat time** — it excludes
+Duration runs from the first **turn** to the last. **That is not a stackmat time** — it excludes
 inspection and the hand movement a timer captures. This is precisely why reco.nz removed its
 smartcube reconstructions, and why A3 must not score these against corpus percentiles without
 saying so. Both the type and the UI say it.
+
+### Rotations before the first turn are inspection
+
+A rotation solves nothing: it is the solver deciding how to hold the cube, which under WCA rules
+belongs to the 15 seconds of inspection, before the attempt begins. The corpus agrees about what
+they are for — pros rotate **1.45 times before their first turn** and only 0.23 times across the
+whole cross.
+
+So a leading run of rotations is left out of `moveCount`, and the clock does not start until the
+first turn. They stay in `solution`, because *which* grip was chosen is exactly what A4 recommends
+and B3 models; throwing them away would discard the more interesting half of the decision.
+
+Only the leading run counts as inspection. A rotation in the middle of a solve is a regrip that
+cost real time, and is counted like any other move.
 
 On completion the recorder runs `MoveTimeline.retime` over the whole stream. Live, the timeline
 cannot place moves that arrived before the first host timestamp — a real consequence of BLE

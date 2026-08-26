@@ -8,12 +8,14 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import {
+  applyMoves,
   parseMoves,
   stateAfter,
   toFacelets,
   CubeState,
 } from "@cubing-companion/engine";
 import { CubeTracker, serialGap } from "../src/tracker.ts";
+import { ManualSource } from "../src/manual.ts";
 import { recordingFromAlg, ReplaySource } from "../src/replay.ts";
 import type { DesyncEvent } from "../src/source.ts";
 
@@ -208,5 +210,78 @@ describe("lifecycle", () => {
     await tracker.start();
     await tracker.stop();
     await expect(tracker.stop()).resolves.toBeUndefined();
+  });
+});
+
+/**
+ * Placing the cube, rather than losing track of it.
+ *
+ * A virtual cube has nothing to pick up and scramble by hand, so the app scrambles it by
+ * assignment. That has to reach the tracker — otherwise every later move is applied on top of a
+ * position the tracker no longer shares — and it has to be reported as what it is, not as a
+ * desync the link never had.
+ */
+describe("setting the position directly", () => {
+  const SCRAMBLE = "D2 F R2 U L B2 R F2 D L U2 B";
+
+  it("moves the tracker with the source, so later moves land on the right cube", async () => {
+    const source = new ManualSource();
+    const tracker = new CubeTracker(source, { verifyIntervalMs: 0 });
+    await tracker.start();
+
+    const target = applyMoves(CubeState.solved(), parseMoves(SCRAMBLE));
+    source.setState(target);
+    tracker.reseed(target);
+    expect(toFacelets(tracker.getState())).toBe(toFacelets(target));
+
+    // A turn after the placement must apply to the placed position, not the old one.
+    source.applyAlg("R");
+    expect(toFacelets(tracker.getState())).toBe(
+      toFacelets(applyMoves(target, parseMoves("R"))),
+    );
+    await tracker.stop();
+  });
+
+  it("reports it as a placement, not as a fault", async () => {
+    const source = new ManualSource();
+    const tracker = new CubeTracker(source, { verifyIntervalMs: 0 });
+    const seen: string[] = [];
+    tracker.onDesync((event) => seen.push(event.reason));
+    await tracker.start();
+
+    tracker.reseed(applyMoves(CubeState.solved(), parseMoves(SCRAMBLE)));
+    // The initial sync is expected; what must not appear is a state-mismatch, which would tell
+    // the diagnostics panel the link had drifted.
+    expect(seen).not.toContain("state-mismatch");
+    expect(seen).toContain("set-directly");
+    await tracker.stop();
+  });
+
+  it("turns nothing, so a scramble never reaches the move log", async () => {
+    const source = new ManualSource();
+    const tracker = new CubeTracker(source, { verifyIntervalMs: 0 });
+    const moves: unknown[] = [];
+    tracker.onMove((move) => moves.push(move));
+    await tracker.start();
+
+    const target = applyMoves(CubeState.solved(), parseMoves(SCRAMBLE));
+    source.setState(target);
+    tracker.reseed(target);
+    // Twelve moves' worth of scramble, and not one of them was turned.
+    expect(moves).toEqual([]);
+    await tracker.stop();
+  });
+
+  it("agrees with the source when asked", async () => {
+    const source = new ManualSource();
+    const tracker = new CubeTracker(source, { verifyIntervalMs: 0 });
+    await tracker.start();
+
+    const target = applyMoves(CubeState.solved(), parseMoves(SCRAMBLE));
+    source.setState(target);
+    tracker.reseed(target);
+    // Nothing to reconcile: the two were placed together.
+    expect(await tracker.verify()).toBe(true);
+    await tracker.stop();
   });
 });

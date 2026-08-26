@@ -13,6 +13,7 @@ import { segmentRecord, type SolveRecord } from "@cubing-companion/session";
 import {
   computeMetrics,
   scoreSolve,
+  solveStartIndex,
   type Rated,
   type SolveMetrics,
 } from "@cubing-companion/metrics";
@@ -269,9 +270,10 @@ function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
         <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
           Against the pro corpus
         </h3>
-        {score.composite !== null && (
-          <span className="font-mono text-2xl tabular-nums text-neutral-100">
-            {score.composite.toFixed(0)}
+        {score.rating !== null && (
+          <span className="font-mono tabular-nums text-neutral-100">
+            <span className="text-2xl">{score.rating.toFixed(1)}</span>
+            <span className="text-sm text-neutral-500"> / 10</span>
           </span>
         )}
       </div>
@@ -286,7 +288,7 @@ function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
               <ScoreBar rated={rated} />
             </dd>
             <dd className="text-right font-mono text-xs tabular-nums text-neutral-300">
-              {rated.score.toFixed(0)}
+              {rated.rating.toFixed(1)}
             </dd>
           </div>
         ))}
@@ -308,10 +310,11 @@ function ScorePanel({ metrics }: { metrics: SolveMetrics }) {
       </div>
 
       <p className="mt-2 border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
-        50 means the median solve in a corpus of {score.baselineNote.corpusSolves.toLocaleString()}{" "}
-        world-class reconstructions — for almost anyone that is a very good day. Fluidity and
-        pauses are measured but not scored: reconstructions carry no per-move timing, so there is
-        no baseline for them.
+        Rated against {score.baselineNote.corpusSolves.toLocaleString()} world-class
+        reconstructions: <strong className="text-neutral-400">5.0 is the median one of those</strong>,
+        so anything near it is a very good day and 10 means you beat the lot. Fluidity and pauses
+        are measured but not scored — reconstructions carry no per-move timing, so there is no
+        baseline for them.
       </p>
     </div>
   );
@@ -354,7 +357,9 @@ function PhaseTable({
             <th className="px-2 py-1.5 text-right font-medium" title="Time before the phase's first move — finding the piece rather than turning it.">
               recog
             </th>
-            <th className="px-2 py-1.5 text-right font-medium">vs pros</th>
+            <th className="px-2 py-1.5 text-right font-medium" title="Out of 10 against the pro corpus; 5.0 is the median world-class solve.">
+              vs pros
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-900">
@@ -395,7 +400,7 @@ function PhaseTable({
                     <span className="text-neutral-700">—</span>
                   ) : (
                     <span className={rated.score >= 50 ? "text-emerald-400" : "text-neutral-400"}>
-                      {rated.score.toFixed(0)}
+                      {rated.rating.toFixed(1)}
                     </span>
                   )}
                 </td>
@@ -430,7 +435,7 @@ function PhaseTable({
                     <span
                       className={`ml-2 ${window.time.score >= 50 ? "text-emerald-400" : "text-neutral-400"}`}
                     >
-                      {window.time.score.toFixed(0)}
+                      {window.time.rating.toFixed(1)}
                     </span>
                   )}
                 </span>
@@ -501,9 +506,12 @@ function analyse(solve: SolveRecord) {
   let states: CubeState[];
   let moveText: string[];
   let metrics: SolveMetrics;
+  // Declared out here because the offsets below need it: the timeline has to know which moves
+  // were inspection rotations, and that is a property of the moves, not of the timestamps.
+  let moves: Move[];
 
   try {
-    const moves = parseMoves(solve.solution);
+    moves = parseMoves(solve.solution);
     const spans = segmentRecord(solve).segmentation.segmentation?.spans ?? [];
     if (spans.length === 0) return null;
 
@@ -517,9 +525,11 @@ function analyse(solve: SolveRecord) {
     return null;
   }
 
-  // `offsets[i]` is the moment the i-th move landed, relative to the first. A solve with no
-  // usable clock still gets a timeline, laid out evenly and labelled as such.
-  const base = solve.moveTimestamps.find((t) => t !== null) ?? null;
+  // `offsets[i]` is the moment the i-th move landed, relative to the **first real turn** — the
+  // rotations before it are inspection and cost the solve nothing, so the timeline must not draw
+  // them as time spent or the cross band would start with a gap nobody solved through.
+  const solveStart = solveStartIndex(moves);
+  const base = solve.moveTimestamps.slice(solveStart).find((t) => t !== null) ?? null;
   const timed = base !== null;
   const offsets: number[] = [0];
   for (let i = 0; i < moveText.length; i++) {

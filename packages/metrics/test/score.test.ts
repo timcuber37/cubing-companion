@@ -14,6 +14,7 @@ import { computeMetrics } from "../src/metrics.ts";
 import { BASELINES } from "../src/baselines.generated.ts";
 import { TimeWindow } from "../src/baselines.ts";
 import {
+  asRating,
   corpusRank,
   fluidityBand,
   rateRotations,
@@ -264,5 +265,65 @@ describe("fluidity bands", () => {
     expect(fluidityBand(0.65)).toBe("hesitant");
     expect(fluidityBand(0.2)).toBe("stop-start");
     expect(fluidityBand(null)).toBeNull();
+  });
+});
+
+/**
+ * The rating.
+ *
+ * The percentile is the quantity; the rating is how it is shown. Keeping both means the
+ * calibration above still pins the real number while the UI shows something a person can read —
+ * a bare 50 invites being taken for a mark out of a hundred, which is exactly backwards for
+ * "matched the median world record".
+ */
+describe("out of ten", () => {
+  it("is the percentile on a ten-point scale", () => {
+    for (const baseline of BASELINES.turns) {
+      const rated = rateTurns(baseline.key, baseline.turns.median)!;
+      // The median pro solve sits halfway up the scale.
+      expect(rated.rating, baseline.key).toBeCloseTo(5, 1);
+    }
+    const baseline = BASELINES.turns.find((t) => t.key === "total")!.turns;
+    expect(rateTurns("total", baseline.p10)!.rating).toBeCloseTo(9, 1);
+    expect(rateTurns("total", baseline.p90)!.rating).toBeCloseTo(1, 1);
+  });
+
+  it("stays inside the scale at both ends", () => {
+    const baseline = BASELINES.turns.find((t) => t.key === "total")!.turns;
+    expect(rateTurns("total", baseline.min - 100)!.rating).toBe(10);
+    expect(rateTurns("total", baseline.max + 100)!.rating).toBe(0);
+  });
+
+  it("keeps one decimal, which is already more than the corpus can justify", () => {
+    for (const value of [40, 47, 52, 61, 70]) {
+      const rating = rateTurns("total", value)!.rating;
+      expect(Number.isInteger(rating * 10)).toBe(true);
+    }
+  });
+
+  it("moves in step with the score it comes from", () => {
+    const better = rateTurns("total", 45)!;
+    const worse = rateTurns("total", 70)!;
+    expect(better.score).toBeGreaterThan(worse.score);
+    expect(better.rating).toBeGreaterThan(worse.rating);
+  });
+
+  it("gives the composite the same treatment", () => {
+    const score = scoreSolve(computeMetrics(SPANS, timeline(63)));
+    expect(score.rating).toBeCloseTo(asRating(score.composite!), 6);
+    expect(score.rating!).toBeGreaterThanOrEqual(0);
+    expect(score.rating!).toBeLessThanOrEqual(10);
+  });
+
+  it("is exactly the composite, rescaled — never a separate judgement", () => {
+    // The two must never drift: the percentile is what the calibration tests pin, and the
+    // rating is only how it is written down.
+    for (const count of [40, 50, 63]) {
+      const score = scoreSolve(computeMetrics(SPANS, timeline(count)));
+      expect(score.rating).toBe(asRating(score.composite!));
+      for (const { rated } of score.components) {
+        expect(rated.rating).toBe(asRating(rated.score));
+      }
+    }
   });
 });

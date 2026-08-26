@@ -43,7 +43,7 @@ export interface DesyncEvent {
   /** What the cube reported. */
   readonly actual: string;
   /** How the disagreement was noticed. */
-  readonly reason: "serial-gap" | "state-mismatch" | "initial-sync";
+  readonly reason: "serial-gap" | "state-mismatch" | "initial-sync" | "set-directly";
 }
 
 export type Unsubscribe = () => void;

@@ -10,7 +10,14 @@ import {
   type DesyncEvent,
   type TimedMove,
 } from "@cubing-companion/cube-link";
-import { generateScramble, NotationError, toFacelets } from "@cubing-companion/engine";
+import {
+  applyMoves,
+  CubeState,
+  generateScramble,
+  NotationError,
+  parseMoves,
+  toFacelets,
+} from "@cubing-companion/engine";
 import {
   MemoryStore,
   SolveRecorder,
@@ -277,6 +284,20 @@ export function CubeHarness() {
       // instantiate; `generateScramble` falls back to random-move and says which it produced.
       const { text, kind } = await generateScramble();
       setScrambleKind(kind);
+
+      // With manual input there is no cube in your hands to scramble, so scramble the virtual
+      // one. Set outright rather than turned: the scramble describes solved-plus-those-moves, so
+      // applying them to whatever the cube happens to be showing would land somewhere else
+      // entirely — and turning them would put a scramble in the move log for the recorder to
+      // count. Done before arming, so the recorder sees a cube that already matches and goes
+      // straight to ready.
+      const manual = manualRef.current;
+      if (manual) {
+        const target = applyMoves(CubeState.solved(), parseMoves(text));
+        manual.setState(target);
+        tracker.reseed(target);
+      }
+
       recorder.arm(text, tracker.getState());
       setRecorderState(recorder.getState());
     } finally {
@@ -390,6 +411,13 @@ export function CubeHarness() {
   );
 }
 
+/** Not every entry here is a fault: two of these are the app placing the cube on purpose. */
+const DESYNC_LABEL: Record<string, string> = {
+  "initial-sync": "seeded from cube",
+  "set-directly": "scrambled",
+};
+const BENIGN_DESYNC = new Set(["initial-sync", "set-directly"]);
+
 function StatusLine({
   status,
   skew,
@@ -461,10 +489,10 @@ function DesyncPanel({ events }: { events: DesyncEvent[] }) {
           <li key={index} className="text-neutral-400">
             <span
               className={
-                event.reason === "initial-sync" ? "text-sky-400" : "text-amber-400"
+                BENIGN_DESYNC.has(event.reason) ? "text-sky-400" : "text-amber-400"
               }
             >
-              {event.reason === "initial-sync" ? "seeded from cube" : event.reason}
+              {DESYNC_LABEL[event.reason] ?? event.reason}
             </span>
             {event.reason === "serial-gap" && ` — ${event.actual}`}
           </li>

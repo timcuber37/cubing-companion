@@ -20,7 +20,9 @@ export function ManualInput({
 }) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [keyboardActive, setKeyboardActive] = useState(false);
+  // On by default: driving the cube by hand is the point of this panel, and having to tick a
+  // box first made the common case the one that needed a step.
+  const [keyboardActive, setKeyboardActive] = useState(true);
   const surfaceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,6 +31,22 @@ export function ManualInput({
     const handler = (event: KeyboardEvent) => {
       // Leave browser and OS shortcuts alone.
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      // ...and leave typing alone. The listener is on the window so the cube can be turned
+      // without focusing anything, which means that now turning is on by default, every letter
+      // of an algorithm typed into the box below would otherwise also turn the cube — `R` in
+      // "R U R'" would fire an R turn as it was typed.
+      const target = event.target as HTMLElement | null;
+      if (
+        target !== null &&
+        (target.isContentEditable ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT")
+      ) {
+        return;
+      }
+
       if (onKey(event.key)) event.preventDefault();
     };
 

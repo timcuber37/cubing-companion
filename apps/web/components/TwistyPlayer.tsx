@@ -81,6 +81,10 @@ export function TwistyPlayer({ ref }: { ref?: Ref<TwistyHandle> }) {
         background: "none",
         controlPanel: "none",
         hintFacelets: "none",
+        // Twice the default. The stock tempo is pitched for watching an algorithm, and a cube
+        // being turned by hand outruns it — the animation finishes well after the turn did,
+        // which reads as lag in the link rather than as a slow animation.
+        tempoScale: 2,
       }) as unknown as TwistyPlayerElement;
 
       player.style.width = "100%";

@@ -104,6 +104,18 @@ verified against a vector from GAN's own documentation.
 |---|---|
 | `GanCubeSource` | The real cube. Needs Chromium and a user gesture. |
 | `ManualSource` | Keyboard and pasted algorithms. A first-class input, not a fallback — it is what keeps A2 and A3 buildable without hardware. |
+
+### Placing a virtual cube
+
+A real cube gets scrambled by hand; a virtual one has to be put there. `ManualSource.setState`
+and `CubeTracker.reseed` do that together, and both are deliberately **silent** — no move events.
+Turning a scramble in would put it in the move log for the recorder to count, and applying the
+scramble as moves would land somewhere else entirely whenever the cube was not already solved,
+since a scramble describes solved-plus-those-moves rather than a relative sequence.
+
+It surfaces as a `set-directly` desync rather than a `state-mismatch`, because nothing drifted —
+reporting it as a fault would tell the diagnostics panel the link had failed every time somebody
+asked for a new scramble.
 | `ReplaySource` | Plays a recording. `recordingFromAlg` can synthesise batching, clock skew and dropped serials on demand, which is how the awkward cases get tested at all. |
 
 ## MAC addresses

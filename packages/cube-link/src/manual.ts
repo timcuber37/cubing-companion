@@ -125,6 +125,17 @@ export class ManualSource implements CubeSource {
     this.state = CubeState.solved();
   }
 
+  /**
+   * Put the cube in a given position outright.
+   *
+   * Silent by design: this is not a sequence of turns anybody made, so emitting moves would put
+   * a scramble into the move log and let the recorder count it. The caller is expected to tell
+   * the tracker as well — `CubeTracker.reseed` — since nothing here is watching.
+   */
+  setState(state: CubeState): void {
+    this.state = state.clone();
+  }
+
   private applyAll(moves: readonly Move[]): void {
     for (const move of moves) {
       applyMoveInPlace(this.state, move);

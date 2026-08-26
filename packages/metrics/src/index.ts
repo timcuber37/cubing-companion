@@ -11,6 +11,7 @@
 export {
   computeMetrics,
   phaseDurationsMs,
+  solveStartIndex,
   type PhaseMetrics,
   type SolveMetrics,
 } from "./metrics.ts";
@@ -26,6 +27,7 @@ export {
 } from "./pauses.ts";
 
 export {
+  asRating,
   corpusRank,
   FLUIDITY_BANDS,
   fluidityBand,

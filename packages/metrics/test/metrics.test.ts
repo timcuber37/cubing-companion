@@ -218,3 +218,91 @@ describe("fluidity", () => {
     expect(metrics.durationMs).toBeNull();
   });
 });
+
+/**
+ * Inspection rotations.
+ *
+ * A `y` before the first turn is the solver choosing how to hold the cube, which under WCA rules
+ * happens during inspection, before the attempt starts. Charging its time to the cross would make
+ * every solve that opens with a rotation look like it had a slow cross — and 95% of corpus solves
+ * open with one.
+ */
+describe("rotations before the first turn", () => {
+  const ROTATION: Move = { family: "y", amount: 1 };
+
+  /** The same solve twice: once plain, once with two rotations parked in front of the cross. */
+  function pair(gapMs = 150) {
+    const plainSpans = [span(Phase.Cross, 0, 6), span(Phase.F2L1, 6, 10)];
+    const rotatedSpans: PhaseSpan[] = [
+      {
+        phase: Phase.Cross,
+        start: 0,
+        end: 8,
+        moves: [ROTATION, ROTATION, ...Array.from({ length: 6 }, () => FILLER)],
+        turns: 6,
+        rotations: 2,
+      },
+      span(Phase.F2L1, 8, 12),
+    ];
+    return {
+      plain: computeMetrics(plainSpans, evenTimeline(10, gapMs)),
+      rotated: computeMetrics(rotatedSpans, evenTimeline(12, gapMs)),
+    };
+  }
+
+  it("cost the solve nothing", () => {
+    const { plain, rotated } = pair();
+    expect(rotated.durationMs).toBe(plain.durationMs);
+  });
+
+  it("are not charged to the cross", () => {
+    const { plain, rotated } = pair();
+    expect(rotated.phases[0]!.durationMs).toBe(plain.phases[0]!.durationMs);
+    // The clock starts on the first turn, so the cross still has no recognition time.
+    expect(rotated.phases[0]!.recognitionMs).toBe(0);
+  });
+
+  it("leave the phases summing to the solve exactly", () => {
+    const { rotated } = pair();
+    const summed = rotated.phases.reduce((total, p) => total + p.durationMs!, 0);
+    expect(summed).toBe(rotated.durationMs);
+  });
+
+  it("never register as the worst pause of the solve", () => {
+    // A long think before the first turn is inspection. Counting it would put a pause at the
+    // top of every solve where someone took their time deciding how to hold the cube.
+    const timestamps = stallBefore(evenTimeline(12, 150), 2, 4000);
+    const spans: PhaseSpan[] = [
+      {
+        phase: Phase.Cross,
+        start: 0,
+        end: 8,
+        moves: [ROTATION, ROTATION, ...Array.from({ length: 6 }, () => FILLER)],
+        turns: 6,
+        rotations: 2,
+      },
+      span(Phase.F2L1, 8, 12),
+    ];
+    const metrics = computeMetrics(spans, timestamps);
+    expect(metrics.pauses).toEqual([]);
+    expect(metrics.fluidity).toBe(1);
+  });
+
+  it("still count a rotation made mid-solve, which really did cost time", () => {
+    const spans: PhaseSpan[] = [
+      span(Phase.Cross, 0, 6),
+      {
+        phase: Phase.F2L1,
+        start: 6,
+        end: 11,
+        moves: [ROTATION, ...Array.from({ length: 4 }, () => FILLER)],
+        turns: 4,
+        rotations: 1,
+      },
+    ];
+    const metrics = computeMetrics(spans, evenTimeline(11, 150));
+    expect(metrics.rotations).toBe(1);
+    // Five moves' worth of time, rotation included, because it happened during the solve.
+    expect(metrics.phases[1]!.durationMs).toBe(5 * 150);
+  });
+});

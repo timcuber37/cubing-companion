@@ -5,6 +5,7 @@
  * `engine` and nothing that knows about storage. The web app composes `segmentRecord(record)`
  * and passes the pieces in.
  */
+import type { Move } from "@cubing-companion/engine";
 import type { Phase, PhaseSpan } from "@cubing-companion/analysis";
 import {
   DEFAULT_PAUSE_OPTIONS,
@@ -14,6 +15,36 @@ import {
   type Pause,
   type PauseOptions,
 } from "./pauses.ts";
+
+const ROTATIONS = new Set(["x", "y", "z"]);
+
+/**
+ * Where the solve actually starts: the first move that is not a rotation.
+ *
+ * Rotations before any turn are inspection. They solve nothing — they are the solver deciding
+ * how to hold the cube, which under WCA rules happens in the 15 seconds before the attempt
+ * begins. Charging their time to the cross would make every solve that starts with a `y` look
+ * like a slow cross, and the corpus says 95% of solves start with one.
+ *
+ * They stay in the move list, because which grip was chosen is exactly what A4 recommends and B3
+ * models. The clock simply does not start until the first turn.
+ */
+export function solveStartIndex(moves: readonly Move[]): number {
+  const first = moves.findIndex((move) => !ROTATIONS.has(move.family));
+  return first === -1 ? 0 : first;
+}
+
+/** The same thing, from spans, which is what `computeMetrics` is handed. */
+function startFromSpans(spans: readonly PhaseSpan[]): number {
+  let index = 0;
+  for (const span of spans) {
+    for (const move of span.moves) {
+      if (!ROTATIONS.has(move.family)) return index;
+      index++;
+    }
+  }
+  return 0;
+}
 
 export interface PhaseMetrics {
   readonly phase: Phase;
@@ -80,23 +111,29 @@ export function phaseDurationsMs(
   spans: readonly PhaseSpan[],
   timestamps: readonly (number | null)[],
 ): readonly (number | null)[] {
-  return spans.map((span) => window(span, timestamps).durationMs);
+  const solveStart = startFromSpans(spans);
+  return spans.map((span) => window(span, timestamps, solveStart).durationMs);
 }
 
 function window(
   span: PhaseSpan,
   timestamps: readonly (number | null)[],
+  solveStart: number,
 ): { durationMs: number | null; recognitionMs: number | null; executionMs: number | null } {
   // A skipped phase — an OLL skip — took no time, which is different from unknown.
   if (span.end === span.start) {
     return { durationMs: 0, recognitionMs: 0, executionMs: 0 };
   }
-  const first = timestamps[span.start] ?? null;
+  // Nothing before the first real turn is chargeable, so a phase containing the inspection
+  // rotations begins at that turn rather than at its own first move.
+  const first = timestamps[Math.max(span.start, solveStart)] ?? null;
   const last = timestamps[span.end - 1] ?? null;
   if (first === null || last === null) {
     return { durationMs: null, recognitionMs: null, executionMs: null };
   }
-  const previous = span.start > 0 ? (timestamps[span.start - 1] ?? null) : null;
+  const previousIndex = span.start - 1;
+  const previous =
+    previousIndex >= solveStart ? (timestamps[previousIndex] ?? null) : null;
   const from = previous ?? first;
   return {
     durationMs: last - from,
@@ -113,10 +150,17 @@ export function computeMetrics(
   timestamps: readonly (number | null)[],
   options: PauseOptions = DEFAULT_PAUSE_OPTIONS,
 ): SolveMetrics {
-  const pauses = detectPauses(timestamps, options);
+  const solveStart = startFromSpans(spans);
+  // Pause detection runs over the solving portion only: a long think before the first turn is
+  // inspection, and it would otherwise register as the worst pause of the solve. Indices are
+  // shifted back so they still point into the full move list.
+  const pauses = detectPauses(timestamps.slice(solveStart), options).map((pause) => ({
+    ...pause,
+    moveIndex: pause.moveIndex + solveStart,
+  }));
 
   const phases = spans.map((span): PhaseMetrics => {
-    const { durationMs, recognitionMs, executionMs } = window(span, timestamps);
+    const { durationMs, recognitionMs, executionMs } = window(span, timestamps, solveStart);
     // A pause is charged to the phase of the move it precedes, matching `recognitionMs`: the
     // stall before a pair's first move is that pair's problem, not the previous pair's.
     const inPhase = pauses.filter((p) => p.moveIndex >= span.start && p.moveIndex < span.end);
@@ -140,7 +184,7 @@ export function computeMetrics(
     };
   });
 
-  const usable = timestamps.filter((t): t is number => t !== null);
+  const usable = timestamps.slice(solveStart).filter((t): t is number => t !== null);
   const durationMs =
     usable.length >= 2 ? usable[usable.length - 1]! - usable[0]! : null;
 
@@ -164,7 +208,7 @@ export function computeMetrics(
       durationMs === null || durationMs <= 0
         ? null
         : Math.max(0, 1 - pausedMs / durationMs),
-    medianGapMs: medianGapMs(timestamps),
-    pauseThresholdMs: pauseThresholdMs(timestamps, options),
+    medianGapMs: medianGapMs(timestamps.slice(solveStart)),
+    pauseThresholdMs: pauseThresholdMs(timestamps.slice(solveStart), options),
   };
 }

@@ -137,6 +137,23 @@ export class CubeTracker {
   }
 
   /**
+   * Put the tracked position somewhere outright, because it was set rather than lost.
+   *
+   * A virtual cube has nothing to pick up and scramble by hand, so the app scrambles it by
+   * assignment. That goes through the same path as a re-seed — the clock fit is invalidated
+   * either way, since the moves either side are not one continuous stream — but it is reported
+   * as `set-directly` rather than as a desync, which would tell the diagnostics panel the link
+   * had failed when nothing of the sort happened.
+   */
+  reseed(state: CubeState): void {
+    this.adopt(state.clone(), {
+      expected: toFacelets(this.state),
+      actual: toFacelets(state),
+      reason: "set-directly",
+    });
+  }
+
+  /**
    * Ask the cube what it shows and reconcile.
    *
    * @returns whether the tracked state was already correct.
