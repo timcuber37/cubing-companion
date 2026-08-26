@@ -19,6 +19,26 @@ export {
 } from "./orientation.ts";
 
 export {
+  CROSS_FEATURES,
+  crossFeatures,
+  PAIR_FEATURES,
+  pairFeatures,
+  slotsAdjacent,
+  type CrossFeature,
+  type PairCandidateInput,
+  type PairContext,
+  type PairFeature,
+} from "./features.ts";
+
+export {
+  rankByMoveCount,
+  rankNextPair,
+  rerankCross,
+  type RankedSlot,
+  type ScoreFn,
+} from "./rank.ts";
+
+export {
   planColour,
   planColours,
   type ColourPlan,

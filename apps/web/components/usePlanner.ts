@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ColourPlan } from "@cubing-companion/planner";
-import type { PlanRequest, PlanResponse } from "../workers/planner.worker";
+import type {
+  NextPairRequest,
+  ParityRequest,
+  PlanRequest,
+  PlanResponse,
+  RankedPair,
+} from "../workers/planner.worker";
 
 export interface PlannerState {
   /** Plans that have arrived so far, cheapest cross first. */
@@ -10,9 +16,29 @@ export interface PlannerState {
   readonly running: boolean;
   readonly elapsedMs: number | null;
   readonly error: string | null;
+  /** B3's pair-order ranking, when that is what was asked for. */
+  readonly ranked: readonly RankedPair[] | null;
+  /** False when the model could not be loaded and move count stood in for it. */
+  readonly learned: boolean | null;
+  /** The cross the pair ranking was done against; null when none is built. */
+  readonly rankedCross: number | null;
+  /** Result of a model parity self-check, when one has been asked for. */
+  readonly parity: { readonly rows: number; readonly worst: number } | null;
+  /** True once B3's cross model has re-ranked at least one colour. */
+  readonly revised: boolean;
 }
 
-const IDLE: PlannerState = { plans: [], running: false, elapsedMs: null, error: null };
+const IDLE: PlannerState = {
+  plans: [],
+  running: false,
+  elapsedMs: null,
+  error: null,
+  ranked: null,
+  learned: null,
+  rankedCross: null,
+  parity: null,
+  revised: false,
+};
 
 /**
  * Owns the planner worker.
@@ -42,15 +68,35 @@ export function usePlanner() {
 
       setState((previous) => {
         switch (message.kind) {
-          case "colour":
+          case "colour": {
+            // A revision replaces the colour it revises rather than appending beside it.
+            const others = previous.plans.filter(
+              (plan) => plan.crossFace !== message.plan.crossFace,
+            );
             return {
               ...previous,
-              plans: [...previous.plans, message.plan].sort(
+              revised: message.revised === true || previous.revised,
+              plans: [...others, message.plan].sort(
                 (a, b) => a.crossLength - b.crossLength,
               ),
             };
+          }
           case "done":
             return { ...previous, running: false, elapsedMs: message.elapsedMs };
+          case "next-pair":
+            return {
+              ...previous,
+              running: false,
+              ranked: message.ranked,
+              learned: message.learned,
+              rankedCross: message.crossFace,
+            };
+          case "parity":
+            return {
+              ...previous,
+              running: false,
+              parity: { rows: message.rows, worst: message.worst },
+            };
           case "error":
             return { ...previous, running: false, error: message.message };
         }
@@ -70,13 +116,33 @@ export function usePlanner() {
     };
   }, []);
 
-  const plan = useCallback((request: Omit<PlanRequest, "id">) => {
+  const plan = useCallback((request: Omit<PlanRequest, "id" | "kind">) => {
     const worker = workerRef.current;
     if (!worker) return;
     const id = requestRef.current + 1;
     requestRef.current = id;
-    setState({ plans: [], running: true, elapsedMs: null, error: null });
-    worker.postMessage({ ...request, id } satisfies PlanRequest);
+    setState({ ...IDLE, running: true });
+    worker.postMessage({ ...request, kind: "plan", id } satisfies PlanRequest);
+  }, []);
+
+  /** Ask B3's ranker which pair to do next from the position given. */
+  const rankPairs = useCallback((request: Omit<NextPairRequest, "id" | "kind">) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+    const id = requestRef.current + 1;
+    requestRef.current = id;
+    setState({ ...IDLE, running: true });
+    worker.postMessage({ ...request, kind: "next-pair", id } satisfies NextPairRequest);
+  }, []);
+
+  /** Diagnostic: score the exported fixture and compare with what PyTorch produced. */
+  const checkParity = useCallback((model: ParityRequest["model"]) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+    const id = requestRef.current + 1;
+    requestRef.current = id;
+    setState({ ...IDLE, running: true });
+    worker.postMessage({ kind: "parity", model, id } satisfies ParityRequest);
   }, []);
 
   const reset = useCallback(() => {
@@ -85,5 +151,5 @@ export function usePlanner() {
     setState(IDLE);
   }, []);
 
-  return { ...state, plan, reset };
+  return { ...state, plan, rankPairs, checkParity, reset };
 }

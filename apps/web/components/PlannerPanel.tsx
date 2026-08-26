@@ -17,7 +17,7 @@ const INSPECTION_MS = 15_000;
 /** Long enough that turning the cube does not queue a sweep per move. */
 const DEBOUNCE_MS = 400;
 
-type Mode = "live" | "practice";
+type Mode = "live" | "practice" | "next-pair";
 
 /**
  * Which cross to build, and how to hold the cube to build it.
@@ -28,7 +28,19 @@ type Mode = "live" | "practice";
 export function PlannerPanel({ facelets }: { facelets: string | null }) {
   const [mode, setMode] = useState<Mode>("live");
   const [faces, setFaces] = useState<Set<Face>>(() => new Set(COLOURS.map((c) => c.face)));
-  const { plans, running, elapsedMs, error, plan, reset } = usePlanner();
+  const {
+    plans,
+    running,
+    elapsedMs,
+    error,
+    ranked,
+    learned,
+    rankedCross,
+    revised,
+    plan,
+    rankPairs,
+    reset,
+  } = usePlanner();
 
   const [scramble, setScramble] = useState<string | null>(null);
   const [deadline, setDeadline] = useState<number | null>(null);
@@ -46,6 +58,16 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
     const timer = setTimeout(() => request(facelets), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [mode, facelets, faces, request]);
+
+  // Pair order, from B3's learned ranker. Same debounce, same live position.
+  useEffect(() => {
+    if (mode !== "next-pair" || !facelets || faces.size === 0) return;
+    const timer = setTimeout(
+      () => rankPairs({ facelets, crossFaces: [...faces] }),
+      DEBOUNCE_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [mode, facelets, faces, rankPairs]);
 
   // Practice: the sweep runs *during* inspection, so the answer is ready the moment time is up.
   useEffect(() => {
@@ -106,7 +128,7 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
       <div className="flex items-baseline justify-between border-b border-neutral-800 px-3 py-2">
         <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Planner</h2>
         <div className="flex gap-1">
-          {(["live", "practice"] as const).map((option) => (
+          {(["live", "next-pair", "practice"] as const).map((option) => (
             <button
               key={option}
               type="button"
@@ -122,7 +144,7 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
                   : "text-neutral-500 hover:text-neutral-300"
               }`}
             >
-              {option === "live" ? "live cube" : "practice"}
+              {option === "live" ? "cross" : option === "next-pair" ? "which pair" : "practice"}
             </button>
           ))}
         </div>
@@ -168,6 +190,16 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
 
         {error && <p className="text-xs text-red-400">Planner failed: {error}</p>}
 
+        {mode === "next-pair" && (
+          <NextPairAdvice
+            ranked={ranked}
+            learned={learned}
+            crossFace={rankedCross}
+            running={running}
+            hasCube={facelets !== null}
+          />
+        )}
+
         {mode === "live" && !facelets && (
           <p className="text-sm text-neutral-600">
             Connect a cube, or use manual input, and the planner will read whatever position it is
@@ -175,7 +207,7 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
           </p>
         )}
 
-        {showResults && (
+        {mode !== "next-pair" && showResults && (
           <>
             {plans.length === 0 && running && (
               <p className="text-xs text-neutral-600">Searching…</p>
@@ -187,9 +219,10 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
             </ul>
             {plans.length > 0 && (
               <p className="border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
-                Ranked shortest first; ties broken by how pros actually turn — the back face is
-                2.5% of real cross moves, so a solution is shown in whichever of the four grips
-                keeps the work off it.
+                Ranked shortest first.{" "}
+                {revised
+                  ? "Ties broken by a model trained on which cross pros actually built, which also picks the grip."
+                  : "Ties broken by how pros actually turn — the back face is 2.5% of real cross moves, so a solution is shown in whichever of the four grips keeps the work off it."}
                 {running
                   ? " Still searching the remaining colours…"
                   : elapsedMs !== null && ` Swept in ${(elapsedMs / 1000).toFixed(1)}s.`}
@@ -206,6 +239,80 @@ export function PlannerPanel({ facelets }: { facelets: string | null }) {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * B3's answer to "which pair next".
+ *
+ * The confidence matters as much as the order. Pair order is genuinely a matter of taste much of
+ * the time, and a ranker that presents a 34%/33%/33% call with the same certainty as a 90% one is
+ * lying about what it knows.
+ */
+function NextPairAdvice({
+  ranked,
+  learned,
+  crossFace,
+  running,
+  hasCube,
+}: {
+  ranked: readonly { slot: string; optimal: number; moves: string; confidence: number }[] | null;
+  learned: boolean | null;
+  crossFace: number | null;
+  running: boolean;
+  hasCube: boolean;
+}) {
+  if (!hasCube) {
+    return <p className="text-sm text-neutral-600">Connect a cube, or use manual input.</p>;
+  }
+  if (running && ranked === null) return <p className="text-xs text-neutral-600">Thinking…</p>;
+  if (ranked === null) return null;
+  if (crossFace === null) {
+    return (
+      <p className="text-sm text-neutral-600">
+        Build a cross first — which pair to do next only means something once one is up.
+      </p>
+    );
+  }
+  if (ranked.length === 0) {
+    return <p className="text-sm text-neutral-600">F2L is done; nothing left to choose.</p>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[11px] uppercase tracking-wide text-neutral-600">
+        on the {colourOf(crossFace as Face).name} cross
+      </p>
+      <ul className="space-y-1">
+        {ranked.map((entry, i) => (
+          <li key={entry.slot} className="flex items-baseline gap-2">
+            <span className={`w-8 text-xs ${i === 0 ? "text-emerald-400" : "text-neutral-500"}`}>
+              {entry.slot}
+            </span>
+            <span className="w-10 text-right font-mono text-[11px] tabular-nums text-neutral-500">
+              {entry.optimal}
+            </span>
+            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-800">
+              <span
+                className={`block h-full rounded-full ${i === 0 ? "bg-emerald-500" : "bg-neutral-600"}`}
+                style={{ width: `${Math.max(2, 100 * entry.confidence)}%` }}
+              />
+            </span>
+            <span className="w-9 text-right font-mono text-[11px] tabular-nums text-neutral-400">
+              {`${(100 * entry.confidence).toFixed(0)}%`}
+            </span>
+            <span className="w-32 truncate font-mono text-[11px] text-neutral-600">
+              {entry.moves}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="border-t border-neutral-900 pt-1.5 text-[11px] leading-relaxed text-neutral-600">
+        {learned
+          ? "Ranked by a model trained on which pair pros actually did next — not by move count, which is the number in the second column."
+          : "The model could not be loaded, so this is ordered by move count alone."}
+      </p>
+    </div>
   );
 }
 

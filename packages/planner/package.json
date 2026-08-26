@@ -11,5 +11,8 @@
     "@cubing-companion/analysis": "*",
     "@cubing-companion/engine": "*",
     "@cubing-companion/solver": "*"
+  },
+  "scripts": {
+    "build-dataset": "node scripts/build-dataset.ts"
   }
 }

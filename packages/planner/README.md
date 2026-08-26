@@ -33,11 +33,21 @@ free; every candidate is scored in all four and shown in the best one. Measured 
 crosses that takes mean back-face turns from **1.19 to 0.39**, and takes "there is a back-free
 optimal cross" from 52% of scrambles to **90%**.
 
-## The comfort model, and what it is worth
+## Ranking: length first, then a model
 
-Ranking is **length first, comfort second**. Comfort breaks ties; it can never promote a longer
-solution. A planner that talks you into a seven-move cross because it reads nicely is worse than
-one that says nothing.
+Ranking is **length first, learned model second**. The second half breaks ties; it can never
+promote a longer solution. A planner that talks you into a seven-move cross because it reads
+nicely is worse than one that says nothing.
+
+B3 now supplies that second half. Its cross head beats the comfort model below by **9.6 points**
+on unseen solvers (48.7% against 39.0%), and it picks the grip as well as the ordering, so where
+the model loads it takes over both. Where it does not, comfort still decides and the planner
+degrades to what A4 shipped rather than to nothing.
+
+`rankNextPair` answers a question A4 could not ask at all — *which pair next* — at **69.5%**
+against a 58.7% movecount baseline. See [`ml/README.md`](../../ml/README.md).
+
+## The comfort model, and what it is worth
 
 Comfort itself is the mean log-share of a solution's moves under the frequencies above — a
 unigram model of pro cross turns, fitted rather than invented.
@@ -52,8 +62,11 @@ onwards:
 
 **What it does not know** is move order, which is where most real ergonomics lives: regrips,
 whether two turns form a comfortable trigger, whether your hands finish in position for the first
-pair. A solution and its reverse score identically, which is plainly wrong. It is a placeholder
-behind a stable interface — B3's learned ranker replaces `comfortScore` and nothing else moves.
+pair. A solution and its reverse score identically, which is plainly wrong.
+
+It is no longer the last word — B3's cross model outranks it — but it is still the fallback when
+the model cannot be fetched, and it remains the model's single most important feature, which is a
+better outcome for it than being replaced outright.
 
 ## The renaming table is derived, never written
 
@@ -78,6 +91,12 @@ hold the cube as the plan says, turn what it gives you, and the cross is solved.
 here, because nobody orients a cube by thinking "rotate x y'". `colours.ts` names the WCA-standard
 scheme (white up, green front, red right). A differently stickered cube would be *named* wrongly;
 nothing would compute wrongly, since every calculation runs on indices.
+
+## Features for the models
+
+`features.ts` is the one definition of what the B3 models see, shared between the dataset builder
+and the browser. Nothing in `ml/` computes a feature. A feature defined twice is a model that can
+disagree with itself, with no symptom beyond being slightly worse than it should be.
 
 ## Cost
 

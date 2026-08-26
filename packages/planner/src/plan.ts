@@ -43,12 +43,23 @@ export interface PlannedSolution {
   readonly slot?: string;
   /** The moves as they should be turned once the cube is held as `hold` says. */
   readonly moves: readonly Move[];
+  /**
+   * The same solution in the search's own frame, before any grip was chosen.
+   *
+   * Kept so a ranker can reconsider the grip: `hold` is whichever of the four the comfort model
+   * liked, and B3's cross model picks a different one about a third of the time.
+   */
+  readonly searchMoves: readonly Move[];
+  /** The slot name in that same unrotated frame, for the same reason. */
+  readonly searchSlot?: string;
   readonly text: string;
   readonly length: number;
   readonly hold: Hold;
   /** 0–1; see `comfort.ts` for what it does and does not know. */
   readonly comfort: number;
   readonly awkward: { readonly back: number; readonly left: number };
+  /** Set only once B3's cross model has re-ranked; absent means comfort decided the order. */
+  readonly modelScore?: number;
 }
 
 export interface ColourPlan {
@@ -112,8 +123,9 @@ function present(
   return {
     kind,
     crossFace,
-    ...(slot === undefined ? {} : { slot: renameSlot(slot, orientation) }),
+    ...(slot === undefined ? {} : { slot: renameSlot(slot, orientation), searchSlot: slot }),
     moves: framed.moves,
+    searchMoves: [...moves],
     text: serializeMoves(framed.moves),
     length: framed.moves.length,
     hold: {

@@ -12,10 +12,16 @@ See [PLAN.md](PLAN.md) for the full roadmap.
 
 ## Status
 
-**A4 shipped — the planner.** Scramble, solve, and get the solve back broken into phases,
-replayable at the tempo you actually turned and scored against world-class solves — and now,
-before you start, which cross to build and how to hold the cube to build it. A0–A4, B1 and B2
-are done.
+**B3 shipped — the model.** Scramble, solve, and get the solve back broken into phases,
+replayable at the tempo you actually turned and scored against world-class solves. Before you
+start, which cross to build and how to hold the cube to build it. And now, mid-solve, which pair
+a top solver would do next — from a model trained on what they actually did. A0–A4, B1, B2 and
+B3 are done; only A5 is left.
+
+**The headline number:** predicting which F2L pair a pro fills next, the model is right **69.5%**
+of the time against a **58.7%** "fewest moves wins" baseline, on solvers it has never seen. Where
+move count ties and the baseline is guessing, it is right 56.0% against 39.0% — see
+[`ml/README.md`](ml/README.md).
 
 Two findings drive the whole product. From the solver: across 7,725 corpus crosses the world's
 best build the **optimal cross only 31% of the time**, and across 1,482 pair insertions they hit
@@ -32,6 +38,11 @@ because they spend inspection choosing how to hold the cube rather than rotating
 (1.45 rotations in inspection against 0.23 during the cross). Picking the frame for you is most
 of what the planner does.
 
+What the model found matters more than the model: when two pairs cost the same number of moves,
+what decides is whether the **corner is reachable rather than buried** — pros take the accessible
+one 89.9% of the time against 52.7% by chance. Move count already prices digging a corner out. It
+cannot price not being able to see the pair.
+
 | Track | Status |
 |---|---|
 | A0 — cube engine | shipped — [`packages/engine`](packages/engine) |
@@ -42,7 +53,7 @@ of what the planner does.
 | B2 — search baselines | shipped — [`packages/solver`](packages/solver), cross + xcross + F2L insertion |
 | A4 — cross+1 / xcross planner | shipped — [`packages/planner`](packages/planner) + planner panel in [`apps/web`](apps/web) |
 | A5 — "what would a pro do" diff | not started |
-| B3 — ranking model | not started |
+| B3 — ranking model | shipped — [`ml/`](ml), 69.5% vs a 58.7% baseline on held-out solvers |
 
 B1 landed ahead of A2 rather than after it. The reconstructions carry the reconstructor's
 own `// phase` annotations, so the corpus can be segmented from human labels instead of
@@ -61,7 +72,7 @@ packages/solver/     cross, xcross and F2L-insertion candidate enumerators
 packages/metrics/    per-phase metrics and percentile scoring against the corpus
 packages/planner/    ranks candidates into advice: which cross, and how to hold the cube
 apps/web/            the app — connect a cube, scramble, solve, review
-ml/                  PyTorch training (B3) — placeholder, outside the npm workspaces
+ml/                  PyTorch ranking models (B3) + eval writeup, outside the npm workspaces
 data/                corpus cache and derived output — gitignored, reproducible
 ```
 

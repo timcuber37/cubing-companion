@@ -21,3 +21,12 @@ venv/
 # would make the negation below unreachable.
 data/*
 !data/summary.json
+
+# B3 training artifacts. The decision dataset is derived from the corpus and is not
+# redistributed for the same reason the corpus is not; it rebuilds with
+# `npm run build-dataset -w @cubing-companion/planner`. Checkpoints are regenerable binaries.
+ml/out/
+
+# The exported ONNX models are NOT ignored, and are committed deliberately: they are a few
+# hundred aggregate parameters, the same kind of artifact as data/summary.json, and the app
+# cannot run without them.
