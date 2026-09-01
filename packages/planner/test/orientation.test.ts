@@ -16,10 +16,13 @@ import {
   type Move,
 } from "@cubing-companion/engine";
 import {
+  frameFor,
   ORIENTATIONS,
   orientationsWithColourDown,
   renameMoves,
   renameSlot,
+  rotationBetween,
+  rotationPuttingColourDown,
 } from "../src/orientation.ts";
 
 const FACE_FAMILIES = ["U", "D", "L", "R", "F", "B"] as const;
@@ -121,9 +124,115 @@ describe("renaming", () => {
     expect(renameSlot("FR", y)).toBe(`${y.rename.F}${y.rename.R}`);
   });
 
-  it("refuses a move it cannot re-orient rather than guessing", () => {
-    const y = ORIENTATIONS.find((o) => o.text === "y")!;
-    expect(() => renameMoves(parseMoves("Rw"), y)).toThrow(/re-orient/);
-    expect(() => renameMoves(parseMoves("M"), y)).toThrow(/re-orient/);
+  it("renames wide and slice moves under the same identity as everything else", () => {
+    // These appear in stored solutions (pasted reconstructions use them freely), and the replay
+    // renames its displayed text — so the renaming has to be total over the engine's families.
+    const moves = parseMoves("Rw M U E' Fw2 S");
+    for (const orientation of ORIENTATIONS) {
+      const rotated = applyMoves(
+        applyMoves(CubeState.solved(), orientation.rotation),
+        renameMoves(moves, orientation),
+      );
+      const direct = applyMoves(applyMoves(CubeState.solved(), moves), orientation.rotation);
+      expect(rotated.equals(direct), orientation.text).toBe(true);
+    }
+  });
+});
+
+/**
+ * The frame bug, as a property.
+ *
+ * The old suite scrambled with face turns only, so every test state had its centres home and the
+ * recommended grip's rotation happened to be correct from the "raw" state too. Real cubes are
+ * not so obliging: a manual solve rotates mid-scramble, and a recommendation that is not
+ * literally executable from the position the cube is actually in solves the wrong pieces.
+ */
+describe("rotationBetween", () => {
+  const withPrefix = fc
+    .array(
+      fc.record({
+        family: fc.constantFrom("x", "y", "z", "U", "D", "L", "R", "F", "B"),
+        amount: fc.constantFrom<1 | 2 | -1>(1, 2, -1),
+      }),
+      { maxLength: 14 },
+    )
+    .map((moves) => applyMoves(CubeState.solved(), moves as Move[]));
+
+  it("lands exactly on the requested arrangement, in at most two rotations", () => {
+    fc.assert(
+      fc.property(withPrefix, fc.integer({ min: 0, max: 23 }), (state, pick) => {
+        const target = ORIENTATIONS[pick]!.colourAt;
+        const path = rotationBetween(state.centers, target);
+        expect(path.length).toBeLessThanOrEqual(2);
+        for (const move of path) expect("xyz").toContain(move.family);
+        expect([...applyMoves(state, path).centers]).toEqual([...target]);
+      }),
+      { numRuns: 80 },
+    );
+  });
+
+  it("is empty when the cube is already there", () => {
+    const state = applyMoves(CubeState.solved(), parseMoves("R U R'"));
+    expect(rotationBetween(state.centers, state.centers)).toEqual([]);
+  });
+
+  it("puts a colour on the bottom by the shortest route", () => {
+    fc.assert(
+      fc.property(withPrefix, fc.integer({ min: 0, max: 5 }), (state, colour) => {
+        const path = rotationPuttingColourDown(state.centers, colour as Face);
+        expect(path.length).toBeLessThanOrEqual(2);
+        expect(applyMoves(state, path).centers[Face.D]).toBe(colour);
+      }),
+      { numRuns: 60 },
+    );
+  });
+});
+
+describe("renaming rotations", () => {
+  it("holds the same identity face turns do, for every frame", () => {
+    // The reason it is a move-level map: `x` follows R, so a frame mapping R to L must map `x`
+    // to `x'` — the amount flips, which face turns never do.
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            family: fc.constantFrom("U", "R", "F", "x", "y", "z"),
+            amount: fc.constantFrom<1 | 2 | -1>(1, 2, -1),
+          }),
+          { minLength: 1, maxLength: 8 },
+        ),
+        (moves) => {
+          for (const orientation of ORIENTATIONS) {
+            const rotated = applyMoves(
+              applyMoves(CubeState.solved(), orientation.rotation),
+              renameMoves(moves as Move[], orientation),
+            );
+            const direct = applyMoves(
+              applyMoves(CubeState.solved(), moves as Move[]),
+              orientation.rotation,
+            );
+            expect(rotated.equals(direct), orientation.text).toBe(true);
+          }
+        },
+      ),
+      { numRuns: 25 },
+    );
+  });
+
+  it("flips the sign where the axis maps to its opposite", () => {
+    // y2 maps R to L, so x must become x'. Asserted concretely, not just via the property.
+    const y2 = ORIENTATIONS.find((o) => o.text === "y2")!;
+    expect(renameMoves(parseMoves("x"), y2)).toEqual(parseMoves("x'"));
+  });
+
+  it("builds a frame for an arbitrary rotation, not only the 24 shortest", () => {
+    const frame = frameFor(parseMoves("y x y'"));
+    const moves = parseMoves("R U F x");
+    const rotated = applyMoves(
+      applyMoves(CubeState.solved(), frame.rotation),
+      renameMoves(moves, frame),
+    );
+    const direct = applyMoves(applyMoves(CubeState.solved(), moves), frame.rotation);
+    expect(rotated.equals(direct)).toBe(true);
   });
 });

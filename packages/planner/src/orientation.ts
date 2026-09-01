@@ -46,7 +46,37 @@ export interface Orientation {
    * `f`, then rotate".
    */
   readonly rename: Readonly<Record<string, string>>;
+  /**
+   * `renameRotation["y:1"]` is the rotation to make, when the sequence says `y`.
+   *
+   * Rotations need a move-level map where face turns need only a family map, because the three
+   * rotation *names* cover six axis directions: `x` follows R, so a frame that maps R to L maps
+   * `x` to `x'` — the amount's sign can flip, which never happens to a face turn (every face has
+   * its own name). Derived by the same state comparison as `rename`, never reasoned out.
+   */
+  readonly renameRotation: Readonly<Record<string, Move>>;
 }
+
+const AMOUNTS = [1, 2, -1] as const;
+
+/** The nine whole-cube rotation moves. */
+const ROTATION_MOVES: readonly Move[] = ROTATION_FAMILIES.flatMap((family) =>
+  AMOUNTS.map((amount) => ({ family, amount }) as Move),
+);
+
+/**
+ * Slices need the same move-level treatment as rotations, for the same reason: three names cover
+ * six directions (`M` follows L, so a frame mapping L to R maps `M` to `M'`), so the sign can
+ * flip. Wide moves do not — every face has its own name, so `Rw` renames at family level exactly
+ * as `R` does.
+ */
+const SLICE_MOVES: readonly Move[] = (["M", "E", "S"] as const).flatMap((family) =>
+  AMOUNTS.map((amount) => ({ family, amount }) as Move),
+);
+
+const MOVE_LEVEL_MOVES: readonly Move[] = [...ROTATION_MOVES, ...SLICE_MOVES];
+
+const rotationKey = (move: Move): string => `${move.family}:${move.amount}`;
 
 /** Build the family renaming for one rotation by comparing states, rather than by reasoning. */
 function deriveRenaming(rotation: readonly Move[]): Record<string, string> {
@@ -66,6 +96,40 @@ function deriveRenaming(rotation: readonly Move[]): Record<string, string> {
     rename[from] = found;
   }
   return rename;
+}
+
+/** The same derivation for rotations and slices, which need amounts as well as families. */
+function deriveRotationRenaming(rotation: readonly Move[]): Record<string, Move> {
+  const solved = CubeState.solved();
+  const rename: Record<string, Move> = {};
+
+  for (const from of MOVE_LEVEL_MOVES) {
+    const candidates = ROTATION_FAMILIES.includes(from.family as never)
+      ? ROTATION_MOVES
+      : SLICE_MOVES;
+    const target = applyMoves(applyMoves(solved, [from]), rotation);
+    const found = candidates.find((to) =>
+      applyMoves(applyMoves(solved, rotation), [to]).equals(target),
+    );
+    if (found === undefined) {
+      // Unreachable: conjugation by a rotation keeps a rotation a rotation, a slice a slice.
+      throw new Error(`no renaming for ${serializeMoves([from])} under ${serializeMoves(rotation)}`);
+    }
+    rename[rotationKey(from)] = found;
+  }
+  return rename;
+}
+
+/** A frame for an arbitrary rotation sequence, for renaming under a view that is not one of the 24. */
+export function frameFor(rotation: readonly Move[]): Orientation {
+  const rotated = applyMoves(CubeState.solved(), rotation);
+  return {
+    rotation,
+    text: serializeMoves(rotation),
+    colourAt: [...rotated.centers] as Face[],
+    rename: deriveRenaming(rotation),
+    renameRotation: deriveRotationRenaming(rotation),
+  };
 }
 
 /**
@@ -95,15 +159,7 @@ export const ORIENTATIONS: readonly Orientation[] = (() => {
     frontier = next;
   }
 
-  return [...found.values()].map((rotation) => {
-    const rotated = applyMoves(solved, rotation);
-    return {
-      rotation,
-      text: serializeMoves(rotation),
-      colourAt: [...rotated.centers] as Face[],
-      rename: deriveRenaming(rotation),
-    };
-  });
+  return [...found.values()].map((rotation) => frameFor(rotation));
 })();
 
 /**
@@ -127,12 +183,91 @@ export function renameMoves(
   orientation: Orientation,
 ): Move[] {
   return moves.map((move) => {
+    // Rotations and slices carry their sign in the map; see the derivation above.
+    const mapped = orientation.renameRotation[rotationKey(move)];
+    if (mapped !== undefined) return mapped;
+
+    // A wide move renames exactly as its face does — every face has its own name.
+    if (move.family.endsWith("w")) {
+      const base = orientation.rename[move.family.slice(0, -1)];
+      if (base !== undefined) return { family: `${base}w`, amount: move.amount } as Move;
+    }
+
     const family = orientation.rename[move.family];
     if (family === undefined) {
-      throw new Error(`cannot re-orient ${move.family}: not an outer face turn`);
+      throw new Error(`cannot re-orient ${move.family}`);
     }
     return { family, amount: move.amount } as Move;
   });
+}
+
+/**
+ * How each rotation move permutes the six centres — read off the engine, never written down.
+ *
+ * `after.centers[i] = before.centers[PERM[i]]`: derived by applying the move to a solved cube,
+ * whose centres are the identity, so what lands at slot `i` names the slot it came from.
+ */
+const CENTRE_PERMS: readonly { readonly move: Move; readonly perm: readonly number[] }[] =
+  ROTATION_MOVES.map((move) => ({
+    move,
+    perm: [...applyMoves(CubeState.solved(), [move]).centers],
+  }));
+
+const applyPerm = (centres: readonly number[], perm: readonly number[]): number[] =>
+  perm.map((from) => centres[from]!);
+
+/**
+ * The shortest rotation sequence from one centre arrangement to a goal, by breadth-first search.
+ *
+ * This is the primitive the planner was missing. Everything it recommends is expressed in some
+ * chosen grip, and the cube being advised is in some *other* orientation — the instruction "hold
+ * yellow down, green front" was the only bridge between the two, and a sequence that is not
+ * literally executable from the position the cube is in solves the wrong pieces the moment
+ * anything applies it directly, which is exactly what branch playback did.
+ */
+function shortestRotation(
+  from: ArrayLike<number>,
+  reached: (centres: readonly number[]) => boolean,
+): Move[] {
+  const start = Array.from(from);
+  if (reached(start)) return [];
+
+  const seen = new Set<string>([start.join(",")]);
+  let frontier: { centres: number[]; path: Move[] }[] = [{ centres: start, path: [] }];
+
+  while (frontier.length > 0) {
+    const next: typeof frontier = [];
+    for (const { centres, path } of frontier) {
+      for (const { move, perm } of CENTRE_PERMS) {
+        const after = applyPerm(centres, perm);
+        if (reached(after)) return [...path, move];
+        const key = after.join(",");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push({ centres: after, path: [...path, move] });
+      }
+    }
+    frontier = next;
+  }
+  // Unreachable for legal centres: the rotation group is transitive on the 24 arrangements.
+  throw new RangeError(`no rotation reaches the requested arrangement from ${start.join(",")}`);
+}
+
+/** The rotations taking one centre arrangement exactly onto another. */
+export function rotationBetween(
+  from: ArrayLike<number>,
+  to: ArrayLike<number>,
+): Move[] {
+  const goal = Array.from(to).join(",");
+  return shortestRotation(from, (centres) => centres.join(",") === goal);
+}
+
+/** The shortest rotations putting a colour on the bottom, front left free — for a viewing frame. */
+export function rotationPuttingColourDown(
+  from: ArrayLike<number>,
+  colour: Face,
+): Move[] {
+  return shortestRotation(from, (centres) => centres[Face.D] === colour);
 }
 
 /** Slot names are frame-relative too: `FR` becomes `FL` when the cube is turned a quarter. */

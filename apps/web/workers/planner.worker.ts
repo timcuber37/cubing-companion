@@ -27,10 +27,12 @@ import {
   rankNextPair,
   reasons,
   rerankCross,
+  rotationBetween,
+  slotColours,
   type ColourPlan,
 } from "@cubing-companion/planner";
 import { enumerateCross } from "@cubing-companion/solver";
-import { parseMoves, serializeMoves, type Move } from "@cubing-companion/engine";
+import { applyMoves, parseMoves, serializeMoves, type Move } from "@cubing-companion/engine";
 import { loadScorer } from "./model";
 
 export interface PlanRequest {
@@ -53,7 +55,10 @@ export interface NextPairRequest {
 }
 
 export interface RankedPair {
+  /** The internal key, stable across frames — the model's and dataset's identity for the slot. */
   readonly slot: string;
+  /** The slot by its side colours — "green-red" — which is how the UI names it. */
+  readonly label: string;
   readonly optimal: number;
   readonly moves: string;
   readonly confidence: number;
@@ -79,7 +84,10 @@ export interface DiffRequest {
 }
 
 export interface DiffOption {
+  /** Internal key; stable across frames. */
   readonly slot: string;
+  /** The pair by its side colours, which is how the UI names it. */
+  readonly label: string;
   readonly optimal: number;
   readonly moves: string;
   readonly confidence: number;
@@ -109,6 +117,8 @@ export interface CrossDiff {
   readonly end: number;
   readonly playedTurns: number;
   readonly optimalTurns: number;
+  /** Rotations from the position the solve started in to the recommended grip — dim in the UI. */
+  readonly setup: string;
   readonly best: string;
   readonly hold: string;
   readonly branch: string;
@@ -192,7 +202,7 @@ self.onmessage = (
     post({ id: request.id, kind: "done", elapsedMs: Date.now() - startedAt });
     // Then improve on it. The search is what takes the time, so the heuristic ordering goes out
     // immediately and the model's revision follows a moment later rather than holding it up.
-    void reviseWithModel(request.id, plans);
+    void reviseWithModel(request.id, plans, state.centers);
   } catch (error) {
     // A malformed facelet string is the likely cause, and it must not kill the worker: the next
     // request would then find nothing listening.
@@ -211,13 +221,18 @@ self.onmessage = (
  * model loads it decides both the ordering and the grip. Where it does not, the heuristic
  * ordering already sent stands — the planner degrades to A4 rather than to nothing.
  */
-async function reviseWithModel(id: number, plans: readonly ColourPlan[]): Promise<void> {
+async function reviseWithModel(
+  id: number,
+  plans: readonly ColourPlan[],
+  /** Centres of the state the plans were made from, so re-picked grips keep a correct setup. */
+  centres: ArrayLike<number>,
+): Promise<void> {
   const score = await loadScorer("cross");
   if (score === null) return;
 
   for (const plan of plans) {
     try {
-      const cross = await rerankCross(plan.cross, score);
+      const cross = await rerankCross(plan.cross, score, centres);
       post({ id, kind: "colour", plan: { ...plan, cross }, revised: true });
     } catch {
       // A model that misbehaves on one colour should not take the others down with it.
@@ -226,6 +241,18 @@ async function reviseWithModel(id: number, plans: readonly ColourPlan[]): Promis
 }
 
 const notation = (moves: readonly Move[]) => serializeMoves([...moves]);
+
+/** The normalised frame's centre arrangement: colour i at face i. */
+const HOME_CENTRES = [0, 1, 2, 3, 4, 5] as const;
+
+/**
+ * The rotations that put a cube into the normalised frame — the frame every search result is
+ * expressed in. Prefixed onto any sequence shown or played against the raw state, so it is
+ * literally executable from the position the cube is actually in. Empty for a smart cube, whose
+ * centres never move; the fix exists for manual solves, where they do.
+ */
+const normalisingSetup = (centres: ArrayLike<number>): Move[] =>
+  rotationBetween(centres, HOME_CENTRES);
 
 /**
  * A5: walk a recorded solve and say, at each decision, what a top solver would likely have done.
@@ -264,20 +291,29 @@ async function diffSolve(request: DiffRequest): Promise<void> {
     });
     const crossPart = crossDecision(start, solution, spans, crossFace, crossSearch.optimal);
     if (crossPart) {
-      const plan = planColour(crossPart.state, crossFace, { keep: 1, crossOnly: true });
+      // Planned from the RAW position at the decision, not the normalised one `crossPart.state`
+      // holds — the setup rotations are relative to where the cube actually was, and the branch
+      // is applied to exactly that state. Planning from the normalised state was the bug: its
+      // centres are always home, so the setup came out empty and the frame-renamed moves solved
+      // the wrong pieces the moment the real frame differed.
+      const rawAtCross = applyMoves(start, solution.slice(0, crossPart.at));
+      const plan = planColour(rawAtCross, crossFace, { keep: 1, crossOnly: true });
       const crossScore = await loadScorer("cross");
-      const ranked = crossScore ? await rerankCross(plan.cross, crossScore) : plan.cross;
+      const ranked = crossScore
+        ? await rerankCross(plan.cross, crossScore, rawAtCross.centers)
+        : plan.cross;
       const best = ranked[0];
       cross = {
         at: crossPart.at,
         end: crossPart.end,
         playedTurns: crossPart.played,
         optimalTurns: crossPart.optimal,
+        setup: best?.setupText ?? "",
         best: best?.text ?? "",
         hold: best
           ? `${colourName(best.hold.down)} down, ${colourName(best.hold.front)} front`
           : "",
-        branch: best?.text ?? "",
+        branch: best ? notation([...best.setup, ...best.moves]) : "",
       };
     }
 
@@ -285,18 +321,24 @@ async function diffSolve(request: DiffRequest): Promise<void> {
     for (const decision of pairDecisions(start, solution, spans, crossFace)) {
       const yours = decision.options[decision.chosen]!;
       const playedTurns = decision.playedMoves.filter((m) => !"xyz".includes(m.family)).length;
+      // Search results are in the normalised frame; the branch replays against the raw state at
+      // this move. The prefix bridges the two — empty for a smart cube, whose centres never
+      // move, and exactly the missing rotations for a manual solve that rotated mid-way.
+      const setup = normalisingSetup(applyMoves(start, solution.slice(0, decision.at)).centers);
+      const executable = (moves: readonly Move[]) => notation([...setup, ...moves]);
 
       if (!score) {
         // Without the model there is no "which pair" advice, but the execution half still holds.
         pairs.push({
           step: decision.step,
           at: decision.at,
-          yours: yours.name,
-          theirs: yours.name,
+          yours: slotColours(yours.slot),
+          theirs: slotColours(yours.slot),
           options: decision.options.map((option) => ({
             slot: option.name,
+            label: slotColours(option.slot),
             optimal: option.optimal,
-            moves: notation(option.bestMoves),
+            moves: executable(option.bestMoves),
             confidence: 0,
             mine: option === yours,
           })),
@@ -304,7 +346,7 @@ async function diffSolve(request: DiffRequest): Promise<void> {
           reasons: [],
           playedTurns,
           optimalTurns: yours.optimal,
-          branch: notation(yours.bestMoves),
+          branch: executable(yours.bestMoves),
         });
         continue;
       }
@@ -322,14 +364,15 @@ async function diffSolve(request: DiffRequest): Promise<void> {
       pairs.push({
         step: decision.step,
         at: decision.at,
-        yours: yours.name,
-        theirs: theirs.name,
+        yours: slotColours(yours.slot),
+        theirs: slotColours(theirs.slot),
         options: ranked.map((entry) => {
           const option = decision.options.find((o) => o.slot === entry.slot)!;
           return {
             slot: option.name,
+            label: slotColours(option.slot),
             optimal: option.optimal,
-            moves: notation(option.bestMoves),
+            moves: executable(option.bestMoves),
             confidence: entry.confidence,
             mine: option === yours,
           };
@@ -339,12 +382,14 @@ async function diffSolve(request: DiffRequest): Promise<void> {
           theirs === yours
             ? []
             : reasons(await attribute(yours.features, theirs.features, score), {
-                yours: yours.name,
-                theirs: theirs.name,
+                // Named by colour, because the reasons are read in whatever grip the reader is
+                // actually holding — "FR's corner" means nothing after a y rotation.
+                yours: slotColours(yours.slot),
+                theirs: slotColours(theirs.slot),
               }),
         playedTurns,
         optimalTurns: yours.optimal,
-        branch: notation(theirs.bestMoves),
+        branch: executable(theirs.bestMoves),
       });
     }
 
@@ -392,7 +437,11 @@ async function checkParity(request: ParityRequest): Promise<void> {
  */
 async function rankPairs(request: NextPairRequest): Promise<void> {
   try {
-    const state = normalizeOrientation(fromFacelets(request.facelets));
+    const raw = fromFacelets(request.facelets);
+    const state = normalizeOrientation(raw);
+    // The rotations from the cube's actual orientation into the search frame, so every sequence
+    // shown is executable from the cube as it stands rather than as the search imagines it.
+    const setup = normalisingSetup(raw.centers);
     // Which cross is already up? Ranking pairs only means something once one is, and asking the
     // position beats asking the user to tell us what they just built.
     const crossFace = request.crossFaces.find(
@@ -415,8 +464,8 @@ async function rankPairs(request: NextPairRequest): Promise<void> {
       };
     });
     const usable = searched.filter((candidate) => candidate.optimal >= 0);
-    const describe = (slot: (typeof usable)[number]) =>
-      slot.bestMoves.map((m) => `${m.family}${m.amount === 2 ? "2" : m.amount === -1 ? "'" : ""}`).join(" ");
+    const describe = (candidate: (typeof usable)[number]) =>
+      notation([...setup, ...candidate.bestMoves]);
 
     const score = await loadScorer("pair");
     if (score === null || usable.length === 0) {
@@ -427,6 +476,7 @@ async function rankPairs(request: NextPairRequest): Promise<void> {
         crossFace,
         ranked: rankByMoveCount(usable).map((candidate) => ({
           slot: slotName(candidate.slot),
+          label: slotColours(candidate.slot),
           optimal: candidate.optimal,
           moves: describe(candidate),
           confidence: 0,
@@ -443,6 +493,7 @@ async function rankPairs(request: NextPairRequest): Promise<void> {
       crossFace,
       ranked: ranked.map((entry) => ({
         slot: slotName(entry.slot),
+        label: slotColours(entry.slot),
         optimal: entry.optimal,
         moves: describe(usable.find((c) => c.slot === entry.slot)!),
         confidence: entry.confidence,

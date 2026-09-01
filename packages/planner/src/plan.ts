@@ -16,13 +16,15 @@ import {
   type CubeState,
   type Move,
 } from "@cubing-companion/engine";
-import { slotName } from "@cubing-companion/analysis";
+import { GEOMETRY as SLOT_GEOMETRY, slotName } from "@cubing-companion/analysis";
+import { slotColours } from "./colours.ts";
 import { enumerateAllXcrosses, enumerateCross } from "@cubing-companion/solver";
 import { awkwardTurns, comfortScore } from "./comfort.ts";
 import {
   orientationsWithColourDown,
   renameMoves,
   renameSlot,
+  rotationBetween,
   type Orientation,
 } from "./orientation.ts";
 
@@ -41,6 +43,17 @@ export interface PlannedSolution {
   readonly crossFace: Face;
   /** For an xcross: which slot gets filled, named in the frame being recommended. */
   readonly slot?: string;
+  /** The same slot by its side colours — "green-red" — which no frame can rename. */
+  readonly slotLabel?: string;
+  /**
+   * The rotations that take the cube **from the position it is actually in** to `hold`.
+   *
+   * What makes the recommendation literally executable: do these, then `moves`, from wherever
+   * the cube currently sits, and the cross is built. Not counted in `length` — rotations are
+   * free in HTM and the corpus's own crosses are counted the same way.
+   */
+  readonly setup: readonly Move[];
+  readonly setupText: string;
   /** The moves as they should be turned once the cube is held as `hold` says. */
   readonly moves: readonly Move[];
   /**
@@ -117,13 +130,27 @@ function present(
   crossFace: Face,
   moves: readonly Move[],
   slot: string | undefined,
+  startCentres: ArrayLike<number>,
 ): PlannedSolution {
   const framed = bestFrame(moves, crossFace);
   const { orientation } = framed;
+  // From where the cube actually is — not from the normalised frame, which is the search's
+  // fiction and matches the real cube only by coincidence.
+  const setup = rotationBetween(startCentres, orientation.colourAt);
   return {
     kind,
     crossFace,
-    ...(slot === undefined ? {} : { slot: renameSlot(slot, orientation), searchSlot: slot }),
+    ...(slot === undefined
+      ? {}
+      : {
+          slot: renameSlot(slot, orientation),
+          searchSlot: slot,
+          slotLabel: slotColours(
+            SLOT_GEOMETRY[crossFace]!.slots.find((s) => slotName(s) === slot)!,
+          ),
+        }),
+    setup,
+    setupText: serializeMoves(setup),
     moves: framed.moves,
     searchMoves: [...moves],
     text: serializeMoves(framed.moves),
@@ -154,7 +181,7 @@ export function planColour(
 
   const crossResult = enumerateCross(state, crossFace, search);
   const cross = crossResult.candidates
-    .map((candidate) => present("cross", crossFace, candidate.moves, undefined))
+    .map((candidate) => present("cross", crossFace, candidate.moves, undefined, state.centers))
     .sort(byLengthThenComfort);
 
   const xcross: PlannedSolution[] = [];
@@ -163,7 +190,9 @@ export function planColour(
     for (const result of geometrySlots) {
       for (const candidate of result.candidates) {
         // `Candidate.slot` is already the slot's name in the search frame.
-        xcross.push(present("xcross", crossFace, candidate.moves, candidate.slot));
+        xcross.push(
+          present("xcross", crossFace, candidate.moves, candidate.slot, state.centers),
+        );
       }
     }
     xcross.sort(byLengthThenComfort);

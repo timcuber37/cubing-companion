@@ -11,6 +11,7 @@
  * named wrongly here — nothing else would break, since every calculation is done on indices.
  */
 import { Face } from "@cubing-companion/engine";
+import type { Slot } from "@cubing-companion/analysis";
 
 export interface Colour {
   readonly face: Face;
@@ -37,3 +38,24 @@ export function colourOf(face: Face): Colour {
 }
 
 export const colourName = (face: Face): string => colourOf(face).name;
+
+/**
+ * A slot named by its two side colours — "green-red" — instead of by position.
+ *
+ * Position names like FR are relative to a frame, and during a solve the frame is whatever the
+ * solver's hands last made it: the pair called FR is at the front-right only if the cube is held
+ * the way the namer imagined. The colours of a pair never change however the cube is held, which
+ * is how solvers actually talk about them.
+ *
+ * In the normalised frame a slot's `faces` are colour indices directly, so this is a lookup, not
+ * a computation. Display-only: `slotName` remains the internal key everywhere the model, the
+ * dataset and the search are concerned.
+ */
+export function slotColours(slot: Slot): string {
+  return slot.faces.map((face) => colourName(face)).join("-");
+}
+
+/** The two swatch colours for a slot, for UIs that want to show the pair rather than name it. */
+export function slotSwatches(slot: Slot): readonly [string, string] {
+  return [colourOf(slot.faces[0]).hex, colourOf(slot.faces[1]).hex];
+}

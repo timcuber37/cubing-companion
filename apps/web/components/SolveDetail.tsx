@@ -7,9 +7,18 @@ import {
   parseMoves,
   serializeMove,
   type CubeState,
+  type Face,
   type Move,
 } from "@cubing-companion/engine";
 import { observesRotations, segmentRecord, type SolveRecord } from "@cubing-companion/session";
+import { GEOMETRY, slotName } from "@cubing-companion/analysis";
+import {
+  frameFor,
+  renameMoves,
+  rotationPuttingColourDown,
+  slotColours,
+  type Orientation,
+} from "@cubing-companion/planner";
 import {
   computeMetrics,
   scoreSolve,
@@ -65,10 +74,17 @@ export function SolveDetail({
   // exactly in step with the timeline at any speed: a real solve turns faster than the player
   // animates, so animating each move would fall progressively behind the clock it is meant to
   // be showing.
+  const viewFrame = analysis?.viewFrame ?? null;
   useEffect(() => {
     if (!line) return;
-    playerRef.current?.setState(line.states[Math.min(position, line.states.length - 1)]!);
-  }, [line, position]);
+    const state = line.states[Math.min(position, line.states.length - 1)]!;
+    // Cross-colour down, applied only as the cube is drawn — never to the states themselves.
+    playerRef.current?.setState(
+      viewFrame && viewFrame.rotation.length > 0
+        ? applyMoves(state, viewFrame.rotation)
+        : state,
+    );
+  }, [line, position, viewFrame]);
 
   useEffect(() => {
     if (!playing || !line) return;
@@ -134,8 +150,8 @@ export function SolveDetail({
       aria-label="Solve analysis"
     >
       <div className="mx-auto max-w-5xl space-y-4 rounded-lg border border-neutral-800 bg-neutral-950 p-4">
-        <header className="flex items-baseline justify-between gap-3">
-          <div className="flex items-baseline gap-3">
+        <header className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-mono text-2xl tabular-nums text-neutral-100">
               {solve.durationMs === null ? "—" : (solve.durationMs / 1000).toFixed(2)}
             </span>
@@ -146,6 +162,21 @@ export function SolveDetail({
             <span className="text-xs text-neutral-600">
               {new Date(solve.startedAt).toLocaleString()}
             </span>
+            {/* The scramble this was solved from, under the time. Without it a solve in the
+                history is just a number: you cannot try it again, or see what you were given. */}
+            {solve.scrambleText && (
+              <p className="w-full font-mono text-xs leading-relaxed text-neutral-400">
+                {solve.scrambleText}
+                {!solve.scrambleMatched && (
+                  <span
+                    className="ml-2 text-amber-600"
+                    title="The cube did not match this scramble when the solve began, so it is shown for reference rather than as what you actually solved."
+                  >
+                    not the position solved
+                  </span>
+                )}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -417,7 +448,12 @@ function PhaseTable({
               >
                 <td className="px-2 py-1.5 text-neutral-300">
                   {PHASE_LABEL[phase.phase] ?? phase.phase}
-                  {phase.slot && <span className="text-neutral-600"> {phase.slot}</span>}
+                  {phase.slot && (
+                    <span className="text-neutral-600">
+                      {" "}
+                      {pairLabel(analysis.crossFace, phase.slot)}
+                    </span>
+                  )}
                 </td>
                 <td className="px-2 py-1.5 text-right font-mono tabular-nums text-neutral-300">
                   {phase.durationMs === null ? "—" : `${(phase.durationMs / 1000).toFixed(2)}`}
@@ -539,9 +575,29 @@ function buildBranch(
     label,
     states,
     offsets,
-    moveText: [...analysis.moveText.slice(0, at), ...parsed.map(serializeMove)],
+    moveText: [
+      ...analysis.moveText.slice(0, at),
+      // Renamed under the same view as the solve's own text, so the branch reads in the frame
+      // the viewer is looking at.
+      ...parsed.map((move) =>
+        serializeMove(renameMoves([move], analysis.viewFrame)[0]!),
+      ),
+    ],
     timed: false,
   };
+}
+
+/**
+ * A span's slot, named by its side colours instead of its frame-relative position.
+ *
+ * Span names are piece names in the normalised frame — a white-cross solve calls its first pair
+ * "UF", which describes where the edge lives, not anything the solver was looking at. The
+ * colours of a pair survive every rotation of the frame, which is why solvers name pairs that
+ * way themselves.
+ */
+function pairLabel(crossFace: Face, spanSlot: string): string {
+  const slot = GEOMETRY[crossFace]?.slots.find((s) => slotName(s) === spanSlot);
+  return slot ? slotColours(slot) : spanSlot;
 }
 
 /** Everything derived from the stored record, computed once per solve. */
@@ -553,17 +609,36 @@ function analyse(solve: SolveRecord) {
   // were inspection rotations, and that is a property of the moves, not of the timestamps.
   let moves: Move[];
 
+  let crossFace: Face;
+  let viewFrame: Orientation;
+
   try {
     moves = parseMoves(solve.solution);
-    const spans = segmentRecord(solve).segmentation.segmentation?.spans ?? [];
-    if (spans.length === 0) return null;
+    const segmented = segmentRecord(solve).segmentation.segmentation;
+    const spans = segmented?.spans ?? [];
+    if (!segmented || spans.length === 0) return null;
+    crossFace = segmented.crossFace;
 
     metrics = computeMetrics(spans, solve.moveTimestamps);
-    moveText = moves.map(serializeMove);
     states = [fromFacelets(solve.startFacelets)];
     for (const move of moves) {
       states.push(applyMoves(states[states.length - 1]!, [move]));
     }
+
+    // The replay is viewed the way a solver holds the cube: cross colour down. One **fixed**
+    // rotation, chosen at the first real turn — per-state compensation would silently swallow
+    // the user's own mid-solve rotations, which are worth seeing. Display-only: `states` stay
+    // raw, so branch moves keep applying in the frame they were computed for, and the rotation
+    // is added at the moment the cube is drawn.
+    viewFrame = frameFor(
+      rotationPuttingColourDown(
+        states[Math.min(solveStartIndex(moves), states.length - 1)]!.centers,
+        crossFace,
+      ),
+    );
+    // The text must name the faces the viewer sees turn, or a white-cross solve viewed
+    // cross-down would say U while the bottom face visibly moves.
+    moveText = moves.map((move) => serializeMove(renameMoves([move], viewFrame)[0]!));
   } catch {
     return null;
   }
@@ -586,5 +661,5 @@ function analyse(solve: SolveRecord) {
     );
   }
 
-  return { states, offsets, moveText, metrics, timed };
+  return { states, offsets, moveText, metrics, timed, crossFace, viewFrame };
 }

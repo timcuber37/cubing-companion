@@ -288,7 +288,15 @@ function NextPairAdvice({
   running,
   hasCube,
 }: {
-  ranked: readonly { slot: string; optimal: number; moves: string; confidence: number }[] | null;
+  ranked:
+    | readonly {
+        slot: string;
+        label: string;
+        optimal: number;
+        moves: string;
+        confidence: number;
+      }[]
+    | null;
   learned: boolean | null;
   crossFace: number | null;
   running: boolean;
@@ -318,8 +326,10 @@ function NextPairAdvice({
       <ul className="space-y-1">
         {ranked.map((entry, i) => (
           <li key={entry.slot} className="flex items-baseline gap-2">
-            <span className={`w-8 text-xs ${i === 0 ? "text-emerald-400" : "text-neutral-500"}`}>
-              {entry.slot}
+            <span
+              className={`w-24 text-xs ${i === 0 ? "text-emerald-400" : "text-neutral-500"}`}
+            >
+              {entry.label}
             </span>
             <span className="w-10 text-right font-mono text-[11px] tabular-nums text-neutral-500">
               {entry.optimal}
@@ -488,14 +498,27 @@ function Solution({
 
   if (compact) {
     return (
-      <span className="truncate font-mono text-xs text-neutral-500">{solution.text}</span>
+      <span className="truncate font-mono text-xs text-neutral-500">
+        {solution.setupText && (
+          <span className="text-neutral-700">{solution.setupText} </span>
+        )}
+        {solution.text}
+      </span>
     );
   }
 
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      {/* The rotations from where the cube is to the recommended grip. Dim, because they cost
+          nothing and are not counted — shown, because a sequence without them is not executable
+          from the position it was made for, which was the bug. */}
+      {solution.setupText && (
+        <span className="font-mono text-xs text-neutral-600">{solution.setupText}</span>
+      )}
       <span className="font-mono text-xs text-neutral-200">{solution.text || "(nothing to do)"}</span>
-      {solution.slot && <span className="text-[11px] text-emerald-500">slot {solution.slot}</span>}
+      {solution.slotLabel && (
+        <span className="text-[11px] text-emerald-500">pair {solution.slotLabel}</span>
+      )}
       <span className="flex items-center gap-1 text-[11px] text-neutral-500">
         hold
         <span

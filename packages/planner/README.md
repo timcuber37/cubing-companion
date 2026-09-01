@@ -68,6 +68,33 @@ It is no longer the last word — B3's cross model outranks it — but it is sti
 the model cannot be fetched, and it remains the model's single most important feature, which is a
 better outcome for it than being replaced outright.
 
+## Every sequence is executable from where the cube actually is
+
+A recommendation used to be expressed in its grip, with "hold yellow down, green front" as the
+only bridge from the cube's real orientation — and anything that applied the sequence directly,
+as branch playback did, solved the wrong pieces whenever the two frames differed.
+
+Now every `PlannedSolution` carries `setup`: the rotations from **the input state's actual
+centres** to the recommended grip, from `rotationBetween` — a breadth-first search over centre
+arrangements whose permutations are read off the engine rather than written down.
+
+The invariant is property-tested over states with **random rotation prefixes**, because
+face-turn-only scrambles keep the centres home, and that is the one arrangement where the old bug
+was invisible. That is why the previous suite passed while the feature was broken:
+
+> `applyMoves(rawState, [...setup, ...moves])` builds the cross. Always.
+
+Setup rotations are shown dimmed and excluded from `length`, exactly as the corpus counts its own
+crosses.
+
+## Pairs are named by colour
+
+`slotColours` names a slot by its two side colours — "green-red" — rather than by position. FR is
+where a pair sits only if the cube is held the way the namer imagined, and mid-solve it rarely is;
+the colours of a pair survive every rotation, which is how solvers name them anyway. Display-only:
+`slotName` remains the internal key for the model, the dataset and the search, so B3's contract
+does not move.
+
 ## The renaming table is derived, never written
 
 Expressing a solution in a different frame means renaming its faces, and the table for that is

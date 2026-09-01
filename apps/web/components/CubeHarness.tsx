@@ -32,6 +32,7 @@ import { MoveLog } from "./MoveLog";
 import { ManualInput } from "./ManualInput";
 import { SessionPanel } from "./SessionPanel";
 import { SolveList } from "./SolveList";
+import { StatsPanel } from "./StatsPanel";
 import { SolveDetail } from "./SolveDetail";
 import { PlannerPanel } from "./PlannerPanel";
 
@@ -293,11 +294,31 @@ export function CubeHarness() {
     manualRef.current = source;
   }, [attach]);
 
+  /**
+   * Pasting into the box is **setup**; turning keys or the cube is **solving**.
+   *
+   * Auto-arming made the distinction necessary. Every attempt now starts from a generated
+   * scramble, so a paste while `ready` used to begin a junk solve — and once it did, there was
+   * no way to practice a position of your own: finishing or discarding re-scrambled the cube.
+   * So outside a running solve, a paste moves the cube and then re-arms from wherever it landed,
+   * exactly as "Start from here" would. Mid-solve, a paste is part of the solve, which is how a
+   * reconstruction gets recorded.
+   */
   const applyAlg = useCallback((text: string) => {
     const manual = manualRef.current;
+    const recorder = recorderRef.current;
+    const tracker = trackerRef.current;
     if (!manual) return "Start manual input first.";
     try {
+      const setup = recorder !== null && recorder.getState().phase !== "solving";
+      // Reset first, so the pasted moves land while the recorder is idle and are ignored —
+      // otherwise the first of them would start an attempt nobody meant to make.
+      if (setup) recorder.reset();
       manual.applyAlg(text);
+      if (setup && recorder && tracker) {
+        recorder.startFrom(tracker.getState());
+        setRecorderState(recorder.getState());
+      }
       return null;
     } catch (cause) {
       return cause instanceof NotationError ? cause.message : String(cause);
@@ -413,6 +434,25 @@ export function CubeHarness() {
     }
   }, []);
 
+  /**
+   * Keep an attempt armed: one on connecting, and a fresh one after each solve.
+   *
+   * A timer that waits to be asked for a scramble makes you ask every single time. The two
+   * moments worth arming are the two this covers — the cube has just arrived, or you have just
+   * finished with the last scramble.
+   *
+   * `complete` covers a discarded attempt as well as a finished one, which is right: you
+   * abandoned that solve, so the next thing you want is another scramble.
+   */
+  const phase = recorderState.phase;
+  useEffect(() => {
+    if (status.state !== "connected" || scrambling) return;
+    if (phase !== "idle" && phase !== "complete") return;
+    void newScramble();
+    // Depends on the phase rather than the whole recorder state, which is rebuilt on every move
+    // and would run this on each turn of a solve only to fall straight out again.
+  }, [status.state, phase, scrambling, newScramble]);
+
   const startFromHere = useCallback(() => {
     const recorder = recorderRef.current;
     const tracker = trackerRef.current;
@@ -527,6 +567,7 @@ export function CubeHarness() {
           </p>
         )}
         <PlannerPanel facelets={facelets} phase={recorderState.phase} />
+        <StatsPanel solves={solves} />
         <SolveList
           solves={solves}
           onDelete={(id) => void deleteSolve(id)}

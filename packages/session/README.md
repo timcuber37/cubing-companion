@@ -63,6 +63,17 @@ inspection and the hand movement a timer captures. This is precisely why reco.nz
 smartcube reconstructions, and why A3 must not score these against corpus percentiles without
 saying so. Both the type and the UI say it.
 
+### Pasting is setup; turning is solving
+
+Once every attempt arms itself from a generated scramble, a paste into the algorithm box has
+nowhere sensible to go: while `ready`, its first move would start an attempt nobody meant to
+make, and there would be no way left to set up a position of your own — finishing or discarding
+just re-scrambles.
+
+So outside a running solve a paste moves the cube and re-arms from wherever it lands, exactly as
+"Start from here" does. During a solve it is part of the solve, which is how a pasted
+reconstruction still gets recorded.
+
 ### Rotations before the first turn are inspection
 
 A rotation solves nothing: it is the solver deciding how to hold the cube, which under WCA rules

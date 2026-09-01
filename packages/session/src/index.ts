@@ -14,6 +14,18 @@ export { IndexedDbStore, isIndexedDbAvailable } from "./indexeddb.ts";
 export { segmentRecord, type SegmentedSolve } from "./segmented.ts";
 export { observesRotations, worthPlanning } from "./types.ts";
 
+export {
+  averageOf,
+  AVERAGE_SIZES,
+  bestAverage,
+  countableSolves,
+  currentAverage,
+  sessionStats,
+  type AverageSize,
+  type AverageStat,
+  type SessionStats,
+} from "./stats.ts";
+
 export type {
   RecorderPhase,
   RecorderState,

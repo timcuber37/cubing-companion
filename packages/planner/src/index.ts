@@ -6,15 +6,25 @@
  * their rotations in inspection choosing a frame, then execute almost without rotating.
  */
 
-export { COLOURS, colourName, colourOf, type Colour } from "./colours.ts";
+export {
+  COLOURS,
+  colourName,
+  colourOf,
+  slotColours,
+  slotSwatches,
+  type Colour,
+} from "./colours.ts";
 
 export { awkwardTurns, comfortScore, FACE_SHARE } from "./comfort.ts";
 
 export {
+  frameFor,
   ORIENTATIONS,
   orientationsWithColourDown,
   renameMoves,
   renameSlot,
+  rotationBetween,
+  rotationPuttingColourDown,
   type Orientation,
 } from "./orientation.ts";
 

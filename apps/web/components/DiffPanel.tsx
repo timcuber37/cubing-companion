@@ -118,6 +118,12 @@ function CrossRow({
       </div>
       {cross.best && excess > 0 && (
         <div className="flex flex-wrap items-baseline gap-2 pl-14">
+          {/* The rotations that make the sequence executable from where the cube actually is —
+              dimmed because they are free, shown because leaving them out is how sequences end
+              up solving the wrong pieces. */}
+          {cross.setup && (
+            <span className="font-mono text-[11px] text-neutral-600">{cross.setup}</span>
+          )}
           <span className="font-mono text-[11px] text-neutral-400">{cross.best}</span>
           <span className="text-[11px] text-neutral-600">({cross.hold})</span>
           <button
@@ -167,9 +173,9 @@ function PairRow({
           {pair.options.map((option) => (
             <li key={option.slot} className="flex items-center gap-2">
               <span
-                className={`w-7 text-[11px] ${option.mine ? "text-neutral-100" : "text-neutral-500"}`}
+                className={`w-24 text-[11px] ${option.mine ? "text-neutral-100" : "text-neutral-500"}`}
               >
-                {option.slot}
+                {option.label}
               </span>
               <span className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-800">
                 <span

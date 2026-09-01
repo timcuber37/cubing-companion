@@ -7,15 +7,18 @@
  * a position built so the right answer is known in advance.
  */
 import { describe, expect, it } from "vitest";
+import fc from "fast-check";
 import {
   applyMoves,
   CubeState,
   Face,
+  normalizeOrientation,
   parseMoves,
   type Move,
 } from "@cubing-companion/engine";
-import { GEOMETRY, slotName, type Slot } from "@cubing-companion/analysis";
+import { GEOMETRY, isSlotSolved, slotName, type Slot } from "@cubing-companion/analysis";
 import { crossDistance, enumerateF2LInsertion } from "@cubing-companion/solver";
+import { slotColours, slotSwatches } from "../src/colours.ts";
 import {
   CROSS_FEATURES,
   crossFeatures,
@@ -235,7 +238,7 @@ describe("model re-ranking of crosses", () => {
     // must never be able to recommend a longer cross.
     const plan = planColour(state, Face.D, { keep: 6, maxExtra: 1, crossOnly: true });
     const contrarian: ScoreFn = async (rows) => rows.map((row) => row[0]!); // rewards length
-    const ranked = await rerankCross(plan.cross, contrarian);
+    const ranked = await rerankCross(plan.cross, contrarian, state.centers);
     for (let i = 1; i < ranked.length; i++) {
       expect(ranked[i]!.length).toBeGreaterThanOrEqual(ranked[i - 1]!.length);
     }
@@ -247,7 +250,7 @@ describe("model re-ranking of crosses", () => {
     // the choice is visibly the model's rather than a coincidence.
     const backwards: ScoreFn = async (rows) =>
       rows.map((row) => row[CROSS_FEATURES.indexOf("turnsB")]!);
-    const ranked = await rerankCross(plan.cross, backwards);
+    const ranked = await rerankCross(plan.cross, backwards, state.centers);
 
     for (const solution of ranked) {
       // Whatever grip it chose, the moves shown must be that solution turned in that grip.
@@ -265,7 +268,7 @@ describe("model re-ranking of crosses", () => {
     const backwards: ScoreFn = async (rows) =>
       rows.map((row) => row[CROSS_FEATURES.indexOf("turnsB")]!);
 
-    for (const solution of await rerankCross(plan.cross, backwards)) {
+    for (const solution of await rerankCross(plan.cross, backwards, state.centers)) {
       const frame = ORIENTATIONS.find((o) => o.text === solution.hold.rotation)!;
       const after = applyMoves(state, [...frame.rotation, ...solution.moves]);
       expect(crossDistance(after, Face.D), solution.text).toBe(0);
@@ -274,6 +277,102 @@ describe("model re-ranking of crosses", () => {
 
   it("does nothing when there is nothing to rank", async () => {
     const stub: ScoreFn = async (rows) => rows.map(() => 0);
-    expect(await rerankCross([], stub)).toEqual([]);
+    expect(await rerankCross([], stub, CubeState.solved().centers)).toEqual([]);
+  });
+});
+
+/**
+ * Every recommendation is literally executable from the position it was made for.
+ *
+ * This is the invariant the frame bug broke. The plan used to be expressed in a recommended grip
+ * with "hold yellow down, green front" as the only bridge from the cube's actual orientation —
+ * and branch playback, which applies sequences directly, solved the wrong pieces the moment the
+ * two frames differed. The states here carry random rotation prefixes precisely because the old
+ * tests did not: face-turn-only scrambles keep the centres home, which is the one arrangement
+ * where the bug is invisible.
+ */
+describe("executability of plans", () => {
+  const anyState = fc
+    .array(
+      fc.record({
+        family: fc.constantFrom("x", "y", "z", "U", "D", "L", "R", "F", "B"),
+        amount: fc.constantFrom<1 | 2 | -1>(1, 2, -1),
+      }),
+      { minLength: 4, maxLength: 18 },
+    )
+    .map((moves) => applyMoves(CubeState.solved(), moves as Move[]));
+
+  it("setup then moves builds the cross, from wherever the cube actually is", () => {
+    fc.assert(
+      fc.property(anyState, fc.constantFrom(Face.U, Face.D, Face.F), (state, crossFace) => {
+        const plan = planColour(state, crossFace, { keep: 2, crossOnly: true });
+        expect(plan.cross.length).toBeGreaterThan(0);
+        for (const solution of plan.cross) {
+          const after = applyMoves(state, [...solution.setup, ...solution.moves]);
+          expect(crossDistance(after, crossFace), solution.setupText).toBe(0);
+          // Rotations stay out of the count, as the corpus counts its own crosses.
+          expect(solution.length).toBe(solution.moves.length);
+          for (const move of solution.setup) expect("xyz").toContain(move.family);
+        }
+      }),
+      { numRuns: 12 },
+    );
+  });
+
+  it("holds for xcross too, slot included", () => {
+    const state = applyMoves(
+      CubeState.solved(),
+      parseMoves("y x' D2 F R2 U L B2 R F2 D L U2 B"),
+    );
+    const plan = planColour(state, Face.D, { keep: 2 });
+    for (const solution of plan.xcross) {
+      const after = applyMoves(state, [...solution.setup, ...solution.moves]);
+      expect(crossDistance(after, Face.D)).toBe(0);
+      // The filled slot is named in the recommended frame; check it via the search frame name.
+      const slot = GEO.slots.find((s) => slotName(s) === solution.searchSlot)!;
+      expect(isSlotSolved(normalizeOrientation(after), slot)).toBe(true);
+    }
+  });
+
+  it("survives the model re-picking the grip", async () => {
+    const state = applyMoves(
+      CubeState.solved(),
+      parseMoves("z y2 D2 F R2 U L B2 R F2 D L U2 B"),
+    );
+    const plan = planColour(state, Face.D, { keep: 3, crossOnly: true });
+    const backwards: ScoreFn = async (rows) =>
+      rows.map((row) => row[CROSS_FEATURES.indexOf("turnsB")]!);
+    for (const solution of await rerankCross(plan.cross, backwards, state.centers)) {
+      const after = applyMoves(state, [...solution.setup, ...solution.moves]);
+      expect(crossDistance(after, Face.D), solution.setupText).toBe(0);
+    }
+  });
+});
+
+describe("slots named by colour", () => {
+  it("names the four D-cross slots by their side colours", () => {
+    const names = GEO.slots.map((slot) => slotColours(slot)).sort();
+    // green-red, green-orange, blue-red, blue-orange — in some order, each exactly once.
+    expect(names).toHaveLength(4);
+    expect(new Set(names).size).toBe(4);
+    for (const name of names) {
+      expect(name).toMatch(/^(green|blue|orange|red)-(green|blue|orange|red)$/);
+    }
+  });
+
+  it("gives the same four colour pairs whatever the cross face", () => {
+    // The whole point: FR depends on the frame, green-red does not.
+    const forD = new Set(GEOMETRY[Face.D]!.slots.map((s) => slotColours(s).split("-").sort().join("-")));
+    const forU = new Set(GEOMETRY[Face.U]!.slots.map((s) => slotColours(s).split("-").sort().join("-")));
+    expect(forU).toEqual(forD);
+  });
+
+  it("pairs each name with two real swatches", () => {
+    for (const slot of GEO.slots) {
+      const [a, b] = slotSwatches(slot);
+      expect(a).toMatch(/^#/);
+      expect(b).toMatch(/^#/);
+      expect(a).not.toBe(b);
+    }
   });
 });

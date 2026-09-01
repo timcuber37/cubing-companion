@@ -18,7 +18,12 @@ import {
   type PairContext,
 } from "./features.ts";
 import { awkwardTurns, comfortScore } from "./comfort.ts";
-import { orientationsWithColourDown, renameMoves, renameSlot } from "./orientation.ts";
+import {
+  orientationsWithColourDown,
+  renameMoves,
+  renameSlot,
+  rotationBetween,
+} from "./orientation.ts";
 import type { PlannedSolution } from "./plan.ts";
 
 /**
@@ -106,6 +111,8 @@ export async function rankNextPair(
 export async function rerankCross(
   solutions: readonly PlannedSolution[],
   score: ScoreFn,
+  /** Centres of the state the plan was made from, so the re-picked grip gets a correct setup. */
+  startCentres: ArrayLike<number>,
 ): Promise<readonly PlannedSolution[]> {
   if (solutions.length === 0) return solutions;
 
@@ -136,6 +143,7 @@ export async function rerankCross(
     .map(([solution, winner]) => {
       const { frame } = owner[winner.index]!;
       const moves = renameMoves(solution.searchMoves, frame);
+      const setup = rotationBetween(startCentres, frame.colourAt);
       return {
         ...solution,
         // Rename from the unrotated name, not from `slot` — that one has already been renamed
@@ -143,6 +151,10 @@ export async function rerankCross(
         ...(solution.searchSlot === undefined
           ? {}
           : { slot: renameSlot(solution.searchSlot, frame) }),
+        setup,
+        setupText: setup
+          .map((m) => `${m.family}${m.amount === 2 ? "2" : m.amount === -1 ? "'" : ""}`)
+          .join(" "),
         moves,
         text: moves
           .map((m) => `${m.family}${m.amount === 2 ? "2" : m.amount === -1 ? "'" : ""}`)
