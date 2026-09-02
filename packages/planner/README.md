@@ -95,6 +95,31 @@ the colours of a pair survive every rotation, which is how solvers name them any
 `slotName` remains the internal key for the model, the dataset and the search, so B3's contract
 does not move.
 
+## Which way was the cube being held?
+
+A smart cube reports turns against its own centres and cannot see your hands. But a cross-down
+replay still has to pick one of four frames to face you, and picking arbitrarily wastes something
+the moves themselves give away: once the cross is down, F2L is **46% U, 37% R and 0.02% B**, so
+turns that read as B in the cube's frame say the cube was being held some other way.
+
+`inferGrip` scores each candidate frame by the total log-likelihood of the turns it would imply,
+with the distribution depending on the stage. Measured against corpus solves with their rotations
+stripped out — exactly what a smart cube would have reported — one fixed grip per solve matches
+the grip actually held longest **68% of the time**.
+
+That is only good enough because of where it is used. The down colour is already known exactly
+from segmentation, so the choice is between four frames that differ solely in what faces you, and
+a wrong guess is a differently-rotated but still correct cross-down view.
+
+**It is deliberately not used to count rotations**, which is the thing it would be most tempting
+to reach for. Tracking the grip move by move recovers rotation counts at a correlation of 0.46
+with a typical error of ±1.5 against a mean of 3.3 — so a rotation score built on it would be
+mostly inference noise, and A3 still leaves rotations unscored for a cube that cannot report them.
+
+An earlier attempt inferred grips at chance because it used the cross-phase distribution for the
+whole solve, expecting solvers to keep turning D long after the cross was built. The stages are
+separate for that reason.
+
 ## The renaming table is derived, never written
 
 Expressing a solution in a different frame means renaming its faces, and the table for that is

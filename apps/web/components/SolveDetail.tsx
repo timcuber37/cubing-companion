@@ -13,9 +13,10 @@ import {
 import { observesRotations, segmentRecord, type SolveRecord } from "@cubing-companion/session";
 import { GEOMETRY, slotName } from "@cubing-companion/analysis";
 import {
-  frameFor,
+  framesPuttingColourDown,
+  gripObservations,
+  inferGrip,
   renameMoves,
-  rotationPuttingColourDown,
   slotColours,
   type Orientation,
 } from "@cubing-companion/planner";
@@ -630,8 +631,15 @@ function analyse(solve: SolveRecord) {
     // the user's own mid-solve rotations, which are worth seeing. Display-only: `states` stay
     // raw, so branch moves keep applying in the frame they were computed for, and the rotation
     // is added at the moment the cube is drawn.
-    viewFrame = frameFor(
-      rotationPuttingColourDown(
+    //
+    // Which of the four cross-down frames faces you is inferred from the turns themselves: a
+    // smart cube cannot see your hands, but nobody turns B during F2L, so a solve full of them
+    // in the cube's frame says the cube was being held some other way. Wrong roughly a third of
+    // the time, and a wrong answer is still a correct cross-down view — which is the only reason
+    // a guess belongs here at all.
+    viewFrame = inferGrip(
+      gripObservations(spans),
+      framesPuttingColourDown(
         states[Math.min(solveStartIndex(moves), states.length - 1)]!.centers,
         crossFace,
       ),

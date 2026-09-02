@@ -262,6 +262,24 @@ export function rotationBetween(
   return shortestRotation(from, (centres) => centres.join(",") === goal);
 }
 
+/**
+ * Every frame that puts a colour on the bottom, shortest rotation first.
+ *
+ * The four views a cross-down replay may choose between: they agree on what is underneath and
+ * differ only in what faces you. `rotationPuttingColourDown` returns the first of these; a
+ * caller with an opinion about the grip can weigh all four instead.
+ *
+ * `colourAt` doubles as the centre permutation of its own rotation, so applying a frame to some
+ * other arrangement is a lookup: what ends at a slot is what the frame draws from.
+ */
+export function framesPuttingColourDown(
+  from: ArrayLike<number>,
+  colour: Face,
+): Orientation[] {
+  const centres = Array.from(from);
+  return ORIENTATIONS.filter((o) => centres[o.colourAt[Face.D]!] === colour);
+}
+
 /** The shortest rotations putting a colour on the bottom, front left free — for a viewing frame. */
 export function rotationPuttingColourDown(
   from: ArrayLike<number>,

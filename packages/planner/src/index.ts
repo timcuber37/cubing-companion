@@ -7,6 +7,15 @@
  */
 
 export {
+  gripObservations,
+  inferGrip,
+  phaseGroup,
+  PHASE_FACE_SHARE,
+  type GripObservation,
+  type PhaseGroup,
+} from "./grip.ts";
+
+export {
   COLOURS,
   colourName,
   colourOf,
@@ -19,6 +28,7 @@ export { awkwardTurns, comfortScore, FACE_SHARE } from "./comfort.ts";
 
 export {
   frameFor,
+  framesPuttingColourDown,
   ORIENTATIONS,
   orientationsWithColourDown,
   renameMoves,
