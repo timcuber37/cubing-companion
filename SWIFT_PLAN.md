@@ -187,7 +187,7 @@ TypeScript and the reference library on real hardware bytes.
 What this changes: the two things the plan called "the real unknowns" are no longer unknown, and
 one of them stopped being work. The remaining risk in the migration is volume, not feasibility.
 
-### S2 — The pure core · 3–4 weekends · **port and desktop parity done; phone measurement remains**
+### S2 — The pure core · 3–4 weekends · **done**
 
 `engine` → `analysis` → `solver` → `metrics` → `planner`, bottom-up, each asserted against its S0
 vectors before the next begins. Dependency-free and mechanical; this is the bulk of the lines and
@@ -271,21 +271,47 @@ kept plans. The search also reuses inverse edge positions for the cross bound at
 | One colour | 425 ms | **253 ms** |
 | Next pair + lookahead | 161 ms | **32 ms** |
 
-The Swift sweep is about 1.6× faster on this desktop. The iPhone checkpoint is still unmeasured:
-Xcode listed the paired iPhone as offline during this run. The fixed workload and options are in
-`S2PerformanceTests.swift` for the on-device measurement once it is connected.
+The Swift sweep is about 1.6× faster on this desktop.
 
-**Running it.** `npm run swift-test` runs the whole suite in a release build: 25 tests in about
-7 seconds. A plain debug `swift test` takes around 8 minutes, nearly all of it spent in the xcross
+**On the phone — the number checkpoint 3 asks for.** The same workload on the same iPhone 11 that
+produced P5's baseline, two cold launches of a Release build:
+
+| | TypeScript in WKWebView (P5) | Swift | Speedup |
+|---|---:|---:|---:|
+| Cross tables, cold | 2,208 ms | **136–142 ms** | ~16× |
+| One colour | 966 ms | **660 ms** | 1.5× |
+| Colour-neutral sweep, median | 5.45 s | **3.74–3.91 s** | 1.4× |
+| Next pair + lookahead | 372 ms | **86 ms** | 4.3× |
+
+The TypeScript workload has not moved since P5 — it still measures 2.33 s on the desktop — so the
+comparison is like for like. The phone is 2.7× slower than the desktop for Swift, against 2.4× for
+the JavaScript: the gap to the desktop is the hardware, not the language.
+
+**Running it.** `npm run swift-test` runs the whole suite in a release build: 24 tests in about
+7 seconds, benchmarks excluded. A plain debug `swift test` takes around 8 minutes, nearly all of it spent in the xcross
 and full-plan vector searches, so use the release build as the default. The benchmarks print
 timings and assert nothing, so they are left out of it; `npm run swift-bench` runs them.
 
-The sweep benchmark is its own test target, `CubingBenchmarks`, so it can run on an iPhone. The
-vector tests cannot: they read `vectors/*.json` from the Mac's disk, and their `@testable import`
-does not build in Release. The benchmark uses only the public API and skips itself in debug
-builds. A shared `CubingBenchmarks` scheme (in `.swiftpm/xcode/xcshareddata/`) tests only that
-target in Release: open `swift/CubingCore` in Xcode, select the scheme and the phone, and press
-⌘U. The numbers appear in the console and as named steps in the test report.
+**On a phone, the benchmark runs from an app, not a test.** Xcode will not run a Swift package's
+tests on a physical device — they need a host app, and "tool-hosted testing is unavailable on
+device destinations" — which only surfaced when a device run was actually tried. So the workload
+is `SweepBenchmark.run()`, public in `CubingCore`, and has two callers that run identical code:
+
+- the `CubingBenchmarks` test target, for the Mac (`npm run swift-bench`), skipped in debug builds;
+- `swift/CubingBench`, a one-screen SwiftUI app that runs it on launch, shows the numbers and
+  prints them. Open `CubingBench.xcodeproj`, choose the phone, and press Run — its shared scheme
+  runs Release, and the screen says so. Relaunch for another cold measurement. Without Xcode:
+
+  ```
+  xcodebuild build -project swift/CubingBench/CubingBench.xcodeproj -scheme CubingBench \
+    -destination 'id=<device>' -derivedDataPath swift/CubingBench/.build/dd -allowProvisioningUpdates
+  xcrun devicectl device install app --device <device> \
+    swift/CubingBench/.build/dd/Build/Products/Release-iphoneos/CubingBench.app
+  xcrun devicectl device process launch --device <device> --console com.cubingcompanion.bench
+  ```
+
+The app is a measuring instrument, not the start of S3's app; it signs with the same personal team
+as the Capacitor shell and expires on the same seven-day cycle.
 
 ### S3 — The cube link · 2 weekends · needs the cube
 
@@ -343,9 +369,19 @@ Three points where the honest answer might be "stop":
    three may still carry it — but the decision should be made knowingly.
 2. ~~**After S1.**~~ **Passed.** All three spikes succeeded, and two of the three risks the plan
    identified turned out to be cheaper than assumed rather than harder.
-3. **After S2.** If the Swift core is not meaningfully faster than the JS, the performance argument
-   is dead and this becomes a project about native feel and platform features alone — which is a
-   smaller case, and worth restating out loud at that point.
+3. ~~**After S2.**~~ **Answered: faster, but not where it was expected to matter.** On the iPhone
+   11 the colour-neutral sweep — the number the performance argument was built on — is only 1.4×
+   faster (5.45 s → 3.8 s), and P5's preferred-colour default had already brought the everyday case
+   to about a second in the Capacitor app. So the performance argument for the rewrite, as
+   originally stated, is dead. What survives is narrower and real: cold start, where the cross
+   tables drop from 2.2 s to 0.14 s, and the interactive pair lookahead at 4.3×. Neither would
+   justify a rewrite alone.
+
+   Restated out loud, as this checkpoint asks: the case for continuing is native feel and platform
+   features — CoreBluetooth without a bridge, a Live Activity, widgets, background BLE, SwiftUI —
+   with performance as a supporting reason rather than the lead. That was already the stated
+   motivation ("a combination of all of these reasons"; "iOS is the real product now"), so it does
+   not change the decision; it changes what S3–S6 should be judged on.
 
 ## The alternative this rejects, and why
 

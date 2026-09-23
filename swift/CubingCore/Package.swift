@@ -13,7 +13,8 @@ let package = Package(
     targets: [
         .target(name: "CubingCore"),
         .testTarget(name: "CubingCoreTests", dependencies: ["CubingCore"]),
-        // Separate so it can run on an iPhone in Release: no `@testable`, no files from the Mac.
+        // Separate so it builds in Release: no `@testable`. The phone runs the same benchmark
+        // through the `CubingBench` app, since package tests cannot run on a device.
         .testTarget(name: "CubingBenchmarks", dependencies: ["CubingCore"]),
     ]
 )

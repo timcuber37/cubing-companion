@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Runs the S2 sweep benchmark, on a Mac or an iPhone, in Release.
-
-  A scheme of its own because Xcode's generated `CubingCore` scheme tests every target, and the
-  vector tests use `@testable import`, which a Release build cannot satisfy. This one tests only
-  `CubingBenchmarks`, which uses the public API, so Release — the only configuration whose timings
-  mean anything — builds. Select it, choose the phone as the destination, and press Cmd-U.
+  Runs in Release. Xcode's auto-created scheme would run Debug, whose timings mean nothing — and the
+  whole point of this app is the timing.
 -->
 <Scheme
    LastUpgradeVersion = "2600"
@@ -16,16 +12,16 @@
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "CubingBenchmarks"
-               BuildableName = "CubingBenchmarks"
-               BlueprintName = "CubingBenchmarks"
-               ReferencedContainer = "container:">
+               BlueprintIdentifier = "BF0000000000000000000007"
+               BuildableName = "CubingBench.app"
+               BlueprintName = "CubingBench"
+               ReferencedContainer = "container:CubingBench.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -34,20 +30,7 @@
       buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "CubingBenchmarks"
-               BuildableName = "CubingBenchmarks"
-               BlueprintName = "CubingBenchmarks"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      shouldUseLaunchSchemeArgsEnv = "YES">
    </TestAction>
    <LaunchAction
       buildConfiguration = "Release"
@@ -59,6 +42,16 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "BF0000000000000000000007"
+            BuildableName = "CubingBench.app"
+            BlueprintName = "CubingBench"
+            ReferencedContainer = "container:CubingBench.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -66,6 +59,16 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "BF0000000000000000000007"
+            BuildableName = "CubingBench.app"
+            BlueprintName = "CubingBench"
+            ReferencedContainer = "container:CubingBench.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Release">
