@@ -73,13 +73,21 @@ const WORST = Math.log(Math.min(...Object.values(FACE_SHARE)));
 export function comfortScore(moves: readonly Move[]): number {
   if (moves.length === 0) return 1;
 
+  // Summed per face in a fixed order rather than move by move. It is a bag of moves, so two
+  // sequences turning the same faces the same number of times must score *identically* — and
+  // summing in move order made them differ in the last bit, which let floating-point noise decide
+  // between equally comfortable frames. It also made the choice unportable: the Swift port, with a
+  // different `log`, broke those same ties the other way.
   let total = 0;
-  for (const move of moves) {
-    const share = FACE_SHARE[move.family];
-    // A family outside the model — a wide move or a slice — is treated as the worst case rather
-    // than skipped, so an unexpected input can never score as comfortable.
-    total += Math.log(share ?? Math.min(...Object.values(FACE_SHARE)));
+  let outside = moves.length;
+  for (const [family, share] of Object.entries(FACE_SHARE)) {
+    const count = moves.filter((move) => move.family === family).length;
+    total += count * Math.log(share);
+    outside -= count;
   }
+  // A family outside the model — a wide move or a slice — is treated as the worst case rather
+  // than skipped, so an unexpected input can never score as comfortable.
+  total += outside * WORST;
 
   return (total / moves.length - WORST) / (BEST - WORST);
 }

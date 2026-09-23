@@ -35,6 +35,7 @@ import { allowed, SEARCH_MOVES } from "./moves.ts";
 import { crossIndexNormalised, crossTable } from "./crossTable.ts";
 import { pairIndexFrom, pairTable } from "./pairTable.ts";
 import type { Candidate, SearchOptions, SearchResult } from "./types.ts";
+import { budgetFor } from "./budget.ts";
 
 const DEFAULT_MAX_SOLUTIONS = 50;
 /** Optimal insertions run 6–7 moves; well past that the answer stops being interesting. */
@@ -101,8 +102,10 @@ export function enumerateF2LInsertion(
   let optimal = -1;
   let depthStart = 0;
 
+  // The clock is sampled rather than read per node; see `budget.ts`.
+  const budget = budgetFor(options.deadlineMs);
   const limited = () =>
-    nodes >= maxNodes || candidates.length >= maxSolutions ||
+    nodes >= maxNodes || budget.expired(nodes) || candidates.length >= maxSolutions ||
     candidates.length - depthStart >= maxPerDepth;
 
   /** Depth-first for solutions of exactly `remaining` more moves. */
@@ -166,7 +169,13 @@ export function enumerateF2LInsertion(
       }
       if (depth >= optimal + maxExtra) break;
     }
-    if (nodes >= maxNodes || candidates.length >= maxSolutions) break;
+    // Out of budget stops the *next* depth too, and is a truncation either way: whatever was
+    // found is a partial answer, and the caller is entitled to know that.
+    if (nodes >= maxNodes || budget.expired(nodes)) {
+      truncated = true;
+      break;
+    }
+    if (candidates.length >= maxSolutions) break;
   }
 
   if (optimal < 0 || ceiling < optimal + maxExtra) truncated = true;

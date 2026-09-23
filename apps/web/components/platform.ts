@@ -5,6 +5,7 @@ import {
   type BleTransport,
   type GanMacStore,
 } from "@cubing-companion/cube-link";
+import type { SolveStore } from "@cubing-companion/session";
 
 /**
  * Which radio this build is running on.
@@ -95,3 +96,40 @@ export function localMacStore(): GanMacStore {
     },
   };
 }
+
+/**
+ * Open the right store for this device.
+ *
+ * On the phone that is SQLite in the app container, because IndexedDB inside a WKWebView is
+ * script-writable storage subject to eviction — a cache, not a place to keep a year of solves. In
+ * a browser it stays IndexedDB, which is the durable option *there*.
+ *
+ * Every failure falls back to memory rather than refusing to start. Losing persistence is bad;
+ * an app that will not open because a database would not is worse, and `note` tells the user
+ * which of the two happened.
+ */
+export async function openStore(note: (message: string) => void): Promise<SolveStore> {
+  if (isNativeShell()) {
+    try {
+      const { capacitorSolveStore } = await import("@cubing-companion/session/sqlite");
+      return await capacitorSolveStore();
+    } catch (cause) {
+      // Falling through to IndexedDB rather than straight to memory: inside the shell it is still
+      // a WKWebView, so it usually works, and eviction-prone storage beats none at all.
+      note(
+        `The app database would not open (${message(cause)}); falling back to browser storage, ` +
+          "which iOS may clear.",
+      );
+    }
+  }
+
+  const { IndexedDbStore, isIndexedDbAvailable } = await import("@cubing-companion/session");
+  if (isIndexedDbAvailable()) return new IndexedDbStore();
+
+  // Private browsing refuses to open a database at all.
+  note("Storage unavailable — solves will be lost on reload.");
+  const { MemoryStore } = await import("@cubing-companion/session");
+  return new MemoryStore();
+}
+
+const message = (cause: unknown) => (cause instanceof Error ? cause.message : String(cause));

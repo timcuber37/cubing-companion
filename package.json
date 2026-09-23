@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Speedcube Coach — solve analysis against how the world's best actually solve.",
+  "description": "Speedcube Coach \u2014 solve analysis against how the world's best actually solve.",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -16,7 +16,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "dev": "npm run dev -w @cubing-companion/web"
+    "dev": "npm run dev -w @cubing-companion/web",
+    "vectors": "node tools/vectors/generate.ts",
+    "swift-tables": "node tools/vectors/swift-tables.ts && node tools/vectors/swift-data.ts",
+    "swift-test": "cd swift/CubingCore && swift test -c release -Xswiftc -enable-testing --skip CubingBenchmarks",
+    "swift-bench": "cd swift/CubingCore && swift test -c release -Xswiftc -enable-testing --filter CubingBenchmarks && CUBING_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter testBenchmarkCrossOnlySweep"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

@@ -33,3 +33,9 @@ ml/out/
 # evaluates the model itself, so ONNX is a portable artifact rather than a runtime dependency.
 # What is committed instead, and must stay committed, is that generated weights file and the
 # parity fixtures under `packages/planner/test/fixtures/`.
+
+# SwiftPM and Xcode build output and per-user state. `.swiftpm/xcode/xcshareddata/` stays tracked:
+# it holds the shared `CubingBenchmarks` scheme that runs the sweep benchmark on a phone.
+.build/
+.swiftpm/configuration/
+xcuserdata/

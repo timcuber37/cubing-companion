@@ -114,6 +114,9 @@ export function usePlanner() {
                 ...(message.failure === undefined ? {} : { failure: message.failure }),
               },
             };
+          // The benchmark runs in a worker of its own; this hook never asks for one.
+          case "bench":
+            return previous;
           case "error":
             return { ...previous, running: false, error: message.message };
         }

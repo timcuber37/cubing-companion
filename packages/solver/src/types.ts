@@ -34,6 +34,18 @@ export interface SearchOptions {
   readonly maxSolutionsPerDepth?: number;
   /** Deterministic work budget. Omit for exhaustive search within the depth ceiling. */
   readonly maxNodes?: number;
+  /**
+   * Wall-clock budget in milliseconds, from the moment the search starts.
+   *
+   * The device-independent companion to `maxNodes`, which is device-independent in *work* and so
+   * wildly device-dependent in *time*: the same sweep measured 2.32 s on a desktop and 5.45 s on
+   * an iPhone 11. A UI with a latency requirement wants this; a benchmark or a test wants
+   * `maxNodes`, because the same input must do the same work every time.
+   *
+   * Both may be given, and whichever bites first stops the search. Either way `stats.truncated`
+   * says it happened.
+   */
+  readonly deadlineMs?: number;
   /** Hard ceiling on depth, regardless of `maxExtra`. */
   readonly maxDepth?: number;
 }

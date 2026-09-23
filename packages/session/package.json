@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Solve capture and local-first storage: turns a move stream into segmented solve records.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./sqlite": "./src/sqlite-capacitor.ts"
   },
   "dependencies": {
     "@cubing-companion/analysis": "*",
@@ -13,5 +14,8 @@
     "@cubing-companion/engine": "*",
     "@cubing-companion/metrics": "*",
     "idb": "^8.0.3"
+  },
+  "optionalDependencies": {
+    "@capacitor-community/sqlite": "^8.1.1"
   }
 }

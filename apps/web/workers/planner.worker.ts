@@ -15,7 +15,7 @@
  */
 import { fromFacelets, normalizeOrientation, type Face } from "@cubing-companion/engine";
 import { GEOMETRY, isSlotSolved, segmentFromState, slotName } from "@cubing-companion/analysis";
-import { crossDistance, enumerateF2LInsertion } from "@cubing-companion/solver";
+import { crossDistance, enumerateF2LInsertion, solveCross } from "@cubing-companion/solver";
 import {
   attribute,
   colourName,
@@ -45,6 +45,15 @@ export interface PlanRequest {
   readonly keep?: number;
   readonly crossOnly?: boolean;
   readonly lookahead?: boolean;
+  /**
+   * Wall-clock budget per colour, in milliseconds.
+   *
+   * Insurance rather than routine: a colour typically costs ~425 ms on a desktop and ~966 ms on an
+   * iPhone 11, so a budget set generously above that only ever bites on a position that has gone
+   * pathological. Where it does bite the advice is truncated rather than absent, which is the
+   * better failure — and `stats.truncated` records that it happened.
+   */
+  readonly deadlineMs?: number;
 }
 
 /** "Which pair next" — B3's learned ranking, over the slots still open. */
@@ -139,6 +148,40 @@ export interface CrossDiff {
   readonly lookahead?: { readonly label: string; readonly turns: number; readonly branch: string };
 }
 
+/**
+ * Time the planner where it actually runs.
+ *
+ * Every number quoted about this app's performance — a ~1.9 s colour-neutral sweep, a ~490 ms
+ * cross-table build — was measured on a desktop. Those are the numbers a phone has to be compared
+ * against, and until this existed nobody had compared them.
+ *
+ * Run in a worker of its own so the cross tables start cold: they live in module scope and are
+ * kept for the life of the worker, which is the right behaviour in the app and the wrong one for
+ * a measurement.
+ */
+export interface BenchRequest {
+  readonly id: number;
+  readonly kind: "bench";
+  /** Position to plan from. The caller supplies one so the workload is identical across devices. */
+  readonly facelets: string;
+  /** Sweeps to time after the tables are warm. The median is reported. */
+  readonly runs?: number;
+}
+
+export interface BenchResult {
+  /** Building all six cross tables from cold: 190,080 positions each, breadth-first. */
+  readonly tableBuildMs: number;
+  readonly tableBuildPerFaceMs: readonly number[];
+  /** One colour, tables warm. */
+  readonly singleColourMs: number;
+  /** All six colours — the colour-neutral sweep, and the number that has to fit inspection. */
+  readonly sweepMedianMs: number;
+  readonly sweepWorstMs: number;
+  /** Ranking which pair to do next, including the two-pair lookahead. */
+  readonly nextPairMs: number;
+  readonly runs: number;
+}
+
 export type PlanResponse =
   | {
       readonly id: number;
@@ -158,6 +201,7 @@ export type PlanResponse =
       readonly learned: boolean;
       readonly failure?: string;
     }
+  | { readonly id: number; readonly kind: "bench"; readonly result: BenchResult }
   | {
       readonly id: number;
       readonly kind: "next-pair";
@@ -174,7 +218,7 @@ const post = (message: PlanResponse): void => {
 };
 
 self.onmessage = async (
-  event: MessageEvent<PlanRequest | NextPairRequest | DiffRequest>,
+  event: MessageEvent<PlanRequest | NextPairRequest | DiffRequest | BenchRequest>,
 ) => {
   const request = event.data;
   activeRequest = request.id;
@@ -188,6 +232,10 @@ self.onmessage = async (
     void diffSolve(request);
     return;
   }
+  if (request.kind === "bench") {
+    void bench(request);
+    return;
+  }
 
   try {
     const state = fromFacelets(request.facelets);
@@ -197,6 +245,7 @@ self.onmessage = async (
         keep: request.keep ?? 3,
         crossOnly: request.crossOnly ?? false,
         lookahead: request.lookahead ?? true,
+        ...(request.deadlineMs === undefined ? {} : { deadlineMs: request.deadlineMs }),
       });
       plans.push(plan);
       post({ id: request.id, kind: "colour", plan });
@@ -218,6 +267,83 @@ self.onmessage = async (
     });
   }
 };
+
+/** All six cross colours, in the protocol's own face order. */
+const ALL_FACES = [0, 1, 2, 3, 4, 5] as Face[];
+
+/** Median, which is what to quote for a sweep: one slow run should not define the budget. */
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
+    : (sorted[middle] ?? 0);
+}
+
+/** Time the planner on whatever device this worker is running on. */
+async function bench(request: BenchRequest): Promise<void> {
+  try {
+    const state = fromFacelets(request.facelets);
+    const runs = request.runs ?? 3;
+    const options = { keep: 3, crossOnly: false, lookahead: true } as const;
+
+    // Cold: the first touch of each colour is what pays for its table.
+    const tableBuildPerFaceMs: number[] = [];
+    for (const face of ALL_FACES) {
+      const started = performance.now();
+      crossDistance(state, face);
+      tableBuildPerFaceMs.push(performance.now() - started);
+    }
+    const tableBuildMs = tableBuildPerFaceMs.reduce((total, ms) => total + ms, 0);
+
+    // Warm from here: tables are built, so this is search time and nothing else.
+    const singleStarted = performance.now();
+    planColour(state, ALL_FACES[0]!, options);
+    const singleColourMs = performance.now() - singleStarted;
+
+    const sweeps: number[] = [];
+    for (let run = 0; run < runs; run++) {
+      const started = performance.now();
+      for (const face of ALL_FACES) planColour(state, face, options);
+      sweeps.push(performance.now() - started);
+      // Yield between runs so a long benchmark cannot wedge the worker.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+
+    // Pair ranking only means anything once a cross is built, so build one first — and leave it
+    // out of the timing, because the measurement is of the lookahead rather than of the cross.
+    const normalised = normalizeOrientation(state);
+    const crossFace = ALL_FACES[0]!;
+    const crossMoves = solveCross(normalised, crossFace);
+    let nextPairMs = 0;
+    if (crossMoves) {
+      const afterCross = applyMoves(normalised, crossMoves);
+      const pairStarted = performance.now();
+      lookaheadPairs(afterCross, crossFace);
+      nextPairMs = performance.now() - pairStarted;
+    }
+
+    post({
+      id: request.id,
+      kind: "bench",
+      result: {
+        tableBuildMs,
+        tableBuildPerFaceMs,
+        singleColourMs,
+        sweepMedianMs: median(sweeps),
+        sweepWorstMs: Math.max(...sweeps),
+        nextPairMs,
+        runs,
+      },
+    });
+  } catch (error) {
+    post({
+      id: request.id,
+      kind: "error",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 /**
  * Re-rank each colour's crosses with B3's model, and post the revised plans.

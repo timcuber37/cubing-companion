@@ -39,8 +39,11 @@ import { SolveDetail } from "./SolveDetail";
 import { PlannerPanel } from "./PlannerPanel";
 import { GyroDiagnostics } from "./GyroDiagnostics";
 import { ProtocolCapture } from "./ProtocolCapture";
+import { PerformancePanel } from "./PerformancePanel";
 import { emitDiagnosticTiming } from "./diagnosticTimings";
-import { defaultTransport, isNativeShell, localMacStore } from "./platform";
+import { defaultTransport, isNativeShell, localMacStore, openStore } from "./platform";
+import { TabBar, type Tab } from "./TabBar";
+import { useAppResume, useKeepAwake } from "./useNativeLifecycle";
 
 const MAC_STORAGE_KEY = "cubing-companion.gan-mac";
 const SESSION_KEY = "cubing-companion.session-id";
@@ -91,6 +94,12 @@ type Status =
  *
  * The fallback is kept rather than deleted: browsers without `watchAdvertisements` cannot detect
  * it at all, and for them typing it in is the difference between a working cube and a dead one.
+ *
+ * **Browser only.** In the native shell this is never wired up. A scan there carries the address
+ * in its manufacturer data, so a missing MAC means the scan missed rather than that the platform
+ * refuses to say — and the fix for that is another scan. Asking someone to type sixteen hex digits
+ * they would have to find with a second Bluetooth app is not a fallback, it is a dead end with a
+ * text field.
  */
 function promptForMac(deviceName: string | undefined, isRetry: boolean): string | null {
   // Not the last resort yet — let the library try the advertisement data first. It is more
@@ -147,6 +156,7 @@ export function CubeHarness() {
   // The live position, as a facelet string, for the planner to read. Kept as facelets rather
   // than a `CubeState` because that is what crosses into the worker anyway.
   const [facelets, setFacelets] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("solve");
 
   // Checked after mount: neither `navigator` nor Capacitor's bridge exists during server
   // rendering. On a phone this resolves to the native radio; in a browser, to Web Bluetooth.
@@ -163,25 +173,16 @@ export function CubeHarness() {
     };
   }, []);
 
-  // Storage is opened lazily and client-only: `IndexedDbStore` is imported here rather than
-  // at module scope so server rendering never touches `indexedDB`, the same pattern the
-  // twisty player and the BLE library use.
+  // Storage is opened lazily and client-only: the implementation is imported inside the effect
+  // rather than at module scope so server rendering never touches `indexedDB` or the Capacitor
+  // bridge. Which implementation depends on the device — see `openStore`.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const { IndexedDbStore, isIndexedDbAvailable } = await import(
-        "@cubing-companion/session"
-      );
+      const store = await openStore((note) => {
+        if (!cancelled) setStorageNote(note);
+      });
       if (cancelled) return;
-      let store: SolveStore;
-      if (isIndexedDbAvailable()) {
-        store = new IndexedDbStore();
-      } else {
-        // Private browsing can refuse to open a database. Falling back keeps the app usable
-        // rather than failing to load; the note tells the user solves will not persist.
-        store = new MemoryStore();
-        setStorageNote("Storage unavailable — solves will be lost on reload.");
-      }
       try {
         const id = sessionId();
         await store.ensureSession({ id, startedAt: Date.now(), label: "Session" });
@@ -304,8 +305,15 @@ export function CubeHarness() {
         // Persisted, because a reconnect carries no advertisement and therefore no decryption
         // key — see `ble/mac.ts`. Losing it costs a rescan, not the cube.
         macStore: macStoreRef.current,
-        macAddressPrompt: async (device, isRetry) =>
-          promptForMac(device.name, isRetry),
+        // Offered in a browser only. Native scanning reads the address straight out of the
+        // advertisement, so if it is missing there the answer is to scan again, not to ask
+        // someone to find their cube's MAC on a phone — see the note on `promptForMac`.
+        ...(isNativeShell()
+          ? {}
+          : {
+              macAddressPrompt: async (device, isRetry) =>
+                promptForMac(device.name, isRetry),
+            }),
       });
       await attach(source);
     } catch (cause) {
@@ -506,111 +514,220 @@ export function CubeHarness() {
     setSolves(await store.listSolves(sessionId()));
   }, []);
 
+  // The screen must not dim while a scramble is on it or a solve is running: inspection is spent
+  // looking, not touching, which is exactly when iOS decides to lock.
+  useKeepAwake(
+    status.state === "connected" &&
+      (recorderState.phase === "ready" || recorderState.phase === "solving"),
+  );
+
+  /**
+   * iOS drops BLE when it suspends the app, so coming back means checking rather than assuming.
+   *
+   * A cube query is the honest test — the connection object survives backgrounding even when the
+   * link underneath has gone. If it fails, the UI stops claiming a cube that is not there.
+   */
+  useAppResume(
+    useCallback(() => {
+      const source = sourceRef.current;
+      if (!source || source.kind !== "smart-cube") return;
+      void source.queryState().catch(() => {
+        void teardown().then(() =>
+          setStatus({
+            state: "error",
+            message: "The cube disconnected while the app was in the background. Reconnect to carry on.",
+          }),
+        );
+      });
+    }, [teardown]),
+  );
+
   const connected = status.state === "connected";
   const selected = solves.find((solve) => solve.id === selectedId) ?? null;
+
+  /**
+   * One button, whose job changes with the state of the solve.
+   *
+   * The desktop layout offered every action at once in a row. On a phone that row is most of the
+   * screen and only one of its buttons is ever the thing you want next, so this shows that one:
+   * connect, then scramble, then get out of the way while you solve.
+   */
+  const primaryAction = (() => {
+    const base =
+      "w-full rounded-lg px-4 py-3 text-base font-medium transition-colors disabled:cursor-not-allowed";
+
+    if (!connected) {
+      return (
+        <button
+          type="button"
+          onClick={() => void connectCube()}
+          disabled={status.state === "connecting" || !bluetoothAvailable}
+          className={`${base} bg-sky-600 text-white hover:bg-sky-500 disabled:bg-neutral-800 disabled:text-neutral-500`}
+        >
+          {status.state === "connecting" ? "Connecting…" : "Connect smart cube"}
+        </button>
+      );
+    }
+
+    // Mid-solve the button would only be in the way, and a stray tap is the last thing anyone
+    // wants while the timer is running.
+    if (recorderState.phase === "solving") {
+      return (
+        <p className="w-full rounded-lg bg-neutral-900 px-4 py-3 text-center font-mono text-base tabular-nums text-emerald-400">
+          Solving — {recorderState.moveCount} moves
+        </p>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => void newScramble()}
+        disabled={scrambling}
+        className={`${base} bg-sky-600 text-white hover:bg-sky-500 disabled:bg-neutral-800 disabled:text-neutral-500`}
+      >
+        {scrambling
+          ? "Scrambling…"
+          : recorderState.phase === "ready"
+            ? "New scramble"
+            : "Scramble"}
+      </button>
+    );
+  })();
   const scrambleMatched =
     recorderState.phase === "ready" || recorderState.phase === "solving";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <section className="space-y-4">
-        <TwistyPlayer ref={playerRef} />
+    <>
+      {/* Padded for the fixed tab bar, so the last card is never trapped underneath it. */}
+      <div className="pb-36">
+        {tab === "solve" && (
+          <section className="space-y-4">
+            <TwistyPlayer ref={playerRef} />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void connectCube()}
-            disabled={status.state === "connecting" || !bluetoothAvailable}
-            className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400"
-          >
-            {status.state === "connecting" ? "Connecting…" : "Connect smart cube"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void useManual()}
-            className="rounded-md border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800"
-          >
-            Manual input
-          </button>
-          {connected && (
-            <button
-              type="button"
-              onClick={() => void resync()}
-              disabled={syncing}
-              title="Read the cube's actual position and match the virtual one to it."
-              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
-            >
-              {syncing ? "Syncing…" : "Sync"}
-            </button>
-          )}
-          {connected && (
-            <button
-              type="button"
-              onClick={() => void markSolved()}
-              disabled={syncing}
-              title="Use when the cube itself has lost track: hold a solved cube and press this to re-base it."
-              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
-            >
-              Cube is solved
-            </button>
-          )}
-          {syncNote && <span className="text-xs text-neutral-500">{syncNote}</span>}
-          {connected && (
-            <button
-              type="button"
-              onClick={() => void teardown().then(() => setStatus({ state: "idle" }))}
-              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-800"
-            >
-              Disconnect
-            </button>
-          )}
-        </div>
+            <StatusLine
+              status={status}
+              skew={skew}
+              bluetoothAvailable={bluetoothAvailable}
+              nativeShell={nativeShell}
+              hardware={hardware}
+            />
 
-        <StatusLine
-          status={status}
-          skew={skew}
-          bluetoothAvailable={bluetoothAvailable}
-          nativeShell={nativeShell}
-          hardware={hardware}
-        />
+            {connected && (
+              <SessionPanel
+                state={recorderState}
+                scrambleKind={scrambleKind}
+                scrambleMatched={scrambleMatched}
+                onNewScramble={() => void newScramble()}
+                onStartFromHere={startFromHere}
+                onDiscard={discardSolve}
+                busy={scrambling}
+              />
+            )}
 
-        <GyroDiagnostics source={diagnosticSource} />
+            {connected && status.kind === "manual" && (
+              <ManualInput onApply={applyAlg} onKey={pressKey} />
+            )}
 
-        <ProtocolCapture />
-
-        {connected && (
-          <SessionPanel
-            state={recorderState}
-            scrambleKind={scrambleKind}
-            scrambleMatched={scrambleMatched}
-            onNewScramble={() => void newScramble()}
-            onStartFromHere={startFromHere}
-            onDiscard={discardSolve}
-            busy={scrambling}
-          />
+            {/*
+              The planner is contextual to the position on the cube, so it belongs on this screen
+              rather than a tab of its own — but collapsed, because most of the time you want the
+              scramble and the timer, not a sweep of six cross colours.
+            */}
+            <PlannerPanel facelets={facelets} phase={recorderState.phase} />
+          </section>
         )}
 
-        {connected && status.kind === "manual" && (
-          <ManualInput onApply={applyAlg} onKey={pressKey} />
+        {tab === "history" && (
+          <section className="space-y-4">
+            {storageNote && (
+              <p className="rounded-md border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
+                {storageNote}
+              </p>
+            )}
+            <StatsPanel solves={solves} />
+            <SolveList
+              solves={solves}
+              onDelete={(id) => void deleteSolve(id)}
+              onSelect={(solve) => setSelectedId(solve.id)}
+            />
+          </section>
         )}
-      </section>
 
-      <section className="space-y-4">
-        {storageNote && (
-          <p className="rounded-md border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-xs text-amber-200">
-            {storageNote}
-          </p>
+        {tab === "settings" && (
+          <section className="space-y-4">
+            {/*
+              Connection management lives here rather than on Solve: it is setup, done once, and
+              on Solve it competed for space with the thing you actually came to do.
+            */}
+            <div className="space-y-2 rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+              <h2 className="text-sm font-medium text-neutral-200">Cube</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void connectCube()}
+                  disabled={status.state === "connecting" || !bluetoothAvailable}
+                  className="rounded-md bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400"
+                >
+                  {status.state === "connecting" ? "Connecting…" : "Connect smart cube"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void useManual()}
+                  className="rounded-md border border-neutral-700 px-3 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800"
+                >
+                  Manual input
+                </button>
+                {connected && (
+                  <button
+                    type="button"
+                    onClick={() => void resync()}
+                    disabled={syncing}
+                    title="Read the cube's actual position and match the virtual one to it."
+                    className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
+                  >
+                    {syncing ? "Syncing…" : "Sync"}
+                  </button>
+                )}
+                {connected && (
+                  <button
+                    type="button"
+                    onClick={() => void markSolved()}
+                    disabled={syncing}
+                    title="Use when the cube itself has lost track: hold a solved cube and press this to re-base it."
+                    className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-50"
+                  >
+                    Cube is solved
+                  </button>
+                )}
+                {connected && (
+                  <button
+                    type="button"
+                    onClick={() => void teardown().then(() => setStatus({ state: "idle" }))}
+                    className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-800"
+                  >
+                    Disconnect
+                  </button>
+                )}
+              </div>
+              {syncNote && <p className="text-xs text-neutral-500">{syncNote}</p>}
+            </div>
+
+            <PerformancePanel />
+            <GyroDiagnostics source={diagnosticSource} />
+            <ProtocolCapture />
+            <DesyncPanel events={desyncs} />
+            <MoveLog moves={moves} />
+          </section>
         )}
-        <PlannerPanel facelets={facelets} phase={recorderState.phase} />
-        <StatsPanel solves={solves} />
-        <SolveList
-          solves={solves}
-          onDelete={(id) => void deleteSolve(id)}
-          onSelect={(solve) => setSelectedId(solve.id)}
-        />
-        <DesyncPanel events={desyncs} />
-        <MoveLog moves={moves} />
-      </section>
+      </div>
+
+      <TabBar
+        active={tab}
+        onChange={setTab}
+        badge={solves.length}
+        action={tab === "solve" ? primaryAction : undefined}
+      />
 
       {selected && (
         <SolveDetail
@@ -624,7 +741,7 @@ export function CubeHarness() {
             .map((s) => s.durationMs!)}
         />
       )}
-    </div>
+    </>
   );
 }
 

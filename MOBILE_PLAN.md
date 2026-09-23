@@ -28,7 +28,24 @@ The `BleTransport` seam did what it was built for — the same decoder, the same
 same timeline now run over three radios (Web Bluetooth, Capacitor, and a recorded capture) with no
 change above the seam.
 
-**P4 is next.**
+**P4 is implemented.** Solve history is in SQLite in the app container rather than in evictable
+WebView storage; the screen stays awake through inspection and the solve; a suspended app notices
+its cube has gone; and the UI is three tabs with a docked primary action instead of a desktop
+two-column grid.
+
+**P5 is done, and it is the phase that produced a number rather than a feature.** Measured on an
+iPhone 11 against the same workload on the development Mac:
+
+| | Desktop | iPhone 11 | Ratio |
+|---|---:|---:|---:|
+| Cross tables, cold | 591 ms | 2,208 ms | 3.7× |
+| One colour | 425 ms | 966 ms | 2.3× |
+| Colour-neutral sweep, median | 2.32 s | 5.45 s | 2.4× |
+| Next pair + lookahead | 161 ms | 372 ms | 2.3× |
+
+**2.4× a desktop, not the order of magnitude that was feared.** That matters beyond this phase: it
+is the measurement [SWIFT_PLAN.md](SWIFT_PLAN.md) asks for before committing to a native rewrite,
+and it weakens the performance argument for one considerably.
 
 [PLAN.md](PLAN.md) declares the project's one hard platform limit: *"No iOS (Web Bluetooth doesn't
 exist on iOS Safari; native wrapper is a someday-item)"*, with "iOS via native wrapper" parked in
@@ -400,7 +417,7 @@ comment in `gen4.ts` says so.
 
 **Ships:** the stated blocker is gone.
 
-### P4 — Make it a phone app · 2 weekends · device for half
+### P4 — Make it a phone app · 2 weekends · device for half · **done**
 
 - `SqliteSolveStore` over `@capacitor-community/sqlite`, implementing `SolveStore`. The existing
   contract test in `packages/session/test/store.test.ts` covers it for free.
@@ -412,7 +429,7 @@ comment in `gen4.ts` says so.
   scanning works.
 - Mobile-first information architecture rework (below).
 
-### P5 — Meet the latency budget · 1 weekend · half headless
+### P5 — Meet the latency budget · 1 weekend · half headless · **done**
 
 - Add `deadlineMs` to `SearchOptions` in [types.ts](packages/solver/src/types.ts), checked every
   ~4096 nodes. Keep `maxNodes` as the reproducible-benchmark path. Node budgets are
@@ -431,6 +448,36 @@ comment in `gen4.ts` says so.
   indexing the other five through a rotation would save ~415 ms of cold start and 1.6 MB resident.
   Only do this behind a test asserting `crossDistance(s, f) === crossDistanceViaRotation(s, f)` over
   a few thousand random states — deriving the index permutation is where the bugs live.
+
+**Shipped**, and the measurement reordered the work. What the plan listed as one item among five —
+defaulting the sweep to a preferred cross colour — turned out to be the entire fix:
+
+| | Before | After |
+|---|---:|---:|
+| Cold table build | 2,208 ms | ~370 ms (one table, not six) |
+| Time to a usable answer | 5.45 s | **~966 ms** |
+
+Three deviations, all downstream of that:
+
+- **The single-table-plus-rotation optimisation was dropped, not deferred.** Its entire value was
+  saving five of six table builds. Sweeping one colour builds one table, so the saving collapses to
+  nothing — and deriving the index permutation was the riskiest change in the phase.
+- **Device speed calibration was dropped, superseded by `deadlineMs`.** The plan proposed timing
+  the startup table build and scaling `maxNodes` by the result. That is an indirect way of saying
+  "take about this long"; a deadline says it directly. Two mechanisms for one goal is worse than
+  one, so `SearchOptions` gained `deadlineMs` — sampled every 4,096 nodes, because reading the
+  clock per node costs more than the node it guards — and `maxNodes` stays as the reproducible
+  path a benchmark needs.
+- **Finer yielding was not done.** With one colour the sweep is ~1 s of work in a worker, off the
+  main thread, and the deadline caps a pathological position at 2.5 s per colour. Making
+  `planColour` yield would mean threading async plumbing through a pure package for a problem the
+  colour default already removed.
+
+Also added: a **planner benchmark** in Settings that runs a fixed workload, so any device can be
+compared against the numbers above rather than against a claim. The desktop reference it compares
+to was measured with that same workload, not taken from the ~490 ms / 1.9 s figures quoted
+elsewhere in the codebase — those came from a different position and a different runtime, and
+comparing against them would have compared two things that were never the same measurement.
 
 **Total ≈ 6–7 weekends**, three of which need nothing not already on hand.
 

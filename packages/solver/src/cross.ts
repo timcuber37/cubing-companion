@@ -22,6 +22,7 @@ import {
   UNREACHABLE,
 } from "./crossTable.ts";
 import type { Candidate, SearchOptions, SearchResult } from "./types.ts";
+import { budgetFor } from "./budget.ts";
 
 const DEFAULT_MAX_SOLUTIONS = 200;
 
@@ -65,7 +66,10 @@ export function enumerateCross(
   let nodes = 0;
   let truncated = false;
   let depthStart = 0;
-  const limited = () => nodes >= maxNodes || candidates.length >= maxSolutions ||
+  // The clock is sampled rather than read per node; see `budget.ts`.
+  const budget = budgetFor(options.deadlineMs);
+  const limited = () =>
+    nodes >= maxNodes || budget.expired(nodes) || candidates.length >= maxSolutions ||
     candidates.length - depthStart >= maxPerDepth;
 
   /**
@@ -115,7 +119,13 @@ export function enumerateCross(
   for (let depth = optimal; depth <= limit; depth++) {
     depthStart = candidates.length;
     search(startIndex, depth);
-    if (nodes >= maxNodes || candidates.length >= maxSolutions) break;
+    // Out of budget stops the *next* depth too, and is a truncation either way: whatever was
+    // found is a partial answer, and the caller is entitled to know that.
+    if (nodes >= maxNodes || budget.expired(nodes)) {
+      truncated = true;
+      break;
+    }
+    if (candidates.length >= maxSolutions) break;
   }
   if (limit < optimal + maxExtra) truncated = true;
 

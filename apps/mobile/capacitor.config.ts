@@ -26,11 +26,17 @@ const config: CapacitorConfig = {
      */
     backgroundColor: "#0a0a0a",
     /**
-     * The web view is what runs the app, so let it behave like one: no rubber-band scroll past
-     * the edges, which on a full-bleed dark layout just exposes the background.
+     * `scrollEnabled` is deliberately absent, i.e. left at its default of `true`.
+     *
+     * It was set to `false` here to suppress rubber-band overscroll. That is not what it does: it
+     * turns off the web view's scroll view altogether, so the page could not scroll at all. If
+     * overscroll ever needs taming, `overscroll-behavior` in CSS is the tool.
+     *
+     * `contentInset: "never"` because safe areas are handled in CSS, with `env(safe-area-inset-*)`
+     * and `viewportFit: "cover"` in `app/layout.tsx`. Letting the web view inset the content as
+     * well would pad everything twice and leave two places to look when the spacing is wrong.
      */
-    scrollEnabled: false,
-    contentInset: "always",
+    contentInset: "never",
   },
 };
 

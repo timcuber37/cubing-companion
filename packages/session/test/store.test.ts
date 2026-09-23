@@ -7,11 +7,18 @@
  *
  * IndexedDB is exercised through `fake-indexeddb`, which is a real implementation of the spec
  * rather than a mock — so the schema, indexes and transactions are genuinely tested.
+ *
+ * SQLite is exercised the same way, through Node's built-in `node:sqlite`. The store reaches its
+ * database through a four-method driver interface precisely so this is possible: the SQL that runs
+ * here — schema, indexes, ordering, parameter binding — is the SQL that runs on the phone. Only
+ * the Capacitor plugin that supplies the connection is left untested, and that is a bridge.
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import "fake-indexeddb/auto";
+import { DatabaseSync } from "node:sqlite";
 import { MemoryStore, type SolveStore } from "../src/store.ts";
 import { IndexedDbStore } from "../src/indexeddb.ts";
+import { SqliteSolveStore, type SqlDatabase, type SqlValue } from "../src/sqlite.ts";
 import type { SessionRecord, SolveRecord } from "../src/types.ts";
 
 const session = (id: string, startedAt = 1000): SessionRecord => ({
@@ -40,9 +47,29 @@ const solve = (
   moveTimestamps: [0, 500, 1500],
 });
 
+/** `node:sqlite` as the store's driver. Synchronous underneath, which the interface allows. */
+function nodeSqlite(): SqlDatabase {
+  const db = new DatabaseSync(":memory:");
+  return {
+    async execute(sql) {
+      db.exec(sql);
+    },
+    async run(sql, params: readonly SqlValue[] = []) {
+      db.prepare(sql).run(...params);
+    },
+    async query<T>(sql: string, params: readonly SqlValue[] = []) {
+      return db.prepare(sql).all(...params) as T[];
+    },
+    async close() {
+      db.close();
+    },
+  };
+}
+
 const implementations: [string, () => SolveStore][] = [
   ["MemoryStore", () => new MemoryStore()],
   ["IndexedDbStore", () => new IndexedDbStore()],
+  ["SqliteSolveStore", () => new SqliteSolveStore(nodeSqlite())],
 ];
 
 for (const [name, make] of implementations) {

@@ -106,6 +106,14 @@ export interface PlanOptions {
   readonly crossOnly?: boolean;
   /** Explore near-optimal crosses, joint goals, and continuations through two solved pairs. */
   readonly lookahead?: boolean;
+  /**
+   * Wall-clock budget for this colour's searches, in milliseconds.
+   *
+   * Passed straight down to the enumerators. Omitted by default, because the node budgets below
+   * already bound the work and a test wants the same answer every time — this is for a caller
+   * with a latency requirement, which in practice means a UI on a phone.
+   */
+  readonly deadlineMs?: number;
 }
 
 const DEFAULTS = { keep: 3, maxExtra: 0, maxSolutions: 200, crossOnly: false };
@@ -186,8 +194,11 @@ export function planColour(
   options: PlanOptions = {},
 ): ColourPlan {
   const { keep, maxExtra, maxSolutions, crossOnly } = { ...DEFAULTS, ...options };
+  // Shared by every search this colour runs, so the deadline bounds the colour rather than each
+  // search within it — six searches each allowed the full budget would be six times the wait.
+  const deadline = options.deadlineMs === undefined ? {} : { deadlineMs: options.deadlineMs };
   const startedAt = Date.now();
-  const search = { maxExtra, maxSolutions };
+  const search = { maxExtra, maxSolutions, ...deadline };
 
   const crossResult = enumerateCross(state, crossFace, search);
   const cross = crossResult.candidates

@@ -19,8 +19,53 @@ import type { RankedPair } from "../workers/planner.worker";
 const INSPECTION_MS = 15_000;
 /** Long enough that turning the cube does not queue a sweep per move. */
 const DEBOUNCE_MS = 400;
+/**
+ * Per-colour ceiling on search time.
+ *
+ * Set well above what a colour actually costs — ~425 ms measured on a desktop, ~966 ms on an
+ * iPhone 11 — so this is a backstop for a position that goes pathological, not a routine limit. A
+ * truncated plan is worse advice; no plan at all, or a planner that hangs through inspection, is
+ * worse than that.
+ */
+const COLOUR_DEADLINE_MS = 2_500;
 
 type Mode = "live" | "practice" | "next-pair";
+
+const FACES_KEY = "cubing-companion.cross-colours";
+/** White. The cross most people build, and the one a first run should not have to choose. */
+const DEFAULT_FACE = 0 as Face;
+
+/**
+ * Which cross colours to sweep, remembered between sessions.
+ *
+ * This used to default to all six, and that default is what a colour-neutral sweep costs: on an
+ * iPhone 11 it measured **5.45 s against 966 ms for a single colour**, most of it work the solver
+ * was asked to do for colours the user never builds. Six times the search, and six cross tables
+ * built rather than one.
+ *
+ * So the default is one colour and the preference is persisted. A colour-neutral solver turns the
+ * rest on once; everyone else never pays for them. That is a better default on a desktop too — it
+ * is just that the phone is where it stopped being affordable.
+ */
+function loadFaces(): Set<Face> {
+  try {
+    const raw = globalThis.localStorage?.getItem(FACES_KEY);
+    const parsed = raw ? (JSON.parse(raw) as number[]) : null;
+    const valid = parsed?.filter((face) => COLOURS.some((colour) => colour.face === face)) ?? [];
+    if (valid.length > 0) return new Set(valid as Face[]);
+  } catch {
+    // Unreadable or absent storage; the default is no worse for it.
+  }
+  return new Set([DEFAULT_FACE]);
+}
+
+function saveFaces(faces: ReadonlySet<Face>): void {
+  try {
+    globalThis.localStorage?.setItem(FACES_KEY, JSON.stringify([...faces]));
+  } catch {
+    // Private browsing. The choice holds for this session and is forgotten after it.
+  }
+}
 
 /**
  * Which cross to build, and how to hold the cube to build it.
@@ -37,7 +82,7 @@ export function PlannerPanel({
   phase: RecorderPhase;
 }) {
   const [mode, setMode] = useState<Mode>("live");
-  const [faces, setFaces] = useState<Set<Face>>(() => new Set(COLOURS.map((c) => c.face)));
+  const [faces, setFaces] = useState<Set<Face>>(loadFaces);
   const {
     plans,
     running,
@@ -58,7 +103,8 @@ export function PlannerPanel({
   const [revealed, setRevealed] = useState(false);
 
   const request = useCallback(
-    (from: string) => plan({ facelets: from, crossFaces: [...faces], keep: 3 }),
+    (from: string) =>
+      plan({ facelets: from, crossFaces: [...faces], keep: 3, deadlineMs: COLOUR_DEADLINE_MS }),
     [faces, plan],
   );
 
@@ -129,6 +175,7 @@ export function PlannerPanel({
       facelets: toFacelets(applyMoves(CubeState.solved(), parseMoves(generated.text))),
       crossFaces: [...faces],
       keep: 3,
+      deadlineMs: COLOUR_DEADLINE_MS,
     });
   };
 
@@ -143,8 +190,19 @@ export function PlannerPanel({
       if (next.has(face)) next.delete(face);
       else next.add(face);
       // Never leave nothing selected; there would be nothing to show.
-      return next.size === 0 ? previous : next;
+      if (next.size === 0) return previous;
+      saveFaces(next);
+      return next;
     });
+  };
+
+  const allSelected = faces.size === COLOURS.length;
+  const toggleAll = () => {
+    const next = allSelected
+      ? new Set<Face>([DEFAULT_FACE])
+      : new Set(COLOURS.map((colour) => colour.face));
+    saveFaces(next);
+    setFaces(next);
   };
 
   const showResults = mode === "live" || revealed;
@@ -197,6 +255,18 @@ export function PlannerPanel({
               style={{ backgroundColor: colour.hex }}
             />
           ))}
+          {/*
+            Colour-neutrality is what the corpus analysis is about, so it stays one tap away — but
+            it is also six times the work, and on a phone that is the difference between a sweep
+            that lands in a second and one that eats a third of inspection.
+          */}
+          <button
+            type="button"
+            onClick={toggleAll}
+            className="ml-auto rounded px-1.5 py-0.5 text-[11px] text-neutral-500 hover:text-neutral-300"
+          >
+            {allSelected ? "just one" : "all six"}
+          </button>
         </div>
 
         {mode === "practice" && (
