@@ -18,6 +18,7 @@
     "coverage": "vitest run --coverage",
     "dev": "npm run dev -w @cubing-companion/web",
     "vectors": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/vectors/generate.ts",
+    "scrambles": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/scrambles/generate.ts",
     "link-replay": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/link/replay-capture.ts",
     "link-sim": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/link/simulate.ts",
     "swift-tables": "node tools/vectors/swift-tables.ts && node tools/vectors/swift-data.ts",

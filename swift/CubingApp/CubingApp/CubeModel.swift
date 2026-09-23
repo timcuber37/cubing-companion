@@ -47,6 +47,14 @@ final class CubeModel {
 
     let connection = GanCubeConnection()
     private let tracker: CubeTracker
+
+    /// For the solve recorder: each tracked move with the position it produced, every resync, and
+    /// the moment the mirror first matches the cube after connecting.
+    var onTrackedMove: ((TimedMove, CubeState) -> Void)?
+    var onReseed: ((CubeState) -> Void)?
+    var onReady: (() -> Void)?
+
+    var trackedState: CubeState { tracker.state }
     private var lastTimestamp: Double?
     private var moveCount = 0
     /// Set when a connection drops without being asked to, so coming back to the app reconnects.
@@ -76,6 +84,7 @@ final class CubeModel {
             facelets = Facelets.string(from: state)
             lastMove = nil
             revision += 1
+            onReseed?(state)
         }
         tracker.onDesync = { [weak self] event in
             guard let self, event.reason != .initialSync else { return }
@@ -134,6 +143,7 @@ final class CubeModel {
                 try? await tracker.start()
                 connection.send(.requestHardware)
                 connection.send(.requestBattery)
+                onReady?()
             }
         case .idle, .failed:
             UIApplication.shared.isIdleTimerDisabled = false
@@ -179,6 +189,7 @@ final class CubeModel {
                 id: moveCount, notation: timed.event.move.notation, serial: timed.event.serial,
                 gapMs: gap, source: timed.source, heldMs: releasing), at: 0)
         if moves.count > 40 { moves.removeLast() }
+        onTrackedMove?(timed, tracker.state)
     }
 }
 

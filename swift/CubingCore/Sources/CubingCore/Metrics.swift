@@ -181,6 +181,13 @@ public enum Metrics {
         return Double(count) * 1000 / ms
     }
 
+    /// Duration of each span, aligned with `spans` — `phaseDurationsMs` in the TypeScript, which is
+    /// what the history screen shows for a stored solve.
+    public static func phaseDurations(_ spans: [PhaseSpan], _ timestamps: [Double?]) -> [Double?] {
+        let start = solveStart(spans)
+        return spans.map { window($0, timestamps, start).duration }
+    }
+
     public static func compute(
         _ spans: [PhaseSpan], _ timestamps: [Double?], _ options: PauseOptions = PauseOptions()
     ) -> SolveMetrics {

@@ -173,7 +173,7 @@ public enum Segmentation {
         }
     }
 
-    static func isRotation(_ move: Move) -> Bool {
+    public static func isRotation(_ move: Move) -> Bool {
         move.family == "x" || move.family == "y" || move.family == "z"
     }
 

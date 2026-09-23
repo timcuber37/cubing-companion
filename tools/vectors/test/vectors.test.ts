@@ -34,12 +34,13 @@ describe.each(Object.keys(GENERATORS))("the %s vectors", (name) => {
     const regenerated = await GENERATORS[name]!(file.seed, file.count);
     // Compared as parsed data rather than as text, so formatting is not what fails.
     expect(regenerated).toEqual(file);
-  }, name === "s2" ? 30_000 : name === "cubelink" ? 15_000 : 5_000);
+  }, name === "s2" ? 30_000 : name === "cubelink" || name === "session" ? 15_000 : 5_000);
 
   it("is large enough to be worth trusting", () => {
-    // `cubelink` is a set of replays, and its `count` is messages per event type inside them; its
-    // coverage is asserted on its own below.
-    if (name === "cubelink") return;
+    // `cubelink` is a set of replays, and its `count` is messages per event type inside them;
+    // `session` adds stats cases and a database to its `count` of recorder scripts. Both have their
+    // coverage asserted on their own below.
+    if (name === "cubelink" || name === "session") return;
     expect(file.cases.length).toBe(file.count);
     // `metrics` is bounded by the twenty committed reconstructions rather than by a seed — real
     // solves are the only honest input for it, and there are twenty of them. Every other corpus is
@@ -166,5 +167,40 @@ describe("cube link coverage", () => {
       ),
     );
     expect(reasons).toEqual(new Set(["initial-sync", "serial-gap", "state-mismatch"]));
+  });
+});
+
+describe("session coverage", () => {
+  interface Output { phase: string; hasRecord: boolean }
+  interface Step { op: string; output: Output; completed?: { record: { outcome: string; durationMs: number | null; moveTimestamps: (number | null)[] }; failure: string | null } | null }
+  const cases = committed("session").cases as { kind: string; source?: string; steps?: Step[] }[];
+  const recorders = cases.filter((c) => c.kind === "recorder");
+  const finished = recorders.flatMap((c) => c.steps!.flatMap((s) => (s.completed ? [s.completed] : [])));
+
+  it("reaches every phase, from both sources", () => {
+    const phases = new Set(recorders.flatMap((c) => c.steps!.map((s) => s.output.phase)));
+    expect(phases).toEqual(new Set(["idle", "scrambling", "ready", "solving", "complete"]));
+    expect(new Set(recorders.map((c) => c.source))).toEqual(new Set(["smart-cube", "manual"]));
+  });
+
+  it("finishes solves every way a solve can finish", () => {
+    // Solved and discarded; timed, and with the timing withheld as inhuman; segmented, and not.
+    expect(new Set(finished.map((f) => f.record.outcome))).toEqual(new Set(["solved", "discarded"]));
+    expect(finished.some((f) => f.record.durationMs === null)).toBe(true);
+    expect(finished.some((f) => f.record.durationMs !== null)).toBe(true);
+    expect(finished.some((f) => f.record.moveTimestamps.includes(null) && f.record.durationMs !== null)).toBe(true);
+    // Either side of the 50-turns-per-second ceiling, so the ceiling is pinned and not merely obeyed.
+    const rates = finished.flatMap((f) => (f.record as unknown as { tps: number | null }).tps ?? []);
+    expect(rates.some((tps) => tps > 30 && tps <= 50)).toBe(true);
+    expect(finished.some((f) => f.failure === null)).toBe(true);
+  });
+
+  it("keeps the SQLite fixture in step with the solves it was written from", async () => {
+    const { DatabaseSync } = await import("node:sqlite");
+    const sqlite = cases.find((c) => c.kind === "sqlite") as unknown as { solves: { id: string }[] };
+    const db = new DatabaseSync(`${DIR}capacitor-solves.sqlite`, { readOnly: true });
+    const rows = db.prepare("SELECT json FROM solves ORDER BY startedAt DESC").all() as { json: string }[];
+    db.close();
+    expect(rows.map((row) => JSON.parse(row.json))).toEqual(sqlite.solves);
   });
 });

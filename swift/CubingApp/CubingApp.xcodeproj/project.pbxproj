@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		CA0000000000000000000001 /* CubingCore in Frameworks */ = {isa = PBXBuildFile; productRef = CA0000000000000000000012 /* CubingCore */; };
 		CA0000000000000000000013 /* CubeLink in Frameworks */ = {isa = PBXBuildFile; productRef = CA0000000000000000000014 /* CubeLink */; };
+		CA0000000000000000000015 /* CubingSession in Frameworks */ = {isa = PBXBuildFile; productRef = CA0000000000000000000016 /* CubingSession */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			files = (
 				CA0000000000000000000001 /* CubingCore in Frameworks */,
 				CA0000000000000000000013 /* CubeLink in Frameworks */,
+				CA0000000000000000000015 /* CubingSession in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,7 @@
 			packageProductDependencies = (
 				CA0000000000000000000012 /* CubingCore */,
 				CA0000000000000000000014 /* CubeLink */,
+				CA0000000000000000000016 /* CubingSession */,
 			);
 			productName = CubingApp;
 			productReference = CA0000000000000000000002 /* CubingApp.app */;
@@ -253,6 +256,10 @@
 		CA0000000000000000000014 /* CubeLink */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CubeLink;
+		};
+		CA0000000000000000000016 /* CubingSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CubingSession;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

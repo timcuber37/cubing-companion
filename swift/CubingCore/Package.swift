@@ -8,10 +8,12 @@ import PackageDescription
 /// against hand-written expectations.
 let package = Package(
     name: "CubingCore",
-    platforms: [.macOS(.v13), .iOS(.v16)],
+    // SwiftData, which S4's history uses, needs macOS 14 and iOS 17.
+    platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
         .library(name: "CubingCore", targets: ["CubingCore"]),
         .library(name: "CubeLink", targets: ["CubeLink"]),
+        .library(name: "CubingSession", targets: ["CubingSession"]),
     ],
     targets: [
         .target(name: "CubingCore"),
@@ -19,6 +21,10 @@ let package = Package(
         // about a radio: it needs CommonCrypto now and CoreBluetooth next.
         .target(name: "CubeLink", dependencies: ["CubingCore"]),
         .testTarget(name: "CubeLinkTests", dependencies: ["CubeLink", "CubingCore"]),
+        // Recording and history (S4): the recorder, session statistics, SwiftData storage, and the
+        // importer for the Capacitor app's database.
+        .target(name: "CubingSession", dependencies: ["CubingCore", "CubeLink"]),
+        .testTarget(name: "CubingSessionTests", dependencies: ["CubingSession", "CubingCore", "CubeLink"]),
         .testTarget(name: "CubingCoreTests", dependencies: ["CubingCore"]),
         // Separate so it builds in Release: no `@testable`. The phone runs the same benchmark
         // through the `CubingBench` app, since package tests cannot run on a device.

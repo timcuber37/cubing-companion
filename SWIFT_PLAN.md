@@ -313,7 +313,7 @@ is `SweepBenchmark.run()`, public in `CubingCore`, and has two callers that run 
 The app is a measuring instrument, not the start of S3's app; it signs with the same personal team
 as the Capacitor shell and expires on the same seven-day cycle.
 
-### S3 — The cube link · 2 weekends · needs the cube · **built; awaiting a session with the cube**
+### S3 — The cube link · 2 weekends · needs the cube · **done**
 
 CoreBluetooth replaces the transport seam entirely — no `BleTransport` abstraction, because the
 reason it existed was to have two radios behind one interface, and a Swift app has one. Port the
@@ -328,7 +328,8 @@ including the 21 recovered-move gaps and the 138 facelet reports.
 in `swift/CubingCore`) and pass all of a new oracle, `vectors/cubelink.json`. The app is
 `swift/CubingApp`: bundle `com.cubingcompanion.native`, shown as *Cubing Native* so it sits beside
 the Capacitor app rather than replacing it — which bundle id wins is S4's decision. It builds,
-renders, and is installed on the iPhone; what remains is connecting a real cube and turning it.
+renders, and is installed on the iPhone — and has since been used with the real cube: it connects,
+mirrors, and after the recovery fix below keeps up with slice-heavy algorithms.
 
 **The oracle is replays, not pairs.** The drivers are stateful, so each case feeds frames in order
 and records what came out after every one — events, the commands the driver chose to send, and
@@ -383,7 +384,7 @@ drivers use TypeScript parameter properties, which Node's default type stripping
 vitest had been compiling silently. Open `swift/CubingApp/CubingApp.xcodeproj`, choose the phone,
 Run.
 
-### S4 — Recording and history · 2 weekends
+### S4 — Recording and history · 2 weekends · **built; awaiting a session with the cube**
 
 Recorder, session stats, and storage in SwiftData (or SQLite directly — the schema in
 `packages/session/src/sqlite.ts` ports as-is). Solve list, per-phase metrics, scoring against the
@@ -394,6 +395,43 @@ database under a different bundle identifier. Either export/import as JSON throu
 or keep the bundle id so the container is inherited. Decide before the cutover, not after.
 
 **Ships:** solves recorded, kept and scored, natively.
+
+**Decided:** storage is **SwiftData**, and the Capacitor history is **inherited at the cutover** —
+the native app keeps its own bundle id (`com.cubingcompanion.native`) while S4–S5 are built, so both
+apps coexist, and takes over `com.cubingcompanion.app` in S6.
+
+**Where it stands.** A third library, `CubingSession`, holds the recorder, session statistics,
+per-phase durations, the SwiftData models, the importer and the scramble pool; the app gains a Solve
+tab (scramble with progress, live timer, a last-solve card with phase splits and ratings) and a
+History tab (per-session best, mean, ao5 and ao12, solve detail with a phase-by-phase
+reconstruction, sessions, delete). It builds, is installed, and imports correctly; recording a real
+solve with the cube is what remains.
+
+- **The oracle** is `vectors/session.json`: 100 scripted sessions at the cube — scrambles turned in
+  with slips undone, practice from an arbitrary position, inspection rotations, wasted moves,
+  recovered moves with no clock, discards — recording the recorder's state after every step and
+  every finished solve's segmentation and phase times; plus 100 statistics cases. The recorder,
+  stats and phase durations reproduce all of it.
+- **The importer is tested against the real thing.** `vectors/capacitor-solves.sqlite` is written
+  by the TypeScript `SqliteSolveStore` through Node's SQLite — the schema and JSON the Capacitor app
+  writes — and the drift test checks the file still matches the JSON it was written from. The
+  importer reads it with the system SQLite, read-only, and imports into SwiftData idempotently by
+  solve id. Checked in the simulator too: with that file placed where the Capacitor app keeps its
+  own, the app's first launch brought in all 207 solves and History showed them.
+- **One gap the check-the-checks habit caught:** a planted change to the 50-turns-per-second ceiling
+  on plausible timing passed, because the corpus had human timing far below it and instant timing
+  far above. The generator now turns some solves 15–45 ms apart, straddling the ceiling, and a
+  coverage test requires solves at 30–50 TPS.
+- **Scrambles** are S1's pool: 10,000 WCA random-state scrambles made by `npm run scrambles` (70 s),
+  bundled, and dealt in a seeded shuffle whose position survives relaunches, so none repeats until
+  all have been used.
+
+**The cutover, when S6 comes:** set the app target's `PRODUCT_BUNDLE_IDENTIFIER` to
+`com.cubingcompanion.app` and build over the Capacitor app. iOS keeps the container, the importer
+finds `Documents/cubing-companionSQLite.db` on first launch, and runs once. Solves recorded before
+P4 are still in the Capacitor app's WebView IndexedDB, which the importer cannot reach, and the
+Capacitor app has no export. If they matter, the Capacitor app needs a one-off IndexedDB-to-SQLite
+copy (offered at P4, never done) before the cutover.
 
 ### S5 — Planning and review · 2–3 weekends
 

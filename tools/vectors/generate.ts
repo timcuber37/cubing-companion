@@ -15,9 +15,10 @@
  * Output is committed. It is data, it is reproducible from a seed, and a Swift project that cannot
  * run this repository's TypeScript still needs to be able to read it.
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { GENERATORS } from "./cases.ts";
+import { writeCapacitorFixture } from "./session.ts";
 
 const OUT = fileURLToPath(new URL("../../vectors/", import.meta.url));
 
@@ -38,6 +39,8 @@ const JOBS: readonly { name: string; seed: number; count: number }[] = [
   { name: "s2", seed: 0x52_02_20_26, count: 24 },
   // `count` is random messages per event type in each generation's decode replay.
   { name: "cubelink", seed: 0xc0_be_11_4c, count: 100 },
+  // `count` is scripted recorder sessions; the SQLite fixture is written from their solves.
+  { name: "session", seed: 0x5e_55_10_4e, count: 100 },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -56,4 +59,11 @@ for (const job of JOBS) {
     `  ${job.name.padEnd(9)} ${String(file.cases.length).padStart(5)} cases  ` +
       `${(json.length / 1024).toFixed(0).padStart(5)} KB  ${Date.now() - started} ms`,
   );
+  if (job.name === "session") {
+    // The Capacitor app's database, written by the real TypeScript store from the same solves.
+    const sqlite = `${OUT}capacitor-solves.sqlite`;
+    rmSync(sqlite, { force: true });
+    const solves = await writeCapacitorFixture(sqlite, file);
+    console.log(`  ${"".padEnd(9)} ${String(solves).padStart(5)} solves -> capacitor-solves.sqlite`);
+  }
 }
