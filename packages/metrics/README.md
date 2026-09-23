@@ -30,6 +30,29 @@ Reconstructions carry no per-move timestamps. So the pause, fluidity and recogni
 have that the corpus does not — but they can never be given a percentile. They stay out of the
 composite rather than being folded in with an invented weight.
 
+### Efficiency counts the cross and F2L, not the last layer
+
+A last layer's move count is the length of whichever algorithm the case demanded, not a decision
+anybody made. The corpus separates the two cleanly. Across 3,086 solves from 29 solvers with 30+
+each, decomposing the variance by who is solving:
+
+| | mean turns | explained by the solver |
+|---|---|---|
+| cross + F2L | 35.3 | **10.5%** |
+| last layer | 25.4 | **5.1%** |
+
+And within a solver, efficiency before the last layer predicts their last-layer move count at
+**−0.01** — no relationship at all. Scoring them together mixed a skill with a dice roll.
+
+So efficiency is rated on the `f2l` baseline, which is cross plus all four pairs. Its spread is
+tighter than the whole solve's (13 moves from p10 to p90 against 18), so a move is worth about
+0.31 rating points rather than 0.22 — the measure is more sensitive as well as more meaningful.
+
+Two honest limits. Cross+F2L is only 10.5% solver-explained itself: both halves are dominated by
+scramble luck, and this is the more informative half rather than a clean one. And "the last layer
+is luck" is truest among pros, who all know full OLL and PLL — for a learner still going two-look,
+last-layer length is partly skill after all.
+
 ### Rotations, when nothing can see them
 
 The mirror image of that problem, and a nastier one because it hides. A whole-cube rotation turns

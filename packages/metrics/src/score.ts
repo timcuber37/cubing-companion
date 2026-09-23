@@ -339,7 +339,25 @@ export function scoreSolve(
   const add = (label: string, rated: Rated | null) => {
     if (rated) components.push({ label, rated });
   };
-  add("efficiency", rateTurns("total", metrics.turns));
+  // **Cross and F2L only.** A last layer's move count is the length of whichever algorithm the
+  // case called for, not a decision anybody made — and the corpus says so plainly: across 29
+  // solvers with 30+ solves each, who is solving explains 10.5% of the variance in cross+F2L
+  // turns but only 5.1% of the last layer's, and a solver's efficiency before the last layer
+  // correlates with their last-layer move count at **-0.01**. The two are unrelated, and only
+  // one of them is a skill. (Truest among pros, who all know full OLL and PLL; for a learner
+  // still going two-look, last-layer length is partly skill after all.)
+  const shaped = metrics.phases.filter((phase) =>
+    WINDOW_PHASES[TimeWindow.F2L].includes(phase.phase),
+  );
+  if (shaped.length === WINDOW_PHASES[TimeWindow.F2L].length) {
+    const turns = shaped.reduce((total, phase) => total + phase.turns, 0);
+    add("efficiency", rateTurns("f2l", turns));
+  } else {
+    omitted.push({
+      label: "efficiency",
+      reason: "this solve has no complete cross and F2L to measure",
+    });
+  }
   if (rotationsObserved) {
     add("rotations", rateRotations("total", metrics.rotations));
   } else {

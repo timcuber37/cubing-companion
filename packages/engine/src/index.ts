@@ -3,6 +3,15 @@
  *
  * The dependency root of the project. Analysis, segmentation, and search all build on
  * this; nothing here knows about smart cubes, CFOP, or the UI.
+ *
+ * **Scramble generation is deliberately not re-exported here** — import it from
+ * `@cubing-companion/engine/scramble` instead. `scramble.ts` statically imports `cubing/scramble`
+ * and `cubing/search`, which pull in a Web Worker and a base64-embedded WASM module. Re-exporting
+ * it put that whole graph into every consumer of this barrel, including the ones that only wanted
+ * `applyMoves`. Bundlers on the web tree-shake it away; runtimes without `Worker` or
+ * `WebAssembly` cannot. Two files want a scramble, and they can ask for one by name.
+ *
+ * `packages/engine/test/boundaries.test.ts` enforces this.
  */
 
 export {
@@ -61,16 +70,5 @@ export {
   whereIsCorner,
   whereIsEdge,
 } from "./predicates.ts";
-
-export {
-  generateScramble,
-  RANDOM_MOVE_LENGTH,
-  RANDOM_STATE_TIMEOUT_MS,
-  randomMoveScramble,
-  randomScramble,
-  randomScrambleString,
-  type GeneratedScramble,
-  type ScrambleKind,
-} from "./scramble.ts";
 
 export { FAMILIES, type Family } from "./tables.ts";

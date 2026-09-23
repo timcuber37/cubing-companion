@@ -20,6 +20,7 @@ import { GEOMETRY as SLOT_GEOMETRY, slotName } from "@cubing-companion/analysis"
 import { slotColours } from "./colours.ts";
 import { enumerateAllXcrosses, enumerateCross } from "@cubing-companion/solver";
 import { awkwardTurns, comfortScore } from "./comfort.ts";
+import { searchOpenings, type Opening } from "./openings.ts";
 import {
   orientationsWithColourDown,
   renameMoves,
@@ -28,7 +29,7 @@ import {
   type Orientation,
 } from "./orientation.ts";
 
-export type PlanKind = "cross" | "xcross";
+export type PlanKind = "cross" | "xcross" | "cross+1" | "cross+2";
 
 /** How to hold the cube, named by colour because that is how a person orients one. */
 export interface Hold {
@@ -73,6 +74,9 @@ export interface PlannedSolution {
   readonly awkward: { readonly back: number; readonly left: number };
   /** Set only once B3's cross model has re-ranked; absent means comfort decided the order. */
   readonly modelScore?: number;
+  /** Phases of a deeper plan, all written in the same recommended grip. */
+  readonly steps?: readonly { readonly label: string; readonly text: string }[];
+  readonly solvedPairLabels?: readonly string[];
 }
 
 export interface ColourPlan {
@@ -81,8 +85,12 @@ export interface ColourPlan {
   readonly cross: readonly PlannedSolution[];
   /** Ranked across all four slots, best first. */
   readonly xcross: readonly PlannedSolution[];
-  /** Optimal lengths, kept even when the ranked lists are trimmed. */
+  /** Best found within a bounded search; absent when lookahead was not requested. */
+  readonly crossPlusOne?: readonly PlannedSolution[];
+  readonly crossPlusTwo?: readonly PlannedSolution[];
+  /** Exact cross optimum, kept even when the ranked list is trimmed. */
   readonly crossLength: number;
+  /** Shortest x-cross found; lookahead mode bounds the sweep across slots. */
   readonly xcrossLength: number;
   readonly elapsedMs: number;
 }
@@ -96,6 +104,8 @@ export interface PlanOptions {
   readonly maxSolutions?: number;
   /** Skip the xcross sweep, which is most of the cost. */
   readonly crossOnly?: boolean;
+  /** Explore near-optimal crosses, joint goals, and continuations through two solved pairs. */
+  readonly lookahead?: boolean;
 }
 
 const DEFAULTS = { keep: 3, maxExtra: 0, maxSolutions: 200, crossOnly: false };
@@ -186,7 +196,10 @@ export function planColour(
 
   const xcross: PlannedSolution[] = [];
   if (!crossOnly) {
-    const geometrySlots = enumerateAllXcrosses(state, crossFace, search);
+    const geometrySlots = enumerateAllXcrosses(state, crossFace, options.lookahead ? {
+      ...search, maxExtra: Math.max(1, maxExtra), maxSolutionsPerDepth: 8,
+      maxSolutions: 16, maxNodes: 150_000,
+    } : search);
     for (const result of geometrySlots) {
       for (const candidate of result.candidates) {
         // `Candidate.slot` is already the slot's name in the search frame.
@@ -198,10 +211,25 @@ export function planColour(
     xcross.sort(byLengthThenComfort);
   }
 
+  const presentOpening = (kind: "cross+1" | "cross+2", opening: Opening): PlannedSolution => {
+    const presented = present(kind, crossFace, opening.moves, undefined, state.centers);
+    const orientation = orientationsWithColourDown(crossFace).find((o) => o.text === presented.hold.rotation)!;
+    return {
+      ...presented,
+      steps: opening.steps.map((step) => ({ label: step.label, text: serializeMoves(renameMoves(step.moves, orientation)) })),
+      solvedPairLabels: opening.solvedSlots.map((name) => slotColours(SLOT_GEOMETRY[crossFace]!.slots.find((s) => slotName(s) === name)!)),
+    };
+  };
+  const openings = options.lookahead && !crossOnly ? searchOpenings(state, crossFace, xcross) : null;
+
   return {
     crossFace,
     cross: cross.slice(0, keep),
     xcross: xcross.slice(0, keep),
+    ...(openings ? {
+      crossPlusOne: openings.crossPlusOne.map((o) => presentOpening("cross+1", o)).sort(byLengthThenComfort).slice(0, keep),
+      crossPlusTwo: openings.crossPlusTwo.map((o) => presentOpening("cross+2", o)).sort(byLengthThenComfort).slice(0, keep),
+    } : {}),
     crossLength: crossResult.optimal,
     xcrossLength: xcross.length === 0 ? -1 : xcross[0]!.length,
     elapsedMs: Date.now() - startedAt,

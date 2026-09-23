@@ -21,19 +21,20 @@ import {
   colourName,
   confidenceWording,
   crossDecision,
+  lookaheadPairs,
   pairDecisions,
   planColour,
-  rankByMoveCount,
   rankNextPair,
   reasons,
   rerankCross,
   rotationBetween,
+  scorerFor,
   slotColours,
   type ColourPlan,
+  type Continuation,
 } from "@cubing-companion/planner";
 import { enumerateCross } from "@cubing-companion/solver";
 import { applyMoves, parseMoves, serializeMoves, type Move } from "@cubing-companion/engine";
-import { loadScorer } from "./model";
 
 export interface PlanRequest {
   /** Echoed back, so the page can drop results for a position it has already moved on from. */
@@ -43,6 +44,7 @@ export interface PlanRequest {
   readonly crossFaces: number[];
   readonly keep?: number;
   readonly crossOnly?: boolean;
+  readonly lookahead?: boolean;
 }
 
 /** "Which pair next" — B3's learned ranking, over the slots still open. */
@@ -52,6 +54,8 @@ export interface NextPairRequest {
   readonly facelets: string;
   /** Colours to consider; whichever already has its cross built is the one used. */
   readonly crossFaces: number[];
+  /** Include the current pair in the horizon. Defaults to two pairs. */
+  readonly lookaheadDepth?: number;
 }
 
 export interface RankedPair {
@@ -62,18 +66,22 @@ export interface RankedPair {
   readonly optimal: number;
   readonly moves: string;
   readonly confidence: number;
+  readonly lookahead: PairForecast | null;
+}
+
+export interface PairForecast {
+  readonly depth: number;
+  readonly immediateTurns: number;
+  readonly totalTurns: number;
+  readonly solvedPairs: number;
+  /** Full continuation, including setup, executable from the decision position. */
+  readonly branch: string;
+  readonly steps: readonly { readonly label: string; readonly moves: string }[];
 }
 
 /** Which cross the ranking was done against, or null when none is built yet. */
 export type NextPairCross = number | null;
 
-/**
- * Asks the worker to score the exported fixture and report the worst disagreement with PyTorch.
- *
- * Deliberately routed through `loadScorer`, the same path inference uses, so it proves the
- * shipped loader — model URL, tensor shape, output name and all — rather than a parallel copy
- * that could be right while production is wrong.
- */
 /** A5: score a recorded solve decision by decision, and say what a pro would likely have done. */
 export interface DiffRequest {
   readonly id: number;
@@ -89,6 +97,8 @@ export interface DiffOption {
   /** The pair by its side colours, which is how the UI names it. */
   readonly label: string;
   readonly optimal: number;
+  /** Rotations to reach the frame the insertion is written in — shown apart, being free. */
+  readonly setup: string;
   readonly moves: string;
   readonly confidence: number;
   readonly mine: boolean;
@@ -108,8 +118,12 @@ export interface PairDiff {
   /** Turns you actually spent filling it, against the optimum. */
   readonly playedTurns: number;
   readonly optimalTurns: number;
+  /** What you actually turned to fill it, so the counts above have something behind them. */
+  readonly played: string;
   /** The alternative's moves, for branch playback. */
   readonly branch: string;
+  /** Search advice is distinct from the existing model's imitation prediction. */
+  readonly lookahead?: { readonly label: string; readonly forecast: PairForecast };
 }
 
 export interface CrossDiff {
@@ -122,12 +136,7 @@ export interface CrossDiff {
   readonly best: string;
   readonly hold: string;
   readonly branch: string;
-}
-
-export interface ParityRequest {
-  readonly id: number;
-  readonly kind: "parity";
-  readonly model: "pair" | "cross";
+  readonly lookahead?: { readonly label: string; readonly turns: number; readonly branch: string };
 }
 
 export type PlanResponse =
@@ -151,36 +160,28 @@ export type PlanResponse =
     }
   | {
       readonly id: number;
-      readonly kind: "parity";
-      readonly rows: number;
-      /** Largest absolute difference from the score PyTorch produced for the same input. */
-      readonly worst: number;
-    }
-  | {
-      readonly id: number;
       readonly kind: "next-pair";
       readonly ranked: readonly RankedPair[];
-      /** False when the model could not be loaded and move count was used instead. */
+      /** False when learned preference is unavailable; lookahead still runs. */
       readonly learned: boolean;
       readonly crossFace: NextPairCross;
     };
 
+let activeRequest = 0;
 const post = (message: PlanResponse): void => {
+  if (message.id !== activeRequest) return;
   (self as unknown as Worker).postMessage(message);
 };
 
-self.onmessage = (
-  event: MessageEvent<PlanRequest | NextPairRequest | ParityRequest | DiffRequest>,
+self.onmessage = async (
+  event: MessageEvent<PlanRequest | NextPairRequest | DiffRequest>,
 ) => {
   const request = event.data;
+  activeRequest = request.id;
   const startedAt = Date.now();
 
   if (request.kind === "next-pair") {
     void rankPairs(request);
-    return;
-  }
-  if (request.kind === "parity") {
-    void checkParity(request);
     return;
   }
   if (request.kind === "diff") {
@@ -195,9 +196,13 @@ self.onmessage = (
       const plan = planColour(state, face as Face, {
         keep: request.keep ?? 3,
         crossOnly: request.crossOnly ?? false,
+        lookahead: request.lookahead ?? true,
       });
       plans.push(plan);
       post({ id: request.id, kind: "colour", plan });
+      // Let a newer scramble cancel the rest of this sweep before starting another colour.
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (request.id !== activeRequest) return;
     }
     post({ id: request.id, kind: "done", elapsedMs: Date.now() - startedAt });
     // Then improve on it. The search is what takes the time, so the heuristic ordering goes out
@@ -227,8 +232,8 @@ async function reviseWithModel(
   /** Centres of the state the plans were made from, so re-picked grips keep a correct setup. */
   centres: ArrayLike<number>,
 ): Promise<void> {
-  const score = await loadScorer("cross");
-  if (score === null) return;
+  const score = scorerFor("cross");
+  if (score === null || id !== activeRequest) return;
 
   for (const plan of plans) {
     try {
@@ -253,6 +258,22 @@ const HOME_CENTRES = [0, 1, 2, 3, 4, 5] as const;
  */
 const normalisingSetup = (centres: ArrayLike<number>): Move[] =>
   rotationBetween(centres, HOME_CENTRES);
+
+/** Describe the verified path without treating its search score as a probability. */
+function forecast(plan: Continuation, crossFace: Face, depth: number, setup: readonly Move[]): PairForecast {
+  const slots = GEOMETRY[crossFace]!.slots;
+  return {
+    depth,
+    immediateTurns: plan.steps[0]?.moves.length ?? 0,
+    totalTurns: plan.moves.length,
+    solvedPairs: plan.solvedSlots.length,
+    branch: notation([...setup, ...plan.moves]),
+    steps: plan.steps.map((step, i) => ({
+      label: slotColours(slots.find((slot) => slotName(slot) === step.slot)!),
+      moves: notation(i === 0 ? [...setup, ...step.moves] : step.moves),
+    })),
+  };
+}
 
 /**
  * A5: walk a recorded solve and say, at each decision, what a top solver would likely have done.
@@ -281,7 +302,8 @@ async function diffSolve(request: DiffRequest): Promise<void> {
     }
 
     const crossFace = segmentation.crossFace;
-    const score = await loadScorer("pair");
+    const score = scorerFor("pair");
+    if (request.id !== activeRequest) return;
 
     // The cross needs no model to be useful: your length against the optimum is a fact. The
     // model only picks which of the optimal crosses to show you.
@@ -297,12 +319,13 @@ async function diffSolve(request: DiffRequest): Promise<void> {
       // centres are always home, so the setup came out empty and the frame-renamed moves solved
       // the wrong pieces the moment the real frame differed.
       const rawAtCross = applyMoves(start, solution.slice(0, crossPart.at));
-      const plan = planColour(rawAtCross, crossFace, { keep: 1, crossOnly: true });
-      const crossScore = await loadScorer("cross");
+      const plan = planColour(rawAtCross, crossFace, { keep: 3, lookahead: true });
+      const crossScore = scorerFor("cross");
       const ranked = crossScore
         ? await rerankCross(plan.cross, crossScore, rawAtCross.centers)
         : plan.cross;
       const best = ranked[0];
+      const opening = plan.crossPlusTwo?.[0] ?? plan.crossPlusOne?.[0];
       cross = {
         at: crossPart.at,
         end: crossPart.end,
@@ -314,11 +337,18 @@ async function diffSolve(request: DiffRequest): Promise<void> {
           ? `${colourName(best.hold.down)} down, ${colourName(best.hold.front)} front`
           : "",
         branch: best ? notation([...best.setup, ...best.moves]) : "",
+        ...(opening ? { lookahead: {
+          label: opening.kind === "cross+2" ? "cross + 2 pairs" : "cross + 1 pair",
+          turns: opening.length,
+          branch: notation([...opening.setup, ...opening.moves]),
+        } } : {}),
       };
     }
 
     const pairs: PairDiff[] = [];
     for (const decision of pairDecisions(start, solution, spans, crossFace)) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (request.id !== activeRequest) return;
       const yours = decision.options[decision.chosen]!;
       const playedTurns = decision.playedMoves.filter((m) => !"xyz".includes(m.family)).length;
       // Search results are in the normalised frame; the branch replays against the raw state at
@@ -326,6 +356,15 @@ async function diffSolve(request: DiffRequest): Promise<void> {
       // move, and exactly the missing rotations for a manual solve that rotated mid-way.
       const setup = normalisingSetup(applyMoves(start, solution.slice(0, decision.at)).centers);
       const executable = (moves: readonly Move[]) => notation([...setup, ...moves]);
+      const setupText = notation(setup);
+      const deeper = lookaheadPairs(decision.state, crossFace);
+      const continuation = deeper.options.find((option) => option.plan !== null);
+      const searchAdvice = continuation?.plan ? {
+        lookahead: {
+          label: slotColours(continuation.slot),
+          forecast: forecast(continuation.plan, crossFace, deeper.depth, setup),
+        },
+      } : {};
 
       if (!score) {
         // Without the model there is no "which pair" advice, but the execution half still holds.
@@ -338,7 +377,8 @@ async function diffSolve(request: DiffRequest): Promise<void> {
             slot: option.name,
             label: slotColours(option.slot),
             optimal: option.optimal,
-            moves: executable(option.bestMoves),
+            setup: setupText,
+            moves: notation(option.bestMoves),
             confidence: 0,
             mine: option === yours,
           })),
@@ -346,7 +386,9 @@ async function diffSolve(request: DiffRequest): Promise<void> {
           reasons: [],
           playedTurns,
           optimalTurns: yours.optimal,
+          played: notation(decision.playedMoves),
           branch: executable(yours.bestMoves),
+          ...searchAdvice,
         });
         continue;
       }
@@ -372,7 +414,8 @@ async function diffSolve(request: DiffRequest): Promise<void> {
             slot: option.name,
             label: slotColours(option.slot),
             optimal: option.optimal,
-            moves: executable(option.bestMoves),
+            setup: setupText,
+            moves: notation(option.bestMoves),
             confidence: entry.confidence,
             mine: option === yours,
           };
@@ -389,7 +432,11 @@ async function diffSolve(request: DiffRequest): Promise<void> {
               }),
         playedTurns,
         optimalTurns: yours.optimal,
+        // Recorded as it happened, so it is already executable from the position at this
+        // decision — the same footing as the suggestions beside it, which are setup-prefixed.
+        played: notation(decision.playedMoves),
         branch: executable(theirs.bestMoves),
+        ...searchAdvice,
       });
     }
 
@@ -403,37 +450,12 @@ async function diffSolve(request: DiffRequest): Promise<void> {
   }
 }
 
-/** Score the exported fixture and report the worst disagreement with PyTorch. */
-async function checkParity(request: ParityRequest): Promise<void> {
-  try {
-    const score = await loadScorer(request.model);
-    if (score === null) throw new Error(`could not load the ${request.model} model`);
-    const fixture = (await (await fetch(`/models/${request.model}.fixture.json`)).json()) as {
-      input: number[][];
-      expected: number[];
-    };
-    const got = await score(fixture.input);
-    let worst = 0;
-    for (const [i, value] of got.entries()) {
-      worst = Math.max(worst, Math.abs(value - fixture.expected[i]!));
-    }
-    post({ id: request.id, kind: "parity", rows: got.length, worst });
-  } catch (error) {
-    post({
-      id: request.id,
-      kind: "error",
-      message: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
-
 /**
  * Rank the open slots by which pair a pro would fill next.
  *
- * Searching happens here so one set of insertion results feeds both the model's features and
- * what gets shown. If the model will not load, this falls back to ordering by move count and
- * says so rather than going quiet — a missing download should cost the learned ranking, not the
- * advice.
+ * The original optimal insertion results still supply the model's feature contract. A separate
+ * bounded search explores alternative executions and follow-up pairs; its completed totals rank
+ * first, with model preference breaking ties. Lookahead also runs when the model cannot load.
  */
 async function rankPairs(request: NextPairRequest): Promise<void> {
   try {
@@ -464,41 +486,29 @@ async function rankPairs(request: NextPairRequest): Promise<void> {
       };
     });
     const usable = searched.filter((candidate) => candidate.optimal >= 0);
-    const describe = (candidate: (typeof usable)[number]) =>
-      notation([...setup, ...candidate.bestMoves]);
-
-    const score = await loadScorer("pair");
-    if (score === null || usable.length === 0) {
-      post({
-        id: request.id,
-        kind: "next-pair",
-        learned: false,
-        crossFace,
-        ranked: rankByMoveCount(usable).map((candidate) => ({
-          slot: slotName(candidate.slot),
-          label: slotColours(candidate.slot),
-          optimal: candidate.optimal,
-          moves: describe(candidate),
-          confidence: 0,
-        })),
-      });
-      return;
-    }
-
-    const ranked = await rankNextPair(state, geometry, usable, { previous: null, step: 4 - open.length }, score);
-    post({
-      id: request.id,
-      kind: "next-pair",
-      learned: true,
-      crossFace,
-      ranked: ranked.map((entry) => ({
-        slot: slotName(entry.slot),
-        label: slotColours(entry.slot),
-        optimal: entry.optimal,
-        moves: describe(usable.find((c) => c.slot === entry.slot)!),
-        confidence: entry.confidence,
-      })),
+    const score = scorerFor("pair");
+    if (request.id !== activeRequest) return;
+    const predicted = score && usable.length > 0
+      ? await rankNextPair(state, geometry, usable, { previous: null, step: 4 - open.length }, score)
+      : [];
+    if (request.id !== activeRequest) return;
+    const deeper = lookaheadPairs(state, crossFace, { depth: request.lookaheadDepth ?? 2 });
+    const ranked = usable.map((candidate) => {
+      const plan = deeper.options.find((option) => option.slot === candidate.slot)?.plan;
+      const lookahead = plan ? forecast(plan, crossFace, deeper.depth, setup) : null;
+      return {
+        slot: slotName(candidate.slot),
+        label: slotColours(candidate.slot),
+        optimal: candidate.optimal,
+        moves: plan?.steps[0] ? notation([...setup, ...plan.steps[0].moves]) : notation([...setup, ...candidate.bestMoves]),
+        confidence: predicted.find((entry) => entry.slot === candidate.slot)?.confidence ?? 0,
+        lookahead,
+      };
     });
+    ranked.sort((a, b) =>
+      (a.lookahead?.totalTurns ?? Infinity) - (b.lookahead?.totalTurns ?? Infinity) ||
+      b.confidence - a.confidence || a.optimal - b.optimal);
+    post({ id: request.id, kind: "next-pair", learned: score !== null, crossFace, ranked });
   } catch (error) {
     post({
       id: request.id,

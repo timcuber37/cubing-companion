@@ -27,8 +27,38 @@ be the wrong one for GAN:
   notifications for GiiKER and GoCube. Polling quantises every move timestamp to the poll
   period, which destroys exactly the TPS and pause precision A3 is built to measure.
 
-The cost is two dependencies (`rxjs`, `aes-js`) and a library last published in Aug 2024.
-Worth it. All protocol-specific code is confined to `src/gan.ts`.
+So the project adopted `gan-web-bluetooth`. That reasoning still holds, but the library is now the
+**reference implementation rather than a dependency** — see below.
+
+## Why the protocol is vendored
+
+`gan-web-bluetooth` calls `navigator.bluetooth.requestDevice` itself, from inside the same function
+that selects the protocol driver. There is no seam: you cannot hand it a different radio. That is
+fine in a browser and fatal on iOS, where Web Bluetooth does not exist and Apple has said it will
+not. Getting onto a phone meant owning the protocol.
+
+`src/gan/` is that port — encryption, the bit reader, the facelet conversion, the move-recovery
+buffer and all three protocol drivers, running over a {@link BleTransport} instead of over the DOM.
+About 800 lines, most of it a faithful copy, attributed in each file (MIT, Andy Fedotov).
+
+**The library stays as a devDependency**, and `test/protocol.test.ts` diffs against it on every run:
+every decoded event, every command message and every move-history request, over random messages for
+all three generations and over all 1,213 frames of the committed capture. That is a stronger
+guarantee than a golden file, and it means an upstream fix can be noticed rather than missed.
+
+Four things changed on purpose rather than being copied:
+
+- **`@noble/ciphers` replaces `aes-js`.** `aes-js` is CommonJS, which is what forced a lazy
+  `await import()` in `gan.ts` — a static import made the module unloadable under Node's ESM loader,
+  so the adapter could not be imported in tests at all. Verified byte-identical over the capture.
+- **`rxjs` is gone.** The event stream was one `Subject`; the package already had `Listeners`.
+- **A malformed facelet message is dropped, not fatal.** The reference indexes its facelet maps with
+  whatever arrived, so a corrupted packet either throws out of the notification handler or — worse —
+  reports a cube with duplicate edges and `NaN` orientations. Both happen on random input; both are
+  a mangled BLE packet in the field. `isCube` checks first and the message is discarded.
+- **Notifications are handled one at a time.** Decoding can await a write when it requests move
+  history, and the reference calls it straight from the characteristic event, so two notifications
+  arriving together interleave inside the move buffer. Here they queue.
 
 ## Timestamps, and why there are two clocks
 
@@ -77,7 +107,7 @@ fake and none of it needs hardware.
 ## What the cube cannot tell you
 
 The Gen2 protocol builds moves as `"URFDLB"[face] + " '"[direction]` — **outer-face quarter
-turns only**. A smart cube senses no rotations, no wide moves, no slices.
+turns only**. This face-turn stream does not directly encode rotations, wide moves, or slices.
 
 `parseGanMove` rejects anything else rather than passing it through, even though the engine
 would happily accept an `x`: a rotation appearing in a smart-cube stream would mean a
@@ -86,7 +116,9 @@ protocol misunderstanding had silently corrupted the tracked state.
 The consequence for A3 is worth stating plainly: **rotation count is not comparable between
 inputs.** Corpus reconstructions average ~3.5 rotations per solve; smart-cube solves will
 have zero. Gen2 does emit GYRO quaternions, so inferring rotation from orientation is
-possible later — it is not attempted here.
+possible later. Phase 0 now records decoded gyro events independently for diagnostics; it does
+not infer rotations or include them in solve scores. See the
+[GAN i4 testing guide](../../GYRO_TESTING.md) for the panel, export format, and hardware script.
 
 ## Interchange is facelets, not piece arrays
 
@@ -144,3 +176,59 @@ support `watchAdvertisements()`, which is most of them.
 again as a last resort if that failed. Answer only the second. Answering the first puts a dialog
 in front of every user, including the great majority who never needed one — which is exactly what
 the app did until somebody pointed out that their cube connected fine on its own.
+
+## The BLE transport seam
+
+`ble/transport.ts` describes a radio in eight operations: is it available, present a chooser and
+connect, list services, write, subscribe, watch for disconnection, hang up. Three implementations
+satisfy it — `ble/web.ts` over Web Bluetooth, `ble/fake.ts` over a recorded frame log, and a native
+bridge later — and nothing above the seam learns which it got.
+
+It exists because `gan-web-bluetooth` offers no such seam. `connectGanCube` takes a MAC provider
+and calls `navigator.bluetooth.requestDevice` itself, so there is nowhere to hand it a different
+radio. That is fine on the web and fatal on iOS, where Web Bluetooth does not exist and will not.
+[`MOBILE_PLAN.md`](../../MOBILE_PLAN.md) has the reasoning and the phases.
+
+Two things fall out of it that are worth having regardless of any phone:
+
+- **`navigator` appears in exactly one file**, enforced by `test/boundaries.test.ts`. The pure
+  sources — `source.ts`, `manual.ts`, `replay.ts`, `tracker.ts`, `timeline.ts`, `diagnostics.ts` —
+  are checked for `window` and `document` too. They are what a native port reuses unchanged.
+- **The protocol becomes testable.** `FakeTransport` replays a capture byte for byte, so a decoder
+  can be developed and regression-tested on a machine with no Bluetooth. The untestable surface
+  shrinks to `ble/web.ts`, which is a translation layer and nothing else.
+
+### Capturing frames
+
+`captureProtocolFrames` connects, works out which generation the cube speaks, subscribes to its
+state characteristic and writes down the encrypted frames. The point is to get one real cube's
+bytes into the repository so the driver can be built against something that happened.
+
+It is **passive**. It cannot ask the cube anything, because every command is encrypted and that
+encoder is what the fixture is for. That costs less than expected: a Gen4 cube volunteers more
+than its moves. The committed capture — `test/fixtures/gan-gen4-frames.json`, 137 seconds of a
+real i Carry 4 — holds 1,063 move frames, 138 periodic facelet reports and 11 battery reports,
+none requested. Only true request/response traffic (hardware info, move-history recovery, reset)
+needs the encoder.
+
+A capture **contains the cube's MAC address**, and must: the frames are keyed from it. That is a
+deliberate departure from `diagnostics.ts`, whose export allowlists fields precisely to keep
+device identifiers out. Two artifacts, two contracts, kept apart rather than by weakening the one
+that promised not to do this — and the panel that produces it says so before you export.
+
+### MAC recovery, per platform
+
+`mac.ts` is small and carries most of the platform risk in the port, because a GAN cube's key is
+salted with its MAC and the MAC appears in exactly one place: the last six bytes of an
+advertisement's manufacturer data, reversed.
+
+| Platform | How the address is obtained |
+|---|---|
+| Web Bluetooth | `watchAdvertisements()` where it exists, else ask the user |
+| Android native | The device id *is* the address |
+| iOS native | Hidden as thoroughly as on the web — but Core Bluetooth does surface manufacturer data during a scan |
+
+So iOS is workable, with one catch that shapes the design: **a reconnect by device id produces no
+advertisement**, and therefore no key. A cube you have already paired with is unreadable unless
+the address was kept. That is what `GanMacStore` is for, and why it is persisted rather than
+cached — losing it means asking someone to forget and re-pair their cube.

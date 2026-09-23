@@ -344,7 +344,9 @@ function ScorePanel({
                 title={
                   rated.reference === "you"
                     ? `Against your own recent solves — median ${(rated.distribution.median / 1000).toFixed(2)}s over ${rated.distribution.n} of them.`
-                    : `Against the pro corpus — median ${rated.distribution.median}.`
+                    : label === "efficiency"
+                      ? `Cross and F2L turns against the pro corpus — median ${rated.distribution.median}. The last layer is left out: its move count is the length of whichever case you were dealt.`
+                      : `Against the pro corpus — median ${rated.distribution.median}.`
                 }
               >
                 {rated.reference === "you" ? "vs you" : "vs pros"}
@@ -382,14 +384,16 @@ function ScorePanel({
       </div>
 
       <p className="mt-2 border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
-        Move counts are rated against {score.baselineNote.corpusSolves.toLocaleString()}{" "}
-        world-class reconstructions, on a scale where{" "}
-        <strong className="text-neutral-400">the median one of those is 8</strong> and their
-        slowest tenth is 6 — being anywhere in that band is a very good day. Speed is rated
-        against <strong className="text-neutral-400">your own recent solves</strong> instead,
-        where 5 is a typical day for you: pros are far enough ahead that scoring your time
-        against theirs would read zero however much you improved. Fluidity and pauses are
-        measured but not scored — reconstructions carry no per-move timing.
+        Efficiency counts <strong className="text-neutral-400">cross and F2L only</strong>, rated
+        against {score.baselineNote.corpusSolves.toLocaleString()} world-class reconstructions on
+        a scale where the median one of those is 8 and their slowest tenth is 6. The last layer is
+        left out on purpose: its move count is the length of whichever case you were dealt, and
+        across the corpus a solver's efficiency before the last layer predicts their last-layer
+        move count at −0.01 — no relationship at all. Speed is rated against{" "}
+        <strong className="text-neutral-400">your own recent solves</strong> instead, where 5 is a
+        typical day for you: pros are far enough ahead that scoring your time against theirs would
+        read zero however much you improved. Fluidity and pauses are measured but not scored —
+        reconstructions carry no per-move timing.
       </p>
     </div>
   );

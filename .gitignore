@@ -27,6 +27,9 @@ data/*
 # `npm run build-dataset -w @cubing-companion/planner`. Checkpoints are regenerable binaries.
 ml/out/
 
-# The exported ONNX models are NOT ignored, and are committed deliberately: they are a few
-# hundred aggregate parameters, the same kind of artifact as data/summary.json, and the app
-# cannot run without them.
+# `ml/out/` also now holds the exported ONNX models, which are ignored along with it. They used
+# to be committed under `apps/web/public/models/` because the app could not run without them.
+# It can: the weights ship as `packages/planner/src/weights.generated.ts` and the planner
+# evaluates the model itself, so ONNX is a portable artifact rather than a runtime dependency.
+# What is committed instead, and must stay committed, is that generated weights file and the
+# parity fixtures under `packages/planner/test/fixtures/`.

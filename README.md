@@ -10,6 +10,15 @@ question is what a *fast human* does from a given position, and why.
 
 See [PLAN.md](PLAN.md) for the full roadmap.
 
+The planner now explores x-cross, cross + 1 and cross + 2 openings and compares F2L pair choices
+over a two-pair horizon. This is bounded continuation search around the existing learned models.
+See [the deeper-planning design and model-training plan](ml/LOOKAHEAD.md).
+
+See [the phased GAN i4 orientation and deeper-planning implementation plan](GYRO_PLAN.md)
+for gyro capture, readable reconstructions, validated rotation scoring, and grip-aware search.
+Phase 0 diagnostics are available below the connection controls; follow the
+[GAN i4 testing guide](GYRO_TESTING.md) to record and export a hardware trace.
+
 ## Status
 
 **A5 shipped — the roadmap is complete.** Scramble, solve, and get the solve back broken into
@@ -94,9 +103,15 @@ npm run typecheck
 npm run dev     # the A1 harness at localhost:3000
 ```
 
-Smart cube connection needs Web Bluetooth — Chrome or Edge on desktop, Chrome on Android.
-Manual input works in any browser, which is what keeps the rest of the plan testable
-without hardware.
+Smart cube connection in a **browser** needs Web Bluetooth — Chrome or Edge on desktop, Chrome
+on Android. Safari and iOS have none, and are not getting any.
+
+On **iOS**, the installed app talks to the cube over native Bluetooth instead. The GAN protocol is
+vendored into [`packages/cube-link`](packages/cube-link) and runs over a transport seam, so the
+same decoder serves Web Bluetooth, Core Bluetooth and a recorded capture. The shell is
+[`apps/mobile`](apps/mobile); [MOBILE_PLAN.md](MOBILE_PLAN.md) has the reasoning and the phases.
+
+Manual input works anywhere, which is what keeps the rest of the plan testable without hardware.
 
 ## Credits
 

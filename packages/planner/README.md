@@ -6,7 +6,19 @@ you should actually do, and how to hold the cube while you do it.
 ```ts
 const plans = planColours(state, [Face.D, Face.U], { keep: 3 });
 //    yellow cross, 5 moves: hold green in front, then F R' D2 F R2
+
+const deeper = planColour(state, Face.D, { lookahead: true });
+// deeper.crossPlusOne / deeper.crossPlusTwo: joint and sequential plans, best found first
+
+const next = lookaheadPairs(crossSolvedState, Face.D, { depth: 2 });
+// next.options: each first pair and its best found continuation (null if unresolved)
 ```
+
+The browser enables two-pair lookahead in the live planner and recorded-solve review. It
+explores alternative insertions, including one move longer, and compares the states they leave
+behind. Existing model preference breaks equal-total ties in the live panel; solve review shows
+search advice separately. Deeper plans are bounded search results, not global optima or newly
+trained predictions. See [the design and training plan](../../ml/LOOKAHEAD.md).
 
 ## Holding the cube is the decision that matters
 
@@ -35,9 +47,9 @@ optimal cross" from 52% of scrambles to **90%**.
 
 ## Ranking: length first, then a model
 
-Ranking is **length first, learned model second**. The second half breaks ties; it can never
-promote a longer solution. A planner that talks you into a seven-move cross because it reads
-nicely is worse than one that says nothing.
+For each opening goal, ranking is **total length first, learned model or comfort second**.
+Cross-only ranking still favours the shortest cross. Cross + 2 compares the whole opening,
+so a longer cross or first pair can win when its continuation saves more moves.
 
 B3 now supplies that second half. Its cross head beats the comfort model below by **9.6 points**
 on unseen solvers (48.7% against 39.0%), and it picks the grip as well as the ordering, so where
@@ -179,9 +191,10 @@ disagree with itself, with no symptom beyond being slightly worse than it should
 
 ## Cost
 
-A full colour-neutral sweep — cross and all four xcrosses, six colours — runs a median of **1.9 s**
+Before lookahead, a full colour-neutral sweep — cross and all four xcrosses, six colours — ran a median of **1.9 s**
 and a worst case over **5 s**. That belongs off the main thread, and `apps/web/workers/` puts it
-there. Results are posted per colour rather than batched, so the first cross lands in about 150 ms.
+there. The deeper planner also posts results per colour and uses explicit node budgets. These
+historical latency figures do not measure the new search.
 
 Web Workers needed checking, because A2 concluded they were unusable under Turbopack. That was
 cubing.js's WASM *module* worker; a plain worker built from our own TypeScript is fine, verified

@@ -5,7 +5,8 @@
   "type": "module",
   "description": "3x3x3 cube state, moves, and notation. The dependency root of the project.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./scramble": "./src/scramble.ts"
   },
   "scripts": {
     "generate": "node scripts/generate-tables.ts",

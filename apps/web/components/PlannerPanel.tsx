@@ -4,14 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   applyMoves,
   CubeState,
-  generateScramble,
   parseMoves,
   toFacelets,
   type Face,
 } from "@cubing-companion/engine";
+// Its own entry point: it drags in cubing.js's WASM search worker, which the barrel does not.
+import { generateScramble } from "@cubing-companion/engine/scramble";
 import { COLOURS, colourOf, type ColourPlan, type PlannedSolution } from "@cubing-companion/planner";
 import { worthPlanning, type RecorderPhase } from "@cubing-companion/session";
 import { usePlanner } from "./usePlanner";
+import type { RankedPair } from "../workers/planner.worker";
 
 /** WCA inspection. The point of practice mode is that it is the real budget, not a comfortable one. */
 const INSPECTION_MS = 15_000;
@@ -251,7 +253,9 @@ export function PlannerPanel({
             </ul>
             {plans.length > 0 && (
               <p className="border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
-                Ranked shortest first.{" "}
+                Ranked by total moves within each goal. Cross + 1 and cross + 2 include joint
+                solutions and planned insertions, exploring crosses up to one move longer.
+                These are the best plans found in a limited search.{" "}
                 {revised
                   ? "Ties broken by a model trained on which cross pros actually built, which also picks the grip."
                   : "Ties broken by how pros actually turn — the back face is 2.5% of real cross moves, so a solution is shown in whichever of the four grips keeps the work off it."}
@@ -288,15 +292,7 @@ function NextPairAdvice({
   running,
   hasCube,
 }: {
-  ranked:
-    | readonly {
-        slot: string;
-        label: string;
-        optimal: number;
-        moves: string;
-        confidence: number;
-      }[]
-    | null;
+  ranked: readonly RankedPair[] | null;
   learned: boolean | null;
   crossFace: number | null;
   running: boolean;
@@ -325,34 +321,38 @@ function NextPairAdvice({
       </p>
       <ul className="space-y-1">
         {ranked.map((entry, i) => (
-          <li key={entry.slot} className="flex items-baseline gap-2">
+          <li key={entry.slot} className="space-y-1 rounded border border-neutral-800 p-2">
+            <div className="flex flex-wrap items-baseline gap-2">
             <span
               className={`w-24 text-xs ${i === 0 ? "text-emerald-400" : "text-neutral-500"}`}
             >
               {entry.label}
             </span>
-            <span className="w-10 text-right font-mono text-[11px] tabular-nums text-neutral-500">
-              {entry.optimal}
+            <span className="font-mono text-[11px] tabular-nums text-neutral-400">
+              {entry.lookahead ? `${entry.lookahead.immediateTurns} now · ${entry.lookahead.totalTurns} through ${entry.lookahead.depth} pair${entry.lookahead.depth === 1 ? "" : "s"}` : `${entry.optimal} now · continuation not found`}
             </span>
-            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-800">
-              <span
-                className={`block h-full rounded-full ${i === 0 ? "bg-emerald-500" : "bg-neutral-600"}`}
-                style={{ width: `${Math.max(2, 100 * entry.confidence)}%` }}
-              />
-            </span>
-            <span className="w-9 text-right font-mono text-[11px] tabular-nums text-neutral-400">
-              {`${(100 * entry.confidence).toFixed(0)}%`}
-            </span>
-            <span className="w-32 truncate font-mono text-[11px] text-neutral-600">
-              {entry.moves}
-            </span>
+            {learned && <span className="text-[11px] text-neutral-600">
+              {`${(100 * entry.confidence).toFixed(0)}% model preference`}
+            </span>}
+            </div>
+            {entry.lookahead ? entry.lookahead.steps.map((step, stepIndex) => (
+              <p key={stepIndex} className="text-[11px] text-neutral-500">
+                {stepIndex === 0 ? "do" : "then"} {step.label}: <span className="font-mono text-neutral-300">{step.moves}</span>
+              </p>
+            )) : <p className="font-mono text-[11px] text-neutral-500">{entry.moves}</p>}
+            {entry.lookahead && entry.lookahead.immediateTurns > entry.optimal && (
+              <p className="text-[11px] text-emerald-500">
+                Uses {entry.lookahead.immediateTurns - entry.optimal} extra move{entry.lookahead.immediateTurns - entry.optimal === 1 ? "" : "s"} on this pair to set up the continuation.
+              </p>
+            )}
           </li>
         ))}
       </ul>
       <p className="border-t border-neutral-900 pt-1.5 text-[11px] leading-relaxed text-neutral-600">
         {learned
-          ? "Ranked by a model trained on which pair pros actually did next — not by move count, which is the number in the second column."
-          : "The model could not be loaded, so this is ordered by move count alone."}
+          ? "Ranked by moves through the planned pairs, with model preference breaking ties. Percentages describe the existing model's first-pair preference, not confidence in the whole plan."
+          : "Ranked by moves through the planned pairs. The learned model is unavailable; lookahead still runs."}
+        {" "}Search is limited; an unexplored continuation may be better. Each step preserves the cross and previously solved pairs.
       </p>
     </div>
   );
@@ -462,9 +462,12 @@ function ColourRow({ plan }: { plan: ColourPlan }) {
         <div className="space-y-2 border-t border-neutral-900 px-2 py-2">
           <Section title="cross" solutions={plan.cross} />
           <Section
-            title={`cross + 1 pair${plan.xcrossLength > 0 ? ` — ${plan.xcrossLength} moves` : ""}`}
+            title={`x-cross${plan.xcrossLength > 0 ? ` — ${plan.xcrossLength} moves` : ""}`}
             solutions={plan.xcross}
           />
+          {plan.crossPlusOne && <Section title="cross + 1 · best found" solutions={plan.crossPlusOne} />}
+          {plan.crossPlusTwo && <Section title="cross + 2 · best found" solutions={plan.crossPlusTwo} />}
+          {plan.crossPlusTwo?.length === 0 && <p className="text-[11px] text-neutral-600">No cross + 2 continuation found within the search limit.</p>}
         </div>
       )}
     </li>
@@ -478,7 +481,7 @@ function Section({ title, solutions }: { title: string; solutions: readonly Plan
       <h4 className="mb-1 text-[11px] uppercase tracking-wide text-neutral-600">{title}</h4>
       <ul className="space-y-1">
         {solutions.map((solution) => (
-          <li key={`${solution.kind}-${solution.text}`}>
+          <li key={`${solution.kind}-${solution.searchSlot ?? ""}-${solution.text}`}>
             <Solution solution={solution} />
           </li>
         ))}
@@ -516,6 +519,7 @@ function Solution({
         <span className="font-mono text-xs text-neutral-600">{solution.setupText}</span>
       )}
       <span className="font-mono text-xs text-neutral-200">{solution.text || "(nothing to do)"}</span>
+      {solution.steps && <span className="text-[11px] text-neutral-500">{solution.length} moves · {solution.solvedPairLabels?.length} pairs solved</span>}
       {solution.slotLabel && (
         <span className="text-[11px] text-emerald-500">pair {solution.slotLabel}</span>
       )}
@@ -534,6 +538,13 @@ function Solution({
         >
           {solution.awkward.back}× back
         </span>
+      )}
+      {solution.steps && solution.steps.length > 1 && (
+        <div className="w-full space-y-0.5 border-l border-neutral-800 pl-2">
+          {solution.steps.map((step, i) => <p key={i} className="text-[11px] text-neutral-500">
+            {step.label}: <span className="font-mono">{step.text || "already solved"}</span>
+          </p>)}
+        </div>
       )}
     </div>
   );

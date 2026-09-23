@@ -4,22 +4,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   connectSmartCube,
   CubeTracker,
-  isWebBluetoothAvailable,
   ManualSource,
   GanCubeSource,
+  type BleTransport,
   type CubeSource,
   type DesyncEvent,
   type GanHardwareInfo,
+  type GanMacStore,
   type TimedMove,
 } from "@cubing-companion/cube-link";
 import {
   applyMoves,
   CubeState,
-  generateScramble,
   NotationError,
   parseMoves,
   toFacelets,
 } from "@cubing-companion/engine";
+// Its own entry point: it drags in cubing.js's WASM search worker, which the barrel does not.
+import { generateScramble } from "@cubing-companion/engine/scramble";
 import {
   MemoryStore,
   SolveRecorder,
@@ -35,6 +37,10 @@ import { SolveList } from "./SolveList";
 import { StatsPanel } from "./StatsPanel";
 import { SolveDetail } from "./SolveDetail";
 import { PlannerPanel } from "./PlannerPanel";
+import { GyroDiagnostics } from "./GyroDiagnostics";
+import { ProtocolCapture } from "./ProtocolCapture";
+import { emitDiagnosticTiming } from "./diagnosticTimings";
+import { defaultTransport, isNativeShell, localMacStore } from "./platform";
 
 const MAC_STORAGE_KEY = "cubing-companion.gan-mac";
 const SESSION_KEY = "cubing-companion.session-id";
@@ -113,12 +119,16 @@ export function CubeHarness() {
   const sourceRef = useRef<CubeSource | null>(null);
   const trackerRef = useRef<CubeTracker | null>(null);
   const manualRef = useRef<ManualSource | null>(null);
+  // Resolved once after mount; whichever radio this build is running on.
+  const transportRef = useRef<BleTransport | null>(null);
+  const macStoreRef = useRef<GanMacStore>(localMacStore());
 
   const [status, setStatus] = useState<Status>({ state: "idle" });
   const [moves, setMoves] = useState<TimedMove[]>([]);
   const [desyncs, setDesyncs] = useState<DesyncEvent[]>([]);
   const [skew, setSkew] = useState<number | null>(null);
   const [bluetoothAvailable, setBluetoothAvailable] = useState(true);
+  const [nativeShell, setNativeShell] = useState(false);
   const recorderRef = useRef<SolveRecorder | null>(null);
   const storeRef = useRef<SolveStore | null>(null);
   const [recorderState, setRecorderState] = useState<RecorderState>(IDLE_RECORDER);
@@ -129,19 +139,28 @@ export function CubeHarness() {
   // The id rather than the record: the list is reloaded from storage after every change, and
   // holding a stale copy would keep showing a solve that had been deleted.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // What the cube says it is. Chiefly for `gyroSupported`: it decides whether whole-cube
-  // rotations can ever be observed, and the answer depends on the protocol generation rather
-  // than on the model name printed on the box.
+  // Advertised hardware support is advisory; diagnostics check the actual orientation stream.
   const [hardware, setHardware] = useState<GanHardwareInfo | null>(null);
+  const [diagnosticSource, setDiagnosticSource] = useState<GanCubeSource | null>(null);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   // The live position, as a facelet string, for the planner to read. Kept as facelets rather
   // than a `CubeState` because that is what crosses into the worker anyway.
   const [facelets, setFacelets] = useState<string | null>(null);
 
-  // Checked after mount: `navigator` does not exist during server rendering.
+  // Checked after mount: neither `navigator` nor Capacitor's bridge exists during server
+  // rendering. On a phone this resolves to the native radio; in a browser, to Web Bluetooth.
   useEffect(() => {
-    setBluetoothAvailable(isWebBluetoothAvailable());
+    let cancelled = false;
+    void defaultTransport().then((transport) => {
+      if (cancelled) return;
+      transportRef.current = transport;
+      setBluetoothAvailable(transport !== null);
+      setNativeShell(isNativeShell());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Storage is opened lazily and client-only: `IndexedDbStore` is imported here rather than
@@ -194,6 +213,7 @@ export function CubeHarness() {
     trackerRef.current = null;
     sourceRef.current = null;
     manualRef.current = null;
+    setDiagnosticSource(null);
   }, []);
 
   useEffect(() => () => void teardown(), [teardown]);
@@ -207,6 +227,7 @@ export function CubeHarness() {
     trackerRef.current = tracker;
 
     setHardware(null);
+    setDiagnosticSource(source instanceof GanCubeSource ? source : null);
     if (source instanceof GanCubeSource) {
       source.onHardware((info) => {
         setHardware(info);
@@ -226,6 +247,7 @@ export function CubeHarness() {
     setRecorderState(recorder.getState());
 
     tracker.onMove((move) => {
+      const handlingStartedAt = performance.now();
       playerRef.current?.addMove(move.move);
       setMoves((previous) => [move, ...previous].slice(0, MAX_LOG));
       setSkew(tracker.skewPercent());
@@ -241,6 +263,7 @@ export function CubeHarness() {
       if (before !== "complete" && after.phase === "complete" && after.record) {
         void saveRecord(after.record);
       }
+      emitDiagnosticTiming("move-handler", performance.now() - handlingStartedAt);
     });
 
     tracker.onDesync((event) => {
@@ -260,6 +283,7 @@ export function CubeHarness() {
 
     source.onDisconnect(() => {
       setStatus({ state: "idle" });
+      setDiagnosticSource(null);
     });
 
     await tracker.start();
@@ -273,7 +297,13 @@ export function CubeHarness() {
   const connectCube = useCallback(async () => {
     setStatus({ state: "connecting" });
     try {
+      const transport = transportRef.current ?? (await defaultTransport());
+      if (!transport) throw new Error("No Bluetooth radio is available on this device.");
       const source = await connectSmartCube({
+        transport,
+        // Persisted, because a reconnect carries no advertisement and therefore no decryption
+        // key — see `ble/mac.ts`. Losing it costs a rescan, not the cube.
+        macStore: macStoreRef.current,
         macAddressPrompt: async (device, isRetry) =>
           promptForMac(device.name, isRetry),
       });
@@ -540,8 +570,13 @@ export function CubeHarness() {
           status={status}
           skew={skew}
           bluetoothAvailable={bluetoothAvailable}
+          nativeShell={nativeShell}
           hardware={hardware}
         />
+
+        <GyroDiagnostics source={diagnosticSource} />
+
+        <ProtocolCapture />
 
         {connected && (
           <SessionPanel
@@ -604,19 +639,21 @@ function StatusLine({
   status,
   skew,
   bluetoothAvailable,
+  nativeShell,
   hardware,
 }: {
   status: Status;
   skew: number | null;
   bluetoothAvailable: boolean;
+  nativeShell: boolean;
   hardware: GanHardwareInfo | null;
 }) {
   if (!bluetoothAvailable) {
     return (
       <p className="rounded-md border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">
-        This browser has no Web Bluetooth, so it cannot talk to a smart cube. Use Chrome or
-        Edge on desktop, or Chrome on Android — Safari and iOS do not support it at all.
-        Manual input works anywhere.
+        {nativeShell
+          ? "Bluetooth is off, or this app has not been allowed to use it. Turn it on in Settings, then try again."
+          : "This browser has no Web Bluetooth, so it cannot talk to a smart cube. Use Chrome or Edge on desktop, or Chrome on Android — Safari and iOS need the installed app. Manual input works anywhere."}
       </p>
     );
   }
@@ -632,8 +669,9 @@ function StatusLine({
   if (status.state !== "connected") {
     return (
       <p className="text-sm text-neutral-500">
-        Not connected. Connecting a cube needs a click — the browser will not show its
-        device chooser otherwise.
+        {nativeShell
+          ? "Not connected. Wake the cube by turning a face, then connect — it has to be advertising to be found."
+          : "Not connected. Connecting a cube needs a click — the browser will not show its device chooser otherwise."}
       </p>
     );
   }
@@ -652,12 +690,10 @@ function StatusLine({
           <span
             className={hardware.gyroSupported ? "text-neutral-400" : "text-neutral-600"}
             title={
-              hardware.gyroSupported
-                ? "This cube reports its orientation, so whole-cube rotations could be detected."
-                : "This cube does not report orientation. A rotation turns no face against the core, so nothing observes it — rotations will not appear in your solves, and are left out of the score rather than counted as zero."
+              "Advertised support can differ from the actual stream. Open Gyro diagnostics to check received samples."
             }
           >
-            gyro {hardware.gyroSupported === null ? "?" : hardware.gyroSupported ? "yes" : "no"}
+            reported gyro {hardware.gyroSupported === null ? "?" : hardware.gyroSupported ? "yes" : "no"}
           </span>
         </>
       )}

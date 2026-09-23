@@ -6,14 +6,18 @@
  * of it, which is what keeps the untestable surface down to the radio.
  */
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { parseMoves, stateAfter, toFacelets } from "@cubing-companion/engine";
 import {
   GanCubeSource,
   isWebBluetoothAvailable,
   parseGanMove,
   SmartCubeError,
+  GAN_LIBRARY_VERSION,
   type GanEventLike,
 } from "../src/gan.ts";
+import { GanDiagnosticRecorder } from "../src/diagnostics.ts";
+import { CubeTracker } from "../src/tracker.ts";
 import type { MoveEvent } from "../src/source.ts";
 
 /** Stands in for a `gan-web-bluetooth` connection. */
@@ -88,6 +92,53 @@ describe("parsing moves from the cube", () => {
 });
 
 describe("the adapter", () => {
+  it("records diagnostics without changing moves, tracked state, or hardware flags", async () => {
+    const connection = new FakeConnection();
+    const source = new GanCubeSource(connection);
+    const recorder = new GanDiagnosticRecorder();
+    recorder.connect(source.getTransportInfo(), null, null);
+    recorder.start();
+    const off = source.onDiagnostic((packet) => recorder.receive(packet));
+    const tracker = new CubeTracker(source, { verifyIntervalMs: 0 });
+    const moves: MoveEvent[] = [];
+    tracker.onMove((move) => moves.push(move));
+    await tracker.start();
+    connection.emit({ type: "HARDWARE", hardwareName: "GAN i4", gyroSupported: false });
+    connection.emit({ type: "GYRO", timestamp: performance.now(), quaternion: { x: 0, y: 0, z: 0, w: 1 } });
+    connection.emit(moveEvent("R", 1));
+    connection.emit({ type: "GYRO", quaternion: { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 } });
+    connection.emit(moveEvent("U'", 2));
+    expect(moves).toHaveLength(2);
+    expect(toFacelets(tracker.getState())).toBe(toFacelets(stateAfter(parseMoves("R U'"))));
+    expect(source.getHardware()?.gyroSupported).toBe(false);
+    expect(recorder.summary()).toMatchObject({ moves: 2, gyroSamples: 2, reportedSupport: false });
+    off();
+    connection.emit({ type: "GYRO", quaternion: { x: 0, y: 0, z: 0, w: 1 } });
+    expect(recorder.summary().gyroSamples).toBe(2);
+    await tracker.stop();
+    await source.disconnect();
+  });
+
+  it("requests hardware explicitly and exposes only available transport UUIDs", async () => {
+    const connection = new FakeConnection();
+    const source = new GanCubeSource(Object.assign(connection, {
+      deviceMAC: "SECRET", stateCharacteristic: { uuid: "0000fff6-0000-1000-8000-00805f9b34fb",
+        service: { uuid: "00000010-0000-fff7-fff6-fff5fff4fff0" } },
+    }));
+    await source.requestHardware();
+    expect(connection.commands).toEqual([{ type: "REQUEST_HARDWARE" }]);
+    expect(source.getTransportInfo()).toMatchObject({ protocol: "gen4", libraryVersion: GAN_LIBRARY_VERSION });
+    expect(JSON.stringify(source.getTransportInfo())).not.toContain("SECRET");
+    expect(new GanCubeSource(new FakeConnection()).getTransportInfo()).toMatchObject({ protocol: "unknown", serviceUuid: null });
+    await source.disconnect();
+    await expect(source.requestHardware()).rejects.toThrow("disconnected");
+  });
+
+  it("keeps diagnostic library metadata in sync with the installed dependency", () => {
+    const metadata = JSON.parse(readFileSync(new URL("../../../node_modules/gan-web-bluetooth/package.json", import.meta.url), "utf8"));
+    expect(GAN_LIBRARY_VERSION).toBe(metadata.version);
+  });
+
   it("reports the device name", () => {
     const connection = new FakeConnection();
     expect(new GanCubeSource(connection).name).toBe("GAN-1234");

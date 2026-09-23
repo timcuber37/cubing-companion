@@ -13,12 +13,12 @@ ml/.venv/bin/pip install -r ml/requirements.txt   # so a venv is not optional he
 npm run build-dataset -w @cubing-companion/planner   # corpus -> data/decisions.jsonl, ~30 min
 ml/.venv/bin/python ml/train.py                      # trains both heads, seconds
 ml/.venv/bin/python ml/eval.py                       # the numbers below
-ml/.venv/bin/python ml/export.py                     # ONNX -> apps/web/public/models/
+ml/.venv/bin/python ml/export.py                     # weights -> packages/planner, ONNX -> ml/out/
 ```
 
 The dataset step needs `data/corpus.jsonl`, which is not redistributed — rebuild it with
 `npm run crawl` then `npm run build-corpus`, both in `@cubing-companion/corpus`. The exported
-models are committed, so the app runs without any of this.
+weights are committed, so the app runs without any of this.
 
 ## The problem
 
@@ -160,34 +160,41 @@ reading is that the held-out solvers are simply more predictable than average. W
 and a heavily skewed distribution, a single split cannot separate these. It is reported rather
 than explained.
 
-## Getting it into the browser
+## Getting it into the app
 
-PyTorch → ONNX → ONNX Runtime Web, running inside the existing planner worker.
+The weights are exported to `packages/planner/src/weights.generated.ts` and evaluated by
+`packages/planner/src/mlp.ts`, inside the existing planner worker.
 
-Whether that would work at all was checked first, because A2 had established that Turbopack cannot
-instantiate cubing.js's WASM module worker and ONNX Runtime Web leans on the same machinery. It
-runs. Two things were needed, both found by trying it rather than by reading documentation:
+This went through ONNX Runtime Web first, and it worked — but the runtime was a **27.8 MB WASM
+download** to evaluate `Linear(12, 16) → ReLU → Linear(16, 8) → ReLU → Linear(8, 1)`, a model whose
+own weights are 2.9 KB. That trade is survivable on a desktop and indefensible on a phone, which is
+what [MOBILE_PLAN.md](../MOBILE_PLAN.md) is about. The forward pass is about forty lines of
+arithmetic, so the planner now does it directly:
 
-- **`external_data=False` on export.** By default torch writes the weights to a `.onnx.data`
-  sidecar and the model only references it, which fails in a browser with `Module.MountedFiles is
-  not available` — there is no filesystem to mount it from.
-- **A dynamic first axis**, since a decision has two options or eight hundred.
+- **No runtime, no download, no fetch.** The weights are a committed TypeScript constant, bundled
+  like `baselines.generated.ts`. Nothing resolves a URL, which also removes a hazard for a native
+  WebView, where `/models/...` does not mean what it means on the web.
+- **The pure packages can evaluate their own model.** `rank.ts` takes an injected `ScoreFn` and
+  still knows nothing about where the numbers come from, but now there is an implementation that
+  runs anywhere JavaScript runs — including under vitest, which is what moved the parity check from
+  a browser page into CI.
 
-Each model exports with a fixture of real held-out feature vectors and the scores PyTorch gave
-them. `/selftest` re-scores that fixture **through the shipped loader** and reports the worst
-disagreement:
+ONNX is still exported, to `ml/out/`, because it is the portable form of a trained model and costs
+nothing to emit. It is just no longer what the app runs. `external_data=False` stays on that export:
+by default torch writes the weights to a `.onnx.data` sidecar and the model only references it,
+which fails in a browser with `Module.MountedFiles is not available`.
 
-```
-pair:  PASS — 256 rows, worst difference 9.54e-7
-cross: PASS — 256 rows, worst difference 9.54e-7
-```
+Each head exports with a fixture of 256 real held-out feature vectors and the scores PyTorch gave
+them. `packages/planner/test/mlp.test.ts` re-scores that fixture and reports the worst
+disagreement — currently **8.6e-7** for cross and **6.0e-7** for pair, which is float64 arithmetic
+disagreeing with float32 and nothing more.
 
 That test exists for one specific failure: if the feature order in `features.ts` ever drifts from
 the order the weights were fitted to, nothing throws. The model just gets worse, and looks like a
-model that was never very good.
+model that was never very good. It used to be a page you had to remember to open; now it runs on
+every commit.
 
-Inference stays off the main thread — the page paints a full 60fps while the model loads and
-scores.
+Inference stays off the main thread — the page paints a full 60fps while the model scores.
 
 ## What these models are not
 

@@ -215,3 +215,113 @@ describe("windowing", () => {
     expect(timeline.skewPercent()).toBeNull();
   });
 });
+
+describe("recovered moves", () => {
+  /**
+   * A move recovered from the cube's move history carries neither clock. Before interpolation
+   * these were dropped from every metric — which does not merely lose a move, it invents a pause,
+   * because the moves either side become adjacent and the gap between them looks like hesitation.
+   */
+  it("places a recovered move between its neighbours", () => {
+    const timed = MoveTimeline.retime([
+      event(1000, 1000, 1),
+      event(null, null, 2), // recovered: no clock of its own
+      event(1200, 1200, 3),
+    ]);
+
+    expect(timed[1]!.timestampSource).toBe("interpolated");
+    expect(timed[1]!.timestamp).toBeCloseTo(1100, 6);
+  });
+
+  it("spaces a run of recovered moves evenly", () => {
+    const timed = MoveTimeline.retime([
+      event(1000, 1000, 1),
+      event(null, null, 2),
+      event(null, null, 3),
+      event(null, null, 4),
+      event(1400, 1400, 5),
+    ]);
+
+    expect(timed.slice(1, 4).map((move) => move.timestampSource)).toEqual([
+      "interpolated",
+      "interpolated",
+      "interpolated",
+    ]);
+    expect(timed.slice(1, 4).map((move) => move.timestamp)).toEqual([1100, 1200, 1300]);
+  });
+
+  it("leaves the resolved moves exactly as they were", () => {
+    const events = [event(1000, 1000, 1), event(null, null, 2), event(1200, 1200, 3)];
+    const timed = MoveTimeline.retime(events);
+    expect(timed[0]!.timestampSource).toBe("fitted");
+    expect(timed[2]!.timestampSource).toBe("fitted");
+    expect(timed[0]!.timestamp).toBeCloseTo(1000, 6);
+    expect(timed[2]!.timestamp).toBeCloseTo(1200, 6);
+  });
+
+  it("refuses to extrapolate past either end", () => {
+    // Nothing on one side means nothing to interpolate between. Guessing from one side would be
+    // invention rather than estimation, so these stay unplaced and say so.
+    const timed = MoveTimeline.retime([
+      event(null, null, 1),
+      event(1000, 1000, 2),
+      event(1200, 1200, 3),
+      event(null, null, 4),
+    ]);
+    expect(timed[0]!.timestampSource).toBe("none");
+    expect(timed[0]!.timestamp).toBeNull();
+    expect(timed[3]!.timestampSource).toBe("none");
+    expect(timed[3]!.timestamp).toBeNull();
+  });
+
+  it("keeps time moving forwards through a recovered run", () => {
+    const timed = MoveTimeline.retime([
+      event(0, 0, 1),
+      event(null, null, 2),
+      event(null, null, 3),
+      event(500, 500, 4),
+      event(null, null, 5),
+      event(900, 900, 6),
+    ]);
+    const times = timed.map((move) => move.timestamp!);
+    for (let i = 1; i < times.length; i++) {
+      expect(times[i]!, `move ${i}`).toBeGreaterThan(times[i - 1]!);
+    }
+  });
+});
+
+describe("batching, at the rates a phone would see", () => {
+  /**
+   * The question this answers is "does iOS break the metrics", and it needs no iOS.
+   *
+   * A longer BLE connection interval batches more moves per notification, so fewer of them carry
+   * a host timestamp and the fit has fewer anchors. iOS enforces a 15ms minimum interval against
+   * Android's ~11.25ms, so the worry is real. But every metric downstream is a *difference* of
+   * fitted cube timestamps, and the cube stamps every move itself — so losing anchors costs
+   * precision in the fit, not the spacing between moves.
+   */
+  it.each([
+    { batchSize: 1, label: "every move stamped" },
+    { batchSize: 3, label: "a third stamped" },
+    { batchSize: 8, label: "an eighth stamped" },
+  ])("recovers the true move spacing when $label", ({ batchSize }) => {
+    const recording = recordingFromAlg("R U R' U' R U R' U' R U R' U' R U R' U'", {
+      intervalMs: 125, // 8 TPS
+      batchSize,
+      cubeClockRate: 1.02,
+      localEpoch: 5000,
+    });
+
+    const timed = MoveTimeline.retime(
+      recording.map((move, i) => ({ ...move, serial: i })),
+    );
+
+    const placed = timed.filter((move) => move.timestamp !== null);
+    expect(placed).toHaveLength(recording.length);
+
+    for (let i = 1; i < placed.length; i++) {
+      // Within a millisecond of the true grid regardless of how heavily the stream was batched.
+      expect(placed[i]!.timestamp! - placed[i - 1]!.timestamp!).toBeCloseTo(125, 0);
+    }
+  });
+});

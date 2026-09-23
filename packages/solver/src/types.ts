@@ -30,6 +30,10 @@ export interface SearchOptions {
   readonly maxExtra?: number;
   /** Stop after this many candidates. */
   readonly maxSolutions?: number;
+  /** Reserve room for longer alternatives by limiting candidates at each depth. */
+  readonly maxSolutionsPerDepth?: number;
+  /** Deterministic work budget. Omit for exhaustive search within the depth ceiling. */
+  readonly maxNodes?: number;
   /** Hard ceiling on depth, regardless of `maxExtra`. */
   readonly maxDepth?: number;
 }

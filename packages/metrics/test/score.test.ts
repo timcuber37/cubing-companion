@@ -478,3 +478,88 @@ describe("speed against your own solves", () => {
     expect(SELF_ANCHORS.worst).toBeLessThan(CORPUS_ANCHORS.worst);
   });
 });
+
+/**
+ * Efficiency counts the part of the solve you decide.
+ *
+ * A last layer's move count is the length of whichever algorithm the case demanded. The corpus
+ * shows it: across 29 solvers with 30+ solves each, who is solving explains 10.5% of the variance
+ * in cross+F2L turns against 5.1% of the last layer's, and the two correlate at −0.01 within a
+ * solver. Scoring them together mixed a skill with a dice roll.
+ */
+describe("efficiency, cross and F2L only", () => {
+  /** The same solve with a longer last layer, and nothing else changed. */
+  const withLastLayer = (ollTurns: number) => {
+    const spans = [
+      span(Phase.Cross, 0, 8),
+      span(Phase.F2L1, 8, 16),
+      span(Phase.F2L2, 16, 24),
+      span(Phase.F2L3, 24, 32),
+      span(Phase.F2L4, 32, 40),
+      span(Phase.OLL, 40, 40 + ollTurns),
+      span(Phase.PLL, 40 + ollTurns, 52 + ollTurns),
+    ];
+    return computeMetrics(spans, timeline(52 + ollTurns));
+  };
+
+  const efficiency = (metrics: ReturnType<typeof computeMetrics>) =>
+    scoreSolve(metrics, { recentDurationsMs: OWN_SOLVES }).components.find(
+      (c) => c.label === "efficiency",
+    )!;
+
+  it("is unmoved by a longer last layer", () => {
+    // Nine extra OLL moves — a dealt case, not a decision — must not change the rating at all.
+    expect(efficiency(withLastLayer(10)).rated.rating).toBe(
+      efficiency(withLastLayer(19)).rated.rating,
+    );
+  });
+
+  it("does move when the cross or a pair costs more", () => {
+    const lean = computeMetrics(
+      [
+        span(Phase.Cross, 0, 6),
+        span(Phase.F2L1, 6, 13),
+        span(Phase.F2L2, 13, 20),
+        span(Phase.F2L3, 20, 27),
+        span(Phase.F2L4, 27, 34),
+        span(Phase.OLL, 34, 44),
+        span(Phase.PLL, 44, 56),
+      ],
+      timeline(56),
+    );
+    expect(efficiency(lean).rated.rating).toBeGreaterThan(
+      efficiency(withLastLayer(10)).rated.rating,
+    );
+  });
+
+  it("measures the cross+F2L turns, against the matching baseline", () => {
+    const metrics = withLastLayer(10);
+    const shaped = metrics.phases
+      .filter((p) => p.phase !== Phase.OLL && p.phase !== Phase.PLL && p.phase !== Phase.AUF)
+      .reduce((total, p) => total + p.turns, 0);
+    const rated = efficiency(metrics).rated;
+    expect(rated.value).toBe(shaped);
+    // The `f2l` baseline is cross plus all four pairs — a different, tighter distribution than
+    // the whole solve, so a move counts for more here.
+    expect(rated.distribution.median).toBe(
+      BASELINES.turns.find((t) => t.key === "f2l")!.turns.median,
+    );
+  });
+
+  it("calibrates on that baseline: the median pro solve is an 8", () => {
+    const baseline = BASELINES.turns.find((t) => t.key === "f2l")!.turns;
+    expect(rateTurns("f2l", baseline.median)!.rating).toBeCloseTo(8, 0);
+    expect(rateTurns("f2l", baseline.p10)!.rating).toBeCloseTo(10, 1);
+    expect(rateTurns("f2l", baseline.p90)!.rating).toBeCloseTo(6, 1);
+  });
+
+  it("says so rather than guessing when there is no complete F2L", () => {
+    const partial = computeMetrics(
+      [span(Phase.Cross, 0, 8), span(Phase.F2L1, 8, 16)],
+      timeline(16),
+    );
+    const scored = scoreSolve(partial, { recentDurationsMs: OWN_SOLVES });
+    expect(scored.components.map((c) => c.label)).not.toContain("efficiency");
+    expect(scored.omitted.map((o) => o.label)).toContain("efficiency");
+  });
+});

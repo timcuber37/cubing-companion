@@ -56,12 +56,17 @@ export function enumerateCross(
 
   const maxExtra = options.maxExtra ?? 0;
   const maxSolutions = options.maxSolutions ?? DEFAULT_MAX_SOLUTIONS;
+  const maxPerDepth = options.maxSolutionsPerDepth ?? Infinity;
+  const maxNodes = options.maxNodes ?? Infinity;
   const limit = Math.min(optimal + maxExtra, options.maxDepth ?? Infinity);
 
   const candidates: Candidate[] = [];
   const path: Move[] = [];
   let nodes = 0;
   let truncated = false;
+  let depthStart = 0;
+  const limited = () => nodes >= maxNodes || candidates.length >= maxSolutions ||
+    candidates.length - depthStart >= maxPerDepth;
 
   /**
    * Depth-first for solutions of *exactly* `remaining` more moves.
@@ -70,7 +75,7 @@ export function enumerateCross(
    * solutions here would re-find every optimal one at every subsequent depth.
    */
   function search(index: number, remaining: number): void {
-    if (candidates.length >= maxSolutions) {
+    if (limited()) {
       truncated = true;
       return;
     }
@@ -98,16 +103,21 @@ export function enumerateCross(
       path.push(move);
       search(stepCross(index, m), remaining - 1);
       path.pop();
-      if (candidates.length >= maxSolutions) return;
+      if (limited()) {
+        truncated = true;
+        return;
+      }
     }
   }
 
   // Shortest first: search each length in turn rather than sorting afterwards, so a solution
   // cap keeps the *shortest* candidates rather than an arbitrary sample.
   for (let depth = optimal; depth <= limit; depth++) {
+    depthStart = candidates.length;
     search(startIndex, depth);
-    if (candidates.length >= maxSolutions) break;
+    if (nodes >= maxNodes || candidates.length >= maxSolutions) break;
   }
+  if (limit < optimal + maxExtra) truncated = true;
 
   return {
     candidates,

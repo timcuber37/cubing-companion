@@ -12,8 +12,10 @@ is exactly this distinction).
 ## Scope guard
 
 - 3x3 **CFOP only** until further notice. No Roux/ZZ, no big cubes, no OH.
-- Web app, Chrome/Edge desktop + Android first. **No iOS** (Web Bluetooth doesn't
-  exist on iOS Safari; native wrapper is a someday-item).
+- Web app, Chrome/Edge desktop + Android first. ~~**No iOS**~~ — **iOS now runs**, via a
+  Capacitor shell with a native Bluetooth transport. Web Bluetooth still does not exist on
+  iOS Safari, so the browser remains Chromium-only; the installed app is the iOS answer.
+  See [MOBILE_PLAN.md](MOBILE_PLAN.md).
 - Algorithm trainer: parked until the foundation ships. Commodity feature.
 - The analysis engine is **input-agnostic**: smart cube stream, typed/pasted
   reconstruction, and file import all feed one pipeline. Smart cube is an input
@@ -113,7 +115,9 @@ is exactly this distinction).
 - Per-solver style conditioning (data-thin: ~50–300 recons/solver — verify first).
 - Lookahead/pause coaching (predict where pauses happen from solve features).
 - Algorithm trainer (smart-cube-timed recognition/execution split).
-- iOS via native wrapper.
+- ~~iOS via native wrapper.~~ Done, ahead of the rest of B4 — see
+  [MOBILE_PLAN.md](MOBILE_PLAN.md). The protocol is vendored and the BLE transport is a seam,
+  so the browser is no longer the floor the app stands on.
 
 ## Dependencies
 

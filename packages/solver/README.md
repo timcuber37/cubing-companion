@@ -12,6 +12,12 @@ const { candidates, optimal } = enumerateCross(state, Face.D, { maxExtra: 1 });
 
 const xcross = enumerateXcross(state, Face.D, slot, { maxSolutions: 10 });
 
+// Bounded exploration with space reserved for longer alternatives:
+const alternatives = enumerateF2LInsertion(state, Face.D, slot, {
+  maxExtra: 1, maxSolutions: 8, maxSolutionsPerDepth: 4, maxNodes: 50_000,
+});
+// Check alternatives.stats.truncated: incomplete enumeration is not an exhaustive set.
+
 // Which pair next, and what does each cost? Cheapest first.
 for (const { slot, result } of enumerateNextPair(state, Face.D)) {
   console.log(slotName(slot), result.optimal, result.candidates[0]!.moves);

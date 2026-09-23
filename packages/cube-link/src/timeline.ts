@@ -27,8 +27,17 @@ export interface TimedMove extends MoveEvent {
    * source gave us nothing to work with.
    */
   readonly timestamp: number | null;
-  /** How `timestamp` was arrived at, so the UI can be honest about precision. */
-  readonly timestampSource: "fitted" | "cube-offset" | "local" | "none";
+  /**
+   * How `timestamp` was arrived at, so the UI and the metrics can be honest about precision.
+   *
+   * `"interpolated"` is the weak one and is deliberately distinguishable. It means the move was
+   * recovered from the cube's history rather than received, so it carries neither clock, and its
+   * time was guessed by spacing it evenly between the moves either side. The move definitely
+   * happened and its *order* is known; only its timing is invented. A pause metric should decline
+   * to report a gap that spans one, because the gap is an artifact of the spacing rather than
+   * something the solver did.
+   */
+  readonly timestampSource: "fitted" | "cube-offset" | "local" | "interpolated" | "none";
 }
 
 export interface TimelineOptions {
@@ -161,6 +170,11 @@ export class MoveTimeline {
    * timeline's state.
    */
   static retime(events: readonly MoveEvent[]): TimedMove[] {
+    return interpolateGaps(MoveTimeline.place(events));
+  }
+
+  /** The first pass: place every move that carries a clock of its own. */
+  private static place(events: readonly MoveEvent[]): TimedMove[] {
     const anchors: Anchor[] = [];
     for (const event of events) {
       if (event.cubeTimestamp !== null && event.localTimestamp !== null) {
@@ -200,4 +214,45 @@ export class MoveTimeline {
     this.anchors.length = 0;
     this.current = null;
   }
+}
+
+/**
+ * Give recovered moves a time, by spacing them evenly between the moves either side.
+ *
+ * A move recovered from the cube's move history carries neither clock — it was never received,
+ * so there is no arrival time, and the history response does not carry the cube's. Until now
+ * those moves were dropped from every metric: **6.9% of recorded moves on desktop Chrome**
+ * (`GYRO_RESULTS.md`), and 21 of 1,063 in the committed protocol capture. Dropping them does not
+ * merely lose data, it *fabricates* a pause, because the moves either side of the hole are then
+ * adjacent and the gap between them looks like hesitation.
+ *
+ * Interpolating is the lesser wrong, and the honest version of it: the move is placed, and marked
+ * `"interpolated"` so anything that cares about precision can tell. Only interior runs are filled
+ * — a recovered move with no resolved neighbour on one side has nothing to be placed between, and
+ * extrapolating from one side would be invention rather than estimation.
+ */
+function interpolateGaps(moves: TimedMove[]): TimedMove[] {
+  for (let i = 0; i < moves.length; i++) {
+    if (moves[i]!.timestamp !== null) continue;
+
+    // The whole run of unplaced moves starting here.
+    let end = i;
+    while (end < moves.length && moves[end]!.timestamp === null) end++;
+
+    const before = i > 0 ? moves[i - 1]!.timestamp : null;
+    const after = end < moves.length ? moves[end]!.timestamp : null;
+
+    if (before !== null && after !== null) {
+      const steps = end - i + 1;
+      for (let k = i; k < end; k++) {
+        moves[k] = {
+          ...moves[k]!,
+          timestamp: before + ((after - before) * (k - i + 1)) / steps,
+          timestampSource: "interpolated",
+        };
+      }
+    }
+    i = end - 1;
+  }
+  return moves;
 }

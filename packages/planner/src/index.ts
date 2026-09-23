@@ -77,6 +77,19 @@ export {
 } from "./rank.ts";
 
 export {
+  scorerFrom,
+  scoreRow,
+  scoreRows,
+  validateWeights,
+  type MlpLayer,
+  type MlpWeights,
+} from "./mlp.ts";
+
+export { WEIGHTS, type RankerName } from "./weights.generated.ts";
+
+export { scorerFor } from "./scorer.ts";
+
+export {
   planColour,
   planColours,
   type ColourPlan,
@@ -85,3 +98,14 @@ export {
   type PlanOptions,
   type PlannedSolution,
 } from "./plan.ts";
+
+export {
+  continueF2L,
+  lookaheadPairs,
+  type Continuation,
+  type ContinuationResult,
+  type LookaheadOptions,
+  type PairLookahead,
+  type PairLookaheadResult,
+  type PairStep,
+} from "./lookahead.ts";

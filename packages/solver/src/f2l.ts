@@ -84,6 +84,8 @@ export function enumerateF2LInsertion(
   ];
 
   const maxSolutions = options.maxSolutions ?? DEFAULT_MAX_SOLUTIONS;
+  const maxPerDepth = options.maxSolutionsPerDepth ?? Infinity;
+  const maxNodes = options.maxNodes ?? Infinity;
   const ceiling = Math.min(options.maxDepth ?? MAX_INSERTION_DEPTH, MAX_INSERTION_DEPTH);
   const maxExtra = options.maxExtra ?? 0;
   const targetLabel = slotName(target);
@@ -97,10 +99,15 @@ export function enumerateF2LInsertion(
   let nodes = 0;
   let truncated = false;
   let optimal = -1;
+  let depthStart = 0;
+
+  const limited = () =>
+    nodes >= maxNodes || candidates.length >= maxSolutions ||
+    candidates.length - depthStart >= maxPerDepth;
 
   /** Depth-first for solutions of exactly `remaining` more moves. */
   function search(remaining: number): void {
-    if (candidates.length >= maxSolutions) {
+    if (limited()) {
       truncated = true;
       return;
     }
@@ -140,11 +147,15 @@ export function enumerateF2LInsertion(
       search(remaining - 1);
       path.pop();
       applyMoveInPlace(working, invertMove(move));
-      if (candidates.length >= maxSolutions) return;
+      if (limited()) {
+        truncated = true;
+        return;
+      }
     }
   }
 
   for (let depth = 0; depth <= ceiling; depth++) {
+    depthStart = candidates.length;
     search(depth);
     if (candidates.length > 0) {
       if (optimal === -1) {
@@ -155,8 +166,10 @@ export function enumerateF2LInsertion(
       }
       if (depth >= optimal + maxExtra) break;
     }
-    if (candidates.length >= maxSolutions) break;
+    if (nodes >= maxNodes || candidates.length >= maxSolutions) break;
   }
+
+  if (optimal < 0 || ceiling < optimal + maxExtra) truncated = true;
 
   return {
     candidates,

@@ -52,9 +52,9 @@ export function DiffPanel({
     <div className="rounded-md border border-neutral-800">
       <div className="flex items-baseline justify-between border-b border-neutral-800 px-3 py-2">
         <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-          What a top solver would do
+          Decision review
         </h3>
-        {diff.pairs.length > 0 && (
+        {diff.learned && diff.pairs.length > 0 && (
           <span className="text-[11px] text-neutral-600">
             {matched} of {diff.pairs.length} matched
           </span>
@@ -86,7 +86,9 @@ export function DiffPanel({
         <p className="border-t border-neutral-900 pt-2 text-[11px] leading-relaxed text-neutral-600">
           {diff.learned
             ? "Move counts come from an exhaustive search and are exact. Which pair a solver would pick is a prediction — the model agrees with a real pro about 70% of the time, so the percentages are how often it expects each choice, not a verdict."
-            : "The model could not be loaded, so only the move counts are shown. Those come from an exhaustive search and are exact."}
+            : "The learned model is unavailable. Immediate move counts and lookahead search are still shown."}
+          {" "}Lookahead suggestions compare complete continuations found within a search limit;
+          they are not guaranteed optimal or predictions of human preference.
         </p>
       </div>
     </div>
@@ -135,6 +137,14 @@ function CrossRow({
           </button>
         </div>
       )}
+      {cross.lookahead && (
+        <div className="space-y-1 pl-14 text-[11px] text-neutral-400">
+          <p>Lookahead found {cross.lookahead.label} in {cross.lookahead.turns} moves.</p>
+          <p className="font-mono text-neutral-500">{cross.lookahead.branch}</p>
+          <button type="button" onClick={() => onPlayBranch(cross.at, cross.lookahead!.branch, cross.lookahead!.label)}
+            className="text-sky-400 hover:text-sky-300">play this opening</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -147,26 +157,53 @@ function PairRow({
   onPlayBranch: (at: number, moves: string, label: string) => void;
 }) {
   const agreed = pair.yours === pair.theirs;
+  const hasPrediction = pair.options.some((option) => option.confidence > 0);
   const excess = pair.playedTurns - pair.optimalTurns;
+  // The optimal insertion for the pair *you* chose — not the model's preferred pair, so the
+  // comparison is like for like: same slot, your route against the shortest one.
+  const yours = pair.options.find((option) => option.mine);
 
   return (
     <div className="space-y-1 border-t border-neutral-900 pt-2">
       <div className="flex items-baseline gap-2">
         <span className="w-12 text-xs text-neutral-400">pair {pair.step + 1}</span>
         <span className="text-xs text-neutral-300">you did {pair.yours}</span>
-        {agreed ? (
+        {hasPrediction && (agreed ? (
           <span className="text-[11px] text-emerald-500">✓ the likely choice</span>
         ) : (
           <span className="text-[11px] text-amber-500">
             a top solver {pair.wording} {pair.theirs}
           </span>
-        )}
+        ))}
         {excess > 0 && (
           <span className="ml-auto text-[11px] text-neutral-500">
             {pair.playedTurns} moves, {pair.optimalTurns} was available
           </span>
         )}
       </div>
+
+      {/* What you actually turned, the way the cross row shows its sequence. The move counts
+          above mean little without it: "7 moves, 6 was available" is a verdict, and this is the
+          evidence. */}
+      {pair.played && (
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pl-14">
+          <span className="w-16 text-[11px] text-neutral-600">you turned</span>
+          <span className="font-mono text-[11px] text-neutral-300">{pair.played}</span>
+        </div>
+      )}
+      {yours && excess > 0 && (
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pl-14">
+          <span className="w-16 text-[11px] text-neutral-600">
+            {pair.optimalTurns} would do
+          </span>
+          {/* Setup apart from the turns, as the cross row shows it: rotations are free and are
+              not what the move count is counting. */}
+          {yours.setup && (
+            <span className="font-mono text-[11px] text-neutral-700">{yours.setup}</span>
+          )}
+          <span className="font-mono text-[11px] text-neutral-500">{yours.moves}</span>
+        </div>
+      )}
 
       {pair.options.length > 0 && pair.options[0]!.confidence > 0 && (
         <ul className="space-y-0.5 pl-14">
@@ -214,6 +251,19 @@ function PairRow({
           >
             play {pair.theirs} instead
           </button>
+        </div>
+      )}
+      {pair.lookahead && (
+        <div className="space-y-1 border-l border-emerald-900 pl-2 ml-14 text-[11px] text-neutral-400">
+          <p>
+            Lookahead: {pair.lookahead.label} first, {pair.lookahead.forecast.totalTurns} moves
+            through {pair.lookahead.forecast.depth} pairs. Best found within the search limit.
+          </p>
+          {pair.lookahead.forecast.steps.map((step, i) => (
+            <p key={i}>{i === 0 ? "do" : "then"} {step.label}: <span className="font-mono text-neutral-500">{step.moves}</span></p>
+          ))}
+          <button type="button" onClick={() => onPlayBranch(pair.at, pair.lookahead!.forecast.branch, `${pair.lookahead!.label} with lookahead`)}
+            className="text-sky-400 hover:text-sky-300">play the continuation</button>
         </div>
       )}
     </div>

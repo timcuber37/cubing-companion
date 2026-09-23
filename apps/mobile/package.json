@@ -1,0 +1,19 @@
+{
+  "name": "@cubing-companion/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Native shell. Holds no application code — it wraps apps/web's static export.",
+  "scripts": {
+    "sync": "npm run build -w @cubing-companion/web && cap sync",
+    "open:ios": "cap open ios",
+    "run:ios": "npm run build -w @cubing-companion/web && cap run ios",
+    "devices": "cap run ios --list"
+  },
+  "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.3.0",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  }
+}
