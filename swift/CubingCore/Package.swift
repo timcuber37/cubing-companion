@@ -9,9 +9,16 @@ import PackageDescription
 let package = Package(
     name: "CubingCore",
     platforms: [.macOS(.v13), .iOS(.v16)],
-    products: [.library(name: "CubingCore", targets: ["CubingCore"])],
+    products: [
+        .library(name: "CubingCore", targets: ["CubingCore"]),
+        .library(name: "CubeLink", targets: ["CubeLink"]),
+    ],
     targets: [
         .target(name: "CubingCore"),
+        // The GAN protocol, clock fit and tracker (S3). Separate from the pure core because it is
+        // about a radio: it needs CommonCrypto now and CoreBluetooth next.
+        .target(name: "CubeLink", dependencies: ["CubingCore"]),
+        .testTarget(name: "CubeLinkTests", dependencies: ["CubeLink", "CubingCore"]),
         .testTarget(name: "CubingCoreTests", dependencies: ["CubingCore"]),
         // Separate so it builds in Release: no `@testable`. The phone runs the same benchmark
         // through the `CubingBench` app, since package tests cannot run on a device.

@@ -30,13 +30,16 @@ const committed = (name: string): VectorFile =>
 describe.each(Object.keys(GENERATORS))("the %s vectors", (name) => {
   const file = committed(name);
 
-  it("regenerates identically from its recorded seed", () => {
-    const regenerated = GENERATORS[name]!(file.seed, file.count);
+  it("regenerates identically from its recorded seed", async () => {
+    const regenerated = await GENERATORS[name]!(file.seed, file.count);
     // Compared as parsed data rather than as text, so formatting is not what fails.
     expect(regenerated).toEqual(file);
-  }, name === "s2" ? 30_000 : 5_000);
+  }, name === "s2" ? 30_000 : name === "cubelink" ? 15_000 : 5_000);
 
   it("is large enough to be worth trusting", () => {
+    // `cubelink` is a set of replays, and its `count` is messages per event type inside them; its
+    // coverage is asserted on its own below.
+    if (name === "cubelink") return;
     expect(file.cases.length).toBe(file.count);
     // `metrics` is bounded by the twenty committed reconstructions rather than by a seed — real
     // solves are the only honest input for it, and there are twenty of them. Every other corpus is
@@ -105,5 +108,63 @@ describe("coverage", () => {
     const analysis = committed("analysis").cases as { failure: string | null }[];
     expect(analysis.some((c) => c.failure !== null)).toBe(true);
     expect(analysis.some((c) => c.failure === null)).toBe(true);
+  });
+});
+
+describe("cube link coverage", () => {
+  interface Event { type: string; serial?: number; localTimestamp?: number | null }
+  interface Replay {
+    kind: string;
+    generation?: string;
+    start?: number;
+    steps: { events: Event[]; sent: string[]; disconnects: number }[];
+  }
+  const cases = committed("cubelink").cases as Replay[];
+  const replays = (kind: string) => cases.filter((c) => c.kind === kind);
+  const events = (c: Replay) => c.steps.flatMap((step) => step.events);
+
+  it("replays the whole real capture", () => {
+    const [capture] = replays("capture");
+    expect(capture!.steps).toHaveLength(1213);
+    expect(events(capture!).filter((e) => e.type === "FACELETS")).toHaveLength(138);
+  });
+
+  it("decodes a valid facelet report in every generation", () => {
+    // Random bytes are almost never a cube; the generator plants real states so the conversion is
+    // seen succeeding, not only rejecting.
+    for (const decode of replays("decode")) {
+      expect(events(decode).some((e) => e.type === "FACELETS"), decode.generation).toBe(true);
+    }
+  });
+
+  it("recovers gaps completely, in order, with nothing lost", () => {
+    // The simulated cube answers history requests, so every move it played must come out exactly
+    // once and contiguously. If this breaks, either the simulation or the recovery regressed —
+    // and the capture, which contains no history responses, could never have shown it.
+    const recoveries = replays("recovery");
+    expect(new Set(recoveries.map((c) => c.generation))).toEqual(new Set(["gen3", "gen4"]));
+    // Both strategies: the reference, which the port must reproduce, and eager, which the apps run.
+    expect(new Set(recoveries.map((c) => (c as unknown as { recovery: string }).recovery)))
+      .toEqual(new Set(["reference", "eager"]));
+    for (const recovery of recoveries) {
+      const moves = events(recovery).filter((e) => e.type === "MOVE");
+      const serials = moves.map((e) => e.serial!);
+      expect(serials[0]).toBe((recovery.start! + 1) & 0xff);
+      expect(serials.slice(1).every((serial, i) => ((serial - serials[i]!) & 0xff) === 1)).toBe(true);
+      expect(moves.some((e) => e.localTimestamp === null), "no move was recovered").toBe(true);
+      expect(recovery.steps.every((step) => step.disconnects === 0)).toBe(true);
+    }
+  });
+
+  it("drives the tracker through every kind of desync", () => {
+    const reasons = new Set(
+      replays("tracker").flatMap((c) =>
+        (c as unknown as { steps: { output: { type: string; reason?: string }[] }[] }).steps
+          .flatMap((step) => step.output)
+          .filter((o) => o.type === "desync")
+          .map((o) => o.reason),
+      ),
+    );
+    expect(reasons).toEqual(new Set(["initial-sync", "serial-gap", "state-mismatch"]));
   });
 });

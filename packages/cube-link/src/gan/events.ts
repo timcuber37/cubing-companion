@@ -98,6 +98,8 @@ export interface GanProtocolDriver {
     connection: GanDriverConnection,
     message: Uint8Array,
   ): Promise<GanCubeEvent[]>;
+  /** Called on a timer by the connection; see `BufferedMoveDriver.retry`. */
+  retry?(connection: GanDriverConnection): Promise<void>;
 }
 
 /** Face order in the protocol's own numbering. */

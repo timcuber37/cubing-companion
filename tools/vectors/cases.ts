@@ -39,6 +39,7 @@ import {
 } from "@cubing-companion/planner";
 import RECONSTRUCTIONS from "../../packages/engine/test/fixtures/reconstructions.json" with { type: "json" };
 import { integer, pick, positions, seeded, serialize, type Position } from "./random.ts";
+import { cubeLinkVectors } from "./cubelink.ts";
 
 const FACES: Face[] = [0, 1, 2, 3, 4, 5] as Face[];
 
@@ -169,7 +170,7 @@ export function analysisVectors(seed: number, count: number): VectorFile {
 
 /** Everything the oracle knows how to produce. */
 export const GENERATORS: Readonly<
-  Record<string, (seed: number, count: number) => VectorFile>
+  Record<string, (seed: number, count: number) => VectorFile | Promise<VectorFile>>
 > = {
   engine: engineVectors,
   solver: solverVectors,
@@ -177,6 +178,8 @@ export const GENERATORS: Readonly<
   metrics: metricsVectors,
   planner: plannerVectors,
   s2: s2Vectors,
+  // Async: the GAN drivers await their connection, so a replay has to as well.
+  cubelink: cubeLinkVectors,
 };
 
 export type { Position };

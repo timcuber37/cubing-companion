@@ -313,7 +313,7 @@ is `SweepBenchmark.run()`, public in `CubingCore`, and has two callers that run 
 The app is a measuring instrument, not the start of S3's app; it signs with the same personal team
 as the Capacitor shell and expires on the same seven-day cycle.
 
-### S3 — The cube link · 2 weekends · needs the cube
+### S3 — The cube link · 2 weekends · needs the cube · **built; awaiting a session with the cube**
 
 CoreBluetooth replaces the transport seam entirely — no `BleTransport` abstraction, because the
 reason it existed was to have two radios behind one interface, and a Swift app has one. Port the
@@ -323,6 +323,65 @@ The committed frame capture is the test: the same 1,213 frames must decode to th
 including the 21 recovered-move gaps and the 138 facelet reports.
 
 **Ships:** a Swift app that connects to the cube and mirrors it. The A1 milestone, natively.
+
+**Where it stands.** The protocol, clock fit and tracker are ported as `CubeLink` (a second library
+in `swift/CubingCore`) and pass all of a new oracle, `vectors/cubelink.json`. The app is
+`swift/CubingApp`: bundle `com.cubingcompanion.native`, shown as *Cubing Native* so it sits beside
+the Capacitor app rather than replacing it — which bundle id wins is S4's decision. It builds,
+renders, and is installed on the iPhone; what remains is connecting a real cube and turning it.
+
+**The oracle is replays, not pairs.** The drivers are stateful, so each case feeds frames in order
+and records what came out after every one — events, the commands the driver chose to send, and
+whether it hung up. Six kinds: the real capture decrypted and replayed; every command under both the
+GAN and MoYu keys; random messages under every event type for all three generations, with genuine
+cube states planted in half the facelet reports (random bytes are almost never a cube, so otherwise
+only rejection is exercised, and Gen2's conversion never seen succeeding); MAC recovery; 60 clock
+fits; and 40 tracker sessions covering all three desync paths.
+
+**The plan's premise about the capture was wrong.** It contains *no* history responses — 1,063
+moves, 138 facelet reports, 11 battery frames and one unknown — because it was recorded on a raw
+connection with no driver attached (`captureProtocolFrames`), so nothing ever asked. Its 21 gaps are
+real drops that were never recovered; replaying it, the move buffer overflows and the driver hangs up
+on 925 frames, because nothing answers. So recovery is tested against a **simulated
+cube that answers**: it plays random moves, drops about 8% of frames, and replies to each history
+request with a correctly encoded response, sometimes only after the next move arrives. Across six
+sessions every played move comes out exactly once, in order, including across the 255→0 wrap. A
+first version of the simulation answered at most one request per move and overflowed the buffer in
+half its sessions; that measured the simulation, not the driver, and a real cube answers within a
+connection interval.
+
+Two things the port found: a history request's count can reach 256, which JavaScript's
+`Uint8Array` silently wraps to 0 and Swift's `UInt8(_:)` traps on (the port now wraps, to send the
+same byte); and a Gen2 face nibble past `URFDLB` names no face, which `charAt` renders as an empty
+string rather than failing. Both are behaviours the vectors pin.
+
+**First field report: slice-heavy algorithms lagged, and the cause was in both implementations.**
+Recorded on the phone (the app now records frames and commands in the fixture format, and
+`npm run link-replay` decodes one), a session of M-heavy algorithms lost 24% of its moves, against
+2% on desktop Chrome: the iPhone link carries about one notification per 45 ms connection event, and
+two face turns per slice overrun it. Losing moves was survivable; *holding* them was the bug. The
+recovery strategy inherited from `gan-web-bluetooth` held moves for up to 4.5 seconds at the end of a
+burst — it asked for nothing more after an answer filled one gap, could not recover a move lost after
+one it held, and repeated identical requests whose duplicate answers ate the scarce slots.
+
+The fix is an `eager` recovery mode, in the TypeScript and the Swift alike (see `RecoveryMode` in
+`packages/cube-link/src/gan/buffer.ts`); the reference strategy stays the default so the diff
+against the library still means something. Its parameters came from a link simulation
+(`npm run link-sim`), not from reasoning, and the simulation earned its keep: the first version,
+with a 250 ms de-duplication window, was *worse* than the reference under heavy loss, because there
+the repeats were doing the job of retries for dropped answers. The shipped version — 100 ms window
+plus a 100 ms retry timer — was no worse anywhere tested, and on a saturated link cut the 95th
+percentile from 5–10 s to under 0.45 s. Six eager recovery sessions, timer ticks included, are in
+`vectors/cubelink.json`, and the port reproduces them.
+
+**Not ported:** the diagnostics recorder. It is the Phase 0 gyro-research tool, and the only Gen4
+cube with a gyroscope is the GAN12 ui Maglev — the i Carry 4 has none. Port it if a gyro cube ever
+arrives. The drivers still decode gyro frames; nothing records them.
+
+**Running it.** `npm run vectors` needs `--experimental-transform-types` now (in the script): the
+drivers use TypeScript parameter properties, which Node's default type stripping rejects and which
+vitest had been compiling silently. Open `swift/CubingApp/CubingApp.xcodeproj`, choose the phone,
+Run.
 
 ### S4 — Recording and history · 2 weekends
 

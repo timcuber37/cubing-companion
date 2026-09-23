@@ -86,7 +86,7 @@ export class GanGen3Driver extends BufferedMoveDriver implements GanProtocolDriv
         const face = MOVE_FACE_ORDER.indexOf(view.word(74, 6));
 
         if (face >= 0) {
-          this.moveBuffer.push({
+          this.acceptLiveMove({
             type: "MOVE",
             serial,
             timestamp,
@@ -121,6 +121,7 @@ export class GanGen3Driver extends BufferedMoveDriver implements GanProtocolDriv
       }
       // No connection: this *is* the history response, and asking again would not help.
       events = await this.evictMoveBuffer();
+      await this.afterHistory(connection, events);
     } else if (eventType === 0x02) {
       // FACELETS, sent periodically as well as on request.
       const serial = (this.serial = view.word(24, 16, true));

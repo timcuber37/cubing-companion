@@ -36,6 +36,7 @@ import {
   type GanMacStore,
 } from "../ble/transport.ts";
 import { encrypterFor, type GanEncrypter } from "./crypto.ts";
+import { REQUEST_REPEAT_MS } from "./buffer.ts";
 import { GanGen2Driver } from "./gen2.ts";
 import { GanGen3Driver } from "./gen3.ts";
 import { GanGen4Driver } from "./gen4.ts";
@@ -60,10 +61,11 @@ function driverFor(profile: GanServiceProfile, now: () => number): GanProtocolDr
   switch (profile.protocol) {
     case "gen2":
       return new GanGen2Driver(now);
+    // Eager recovery: see `RecoveryMode` in `buffer.ts` for what it fixes and how it was measured.
     case "gen3":
-      return new GanGen3Driver(now);
+      return new GanGen3Driver(now, "eager");
     case "gen4":
-      return new GanGen4Driver(now);
+      return new GanGen4Driver(now, "eager");
   }
 }
 
@@ -71,6 +73,7 @@ export class GanConnection implements GanDriverConnection {
   private readonly listeners = new Listeners<GanCubeEvent>();
   /** Serialises notification handling; see the note at the top of this file. */
   private queue: Promise<void> = Promise.resolve();
+  private retryTimer: ReturnType<typeof setInterval> | null = null;
   private unsubscribeNotifications: Unsubscribe | null = null;
   private unsubscribeDisconnect: Unsubscribe | null = null;
   private open = true;
@@ -134,6 +137,13 @@ export class GanConnection implements GanDriverConnection {
       this.profile.stateCharacteristic,
       (data) => this.enqueue(data),
     );
+    // Eager recovery retries lost moves on a timer rather than waiting for a frame to prompt it.
+    // Through the same queue as frames, so a retry never interleaves with a frame being decoded.
+    if (this.driver.retry) {
+      this.retryTimer = setInterval(() => {
+        this.queue = this.queue.then(() => this.open ? this.driver.retry?.(this) : undefined).catch(() => {});
+      }, REQUEST_REPEAT_MS);
+    }
   }
 
   /** Keeps frames in arrival order even though decoding one can await a write. */
@@ -162,6 +172,8 @@ export class GanConnection implements GanDriverConnection {
   }
 
   private teardown(): void {
+    if (this.retryTimer !== null) clearInterval(this.retryTimer);
+    this.retryTimer = null;
     this.unsubscribeNotifications?.();
     this.unsubscribeDisconnect?.();
     this.unsubscribeNotifications = null;

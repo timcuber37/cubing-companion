@@ -17,7 +17,9 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "dev": "npm run dev -w @cubing-companion/web",
-    "vectors": "node tools/vectors/generate.ts",
+    "vectors": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/vectors/generate.ts",
+    "link-replay": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/link/replay-capture.ts",
+    "link-sim": "node --experimental-transform-types --no-warnings=ExperimentalWarning tools/link/simulate.ts",
     "swift-tables": "node tools/vectors/swift-tables.ts && node tools/vectors/swift-data.ts",
     "swift-test": "cd swift/CubingCore && swift test -c release -Xswiftc -enable-testing --skip CubingBenchmarks",
     "swift-bench": "cd swift/CubingCore && swift test -c release -Xswiftc -enable-testing --filter CubingBenchmarks && CUBING_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter testBenchmarkCrossOnlySweep"

@@ -98,7 +98,7 @@ export class GanGen4Driver extends BufferedMoveDriver implements GanProtocolDriv
         const face = MOVE_FACE_ORDER.indexOf(view.word(66, 6));
 
         if (face >= 0) {
-          this.moveBuffer.push({
+          this.acceptLiveMove({
             type: "MOVE",
             serial,
             timestamp,
@@ -131,6 +131,7 @@ export class GanGen4Driver extends BufferedMoveDriver implements GanProtocolDriv
         });
       }
       events = await this.evictMoveBuffer();
+      await this.afterHistory(connection, events);
     } else if (eventType === 0xed) {
       // FACELETS — 138 of these arrived unprompted in the committed capture.
       const serial = (this.serial = view.word(16, 16, true));

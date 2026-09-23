@@ -36,6 +36,8 @@ const JOBS: readonly { name: string; seed: number; count: number }[] = [
   { name: "metrics", seed: 0x11_e7_21_c5, count: 60 },
   { name: "planner", seed: 0x91_a1_11_e2, count: 1200 },
   { name: "s2", seed: 0x52_02_20_26, count: 24 },
+  // `count` is random messages per event type in each generation's decode replay.
+  { name: "cubelink", seed: 0xc0_be_11_4c, count: 100 },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -45,7 +47,7 @@ for (const job of JOBS) {
   if (!generate) throw new Error(`no generator named ${job.name}`);
 
   const started = Date.now();
-  const file = generate(job.seed, job.count);
+  const file = await generate(job.seed, job.count);
   // Two-space JSON: the diff of a regenerated corpus should be readable, because a diff that
   // cannot be read is a diff nobody checks.
   const json = `${JSON.stringify(file, null, 2)}\n`;
