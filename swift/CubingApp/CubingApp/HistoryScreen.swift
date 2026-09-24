@@ -64,6 +64,10 @@ private struct SessionSolves: View {
             sort: \StoredSolve.startedAt, order: .reverse)
     }
 
+    /// Debug builds only: `-openSolve <id>` opens that solve, so a simulator screenshot can show the
+    /// detail screen without anyone tapping.
+    @State private var opened: String?
+
     var body: some View {
         let records = stored.map(\.record)
         List {
@@ -84,6 +88,14 @@ private struct SessionSolves: View {
                     for i in offsets { solves.delete(records[i].id) }
                 }
             }
+        }
+        .navigationDestination(item: $opened) { id in
+            if let record = records.first(where: { $0.id == id }) { SolveDetail(finished: solves.analyse(record)) }
+        }
+        .onAppear {
+            #if DEBUG
+            if opened == nil, let id = UserDefaults.standard.string(forKey: "openSolve") { opened = id }
+            #endif
         }
     }
 }
@@ -146,10 +158,15 @@ private struct SolveRow: View {
 /// One solve opened up: its scramble, its phases with the moves of each, and how it rated.
 struct SolveDetail: View {
     let finished: SolveModel.Finished
+    @State private var replay: ReplayModel?
+    @State private var decisions = DecisionsModel()
 
     var body: some View {
         let record = finished.record
         List {
+            if let replay {
+                Section { ReplayView(model: replay) }
+            }
             Section { SolveSummary(finished: finished) }
             if let scramble = record.scrambleText {
                 Section("Scramble") { Text(scramble).font(.callout.monospaced()).textSelection(.enabled) }
@@ -169,6 +186,7 @@ struct SolveDetail: View {
             } else {
                 Section("Solution") { Text(record.solution).font(.callout.monospaced()).textSelection(.enabled) }
             }
+            DecisionsSection(model: decisions, replay: replay)
             if let score = finished.score {
                 Section("Rating") {
                     if let rating = score.rating {
@@ -191,5 +209,10 @@ struct SolveDetail: View {
         }
         .navigationTitle(Format.date(record.startedAt))
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if replay == nil { replay = ReplayModel(record) }
+            decisions.load(record)
+        }
+        .onDisappear { replay?.pause() }
     }
 }

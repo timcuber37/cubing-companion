@@ -1,0 +1,6125 @@
+{
+  "generator": "review",
+  "seed": 779214853,
+  "count": 20,
+  "cases": [
+    {
+      "id": 9155,
+      "scramble": "D U F2 L2 U' B2 F2 D L2 U R' F' D R' F' U L D' F' D R2",
+      "solution": "x2 R' D D R' D L' U L D R' U' R D L U' L' U' R U R' Dw R' U' R Rw' U' R U' R' U U Rw U",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 1,
+        "moveText": [
+          "x2",
+          "R'",
+          "D",
+          "D",
+          "R'",
+          "D",
+          "L'",
+          "U",
+          "L",
+          "D",
+          "R'",
+          "U'",
+          "R",
+          "D",
+          "L",
+          "U'",
+          "L'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "Dw",
+          "R'",
+          "U'",
+          "R",
+          "Rw'",
+          "U'",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "U",
+          "Rw",
+          "U"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 5,
+          "playedTurns": 4,
+          "optimalTurns": 4,
+          "setup": "x2",
+          "best": "R' D2 R' D'",
+          "hold": "white down, blue front",
+          "branch": "x2 R' D2 R' D'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 8,
+            "branch": "x2 y' D' R2 D U2 F2 D2 F' D'"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 5,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        },
+        {
+          "at": 9,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        }
+      ]
+    },
+    {
+      "id": 6370,
+      "scramble": "B2 F2 R2 U L2 U L2 D2 B2 U2 F2 L2 B' R' D' R2 U2 R F L F2 D2",
+      "solution": "x y2 Rw' U' R2 D R' D' Uw' R' U' R U L' U L y' L' U L U' L' U' L D U R' U' R U U R' U2 R U R' U R U R' U' R U' R' U2 R U2",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "x'",
+        "firstTurn": 2,
+        "moveText": [
+          "x",
+          "z2",
+          "Rw'",
+          "F'",
+          "R2",
+          "B",
+          "R'",
+          "B'",
+          "Fw'",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "L'",
+          "F",
+          "L",
+          "z'",
+          "L'",
+          "F",
+          "L",
+          "F'",
+          "L'",
+          "F'",
+          "L",
+          "B",
+          "F",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "F",
+          "R'",
+          "F2",
+          "R",
+          "F",
+          "R'",
+          "F",
+          "R",
+          "F",
+          "R'",
+          "F'",
+          "R",
+          "F'",
+          "R'",
+          "F2",
+          "R",
+          "F2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 8,
+          "playedTurns": 6,
+          "optimalTurns": 6,
+          "setup": "z2",
+          "best": "L' D R D2 F2 D",
+          "hold": "white down, green front",
+          "branch": "z2 L' D R D2 F2 D",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 12,
+            "branch": "x2 y' B' D F R' D' U' F2 R U' R2 U' R"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 8,
+            "yours": "green-orange",
+            "theirs": "orange-blue",
+            "options": [
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "z2",
+                "moves": "D' L D2 L2 D' L",
+                "confidence": 0.40462397847592024,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "z2",
+                "moves": "U2 F' R2 D2 F U2 L2",
+                "confidence": 0.25726790744073563,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "z2",
+                "moves": "D2 F R F2 D' R' F'",
+                "confidence": 0.1756657370536461,
+                "mine": false
+              },
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 5,
+                "setup": "z2",
+                "moves": "U F' D' F U'",
+                "confidence": 0.16244237702969816,
+                "mine": true
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [
+              "orange-blue's corner was already up top where you can see it, while green-orange's was buried in a slot",
+              "there was one clear way to insert orange-blue, rather than several to choose between"
+            ],
+            "playedTurns": 4,
+            "optimalTurns": 5,
+            "played": "Uw' R' U' R",
+            "branch": "z2 D' L D2 L2 D' L",
+            "lookahead": {
+              "label": "green-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "z2 R2 U F' U' R2 U F D' F' U'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "z2 R2 U F' U' R2"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "U F D' F' U'"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 8,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 5,
+              "moves": "z2 R2 U F' U' R2",
+              "confidence": 0.16244237702969816,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "z2 R2 U F' U' R2 U F D' F' U'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "z2 R2 U F' U' R2"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "U F D' F' U'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "z2 D' L D2 L2 D' L",
+              "confidence": 0.40462397847592024,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "z2 D' L D2 L2 D' L F2 D' F' D F2",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "z2 D' L D2 L2 D' L"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "F2 D' F' D F2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "z2 U2 F' R2 D2 F U2 L2",
+              "confidence": 0.25726790744073563,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 12,
+                "solvedPairs": 2,
+                "branch": "z2 U2 F' R2 D2 F U2 L2 U' F' D F U",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "z2 U2 F' R2 D2 F U2 L2"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "U' F' D F U"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "z2 D2 F R F2 D' R' F'",
+              "confidence": 0.1756657370536461,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 12,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        }
+      ]
+    },
+    {
+      "id": 11583,
+      "scramble": "D U2 F2 R2 F U2 B R2 F' L2 F2 D2 F L' B U2 R B' D U2 F",
+      "solution": "x2 y R' U' B' D2 L' R2 U' R' U2 L' U' L R' U' R2 U R' Rw U2 R' U' R U' Rw' R U R' U' R' F R2 U' R' U' R U R' F' U'",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 2,
+        "moveText": [
+          "x2",
+          "y",
+          "R'",
+          "U'",
+          "B'",
+          "D2",
+          "L'",
+          "R2",
+          "U'",
+          "R'",
+          "U2",
+          "L'",
+          "U'",
+          "L",
+          "R'",
+          "U'",
+          "R2",
+          "U",
+          "R'",
+          "Rw",
+          "U2",
+          "R'",
+          "U'",
+          "R",
+          "U'",
+          "Rw'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R'",
+          "F",
+          "R2",
+          "U'",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "F'",
+          "U'"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 10,
+          "playedTurns": 8,
+          "optimalTurns": 6,
+          "setup": "z2",
+          "best": "R F D' R2 D' L",
+          "hold": "white down, green front",
+          "branch": "z2 R F D' R2 D' L",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "x2 y R' U R2 D2 F R' L U F U' F'"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 10,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 4,
+              "moves": "x2 y D2 B' D' B",
+              "confidence": 0.6792562780594508,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 7,
+                "solvedPairs": 3,
+                "branch": "x2 y D2 B' D' B F' D' F",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 y D2 B' D' B"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "F' D' F"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 6,
+              "moves": "x2 y D L' U2 R' U2 L",
+              "confidence": 0.2822813370904685,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "x2 y D L' U2 R' U2 L B R2 B' R2",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 y D L' U2 R' U2 L"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "B R2 B' R2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 y L R D L' R2 D R",
+              "confidence": 0.038462384850080675,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 10,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 4,
+              "moves": "x2 y D2 B' D' B",
+              "confidence": 0.6792562780594508,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 7,
+                "solvedPairs": 3,
+                "branch": "x2 y D2 B' D' B F' D' F",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 y D2 B' D' B"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "F' D' F"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 6,
+              "moves": "x2 y D L' U2 R' U2 L",
+              "confidence": 0.2822813370904685,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "x2 y D L' U2 R' U2 L B R2 B' R2",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 y D L' U2 R' U2 L"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "B R2 B' R2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 y L R D L' R2 D R",
+              "confidence": 0.038462384850080675,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 1200,
+      "scramble": "z2 D F2 R2 U2 F2 U F2 U L2 F2 L2 F D B' U' L F2 L2 D U2 B' U",
+      "solution": "x D' U' L U' R' U' x' D' D2 R' Uw' U' U y R U' R' U2 R U' R' y2 R' U' R Dw U R U' R' U2 R U' R' U' R' U R U' R' U' R y U' R' U' R U' R' U R R' F R U U' U R' U' F' U R M2 U M2 U2 M2 U M2",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "x'",
+        "firstTurn": 1,
+        "moveText": [
+          "x",
+          "B'",
+          "F'",
+          "L",
+          "F'",
+          "R'",
+          "F'",
+          "x'",
+          "B'",
+          "B2",
+          "R'",
+          "Fw'",
+          "F'",
+          "F",
+          "z",
+          "R",
+          "F'",
+          "R'",
+          "F2",
+          "R",
+          "F'",
+          "R'",
+          "z2",
+          "R'",
+          "F'",
+          "R",
+          "Bw",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F2",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R",
+          "z",
+          "F'",
+          "R'",
+          "F'",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "R'",
+          "D",
+          "R",
+          "F",
+          "F'",
+          "F",
+          "R'",
+          "F'",
+          "D'",
+          "F",
+          "R",
+          "M2",
+          "F",
+          "M2",
+          "F2",
+          "M2",
+          "F",
+          "M2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 12,
+          "playedTurns": 10,
+          "optimalTurns": 7,
+          "setup": "",
+          "best": "R2 L2 D' L' F R' D2",
+          "hold": "white down, green front",
+          "branch": "R2 L2 D' L' F R' D2",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "R2 L F U' R' D2 U' L F U2 L'"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 12,
+            "yours": "green-orange",
+            "theirs": "green-orange",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 5,
+                "setup": "x2 y",
+                "moves": "U L' D' L U'",
+                "confidence": 0.828101555349886,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2 y",
+                "moves": "D L' D' L B' D' B",
+                "confidence": 0.10348205565550878,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "x2 y",
+                "moves": "L2 R' D R D' L2",
+                "confidence": 0.05137356812576838,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2 y",
+                "moves": "R D' R2 F' R' F R",
+                "confidence": 0.01704282086883682,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 9,
+            "optimalTurns": 5,
+            "played": "U' U y R U' R' U2 R U' R' y2",
+            "branch": "x2 y U L' D' L U'",
+            "lookahead": {
+              "label": "orange-blue",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "x2 y L2 R' D R D' L2 U2 R D' R' U2",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 y L2 R' D R D' L2"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "U2 R D' R' U2"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 23,
+            "yours": "orange-blue",
+            "theirs": "blue-red",
+            "options": [
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "L' D' L B' D' B",
+                "confidence": 0.6171391077879543,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "L2 R' D R D' L2",
+                "confidence": 0.2287323374901342,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "R D' R2 F' R' F R",
+                "confidence": 0.15412855472191153,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [
+              "blue-red's edge was up top rather than stuck in a slot",
+              "orange-blue's edge was in the wrong slot"
+            ],
+            "playedTurns": 12,
+            "optimalTurns": 6,
+            "played": "R' U' R Dw U R U' R' U2 R U' R'",
+            "branch": "x2 L' D' L B' D' B",
+            "lookahead": {
+              "label": "blue-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 L' D' L B' D' B L' R2 D L D' R2",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 L' D' L B' D' B"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "L' R2 D L D' R2"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 35,
+            "yours": "blue-red",
+            "theirs": "blue-red",
+            "options": [
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2 y'",
+                "moves": "D2 R' D R B' D' B",
+                "confidence": 0.8789646842846845,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2 y'",
+                "moves": "R D' R2 F' R' F R",
+                "confidence": 0.12103531571531541,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 8,
+            "optimalTurns": 7,
+            "played": "U' R' U R U' R' U' R y",
+            "branch": "x2 y' D2 R' D R B' D' B"
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 12,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 5,
+              "moves": "x2 y U' F D2 F' U",
+              "confidence": 0.828101555349886,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "x2 y U' F D2 F' U F' B2 R2 F B2 R2",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 y U' F D2 F' U"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "F' B2 R2 F B2 R2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "x2 y L2 R' D R D' L2",
+              "confidence": 0.05137356812576838,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "x2 y L2 R' D R D' L2 U2 R D' R' U2",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 y L2 R' D R D' L2"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "U2 R D' R' U2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "x2 y D L' D' L B' D' B",
+              "confidence": 0.10348205565550878,
+              "lookahead": null
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 y R D' R2 F' R' F R",
+              "confidence": 0.01704282086883682,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 23,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 6,
+              "moves": "x2 L' D' L B' D' B",
+              "confidence": 0.6171391077879543,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 L' D' L B' D' B L' R2 D L D' R2",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 L' D' L B' D' B"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "L' R2 D L D' R2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "x2 L2 R' D R D' L2",
+              "confidence": 0.2287323374901342,
+              "lookahead": null
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 R D' R2 F' R' F R",
+              "confidence": 0.15412855472191153,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 2400,
+      "scramble": "B2 F2 R2 U2 R2 U R2 D B2 U B' L D2 F2 D2 B2 F R F L'",
+      "solution": "x y2 U Rw' L' U R' D R D2 L' U L y' L U L' R' U R U' R' U' R U' U' F U F' U' R U' R' y' R' U2 R U' R' U' R U R' U R U R' U' R U R' U' R2 D R' U R D' R' U' U' R' U R U2",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "x'",
+        "firstTurn": 2,
+        "moveText": [
+          "x",
+          "z2",
+          "F",
+          "Rw'",
+          "L'",
+          "F",
+          "R'",
+          "B",
+          "R",
+          "B2",
+          "L'",
+          "F",
+          "L",
+          "z'",
+          "L",
+          "F",
+          "L'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R",
+          "F'",
+          "F'",
+          "D",
+          "F",
+          "D'",
+          "F'",
+          "R",
+          "F'",
+          "R'",
+          "z'",
+          "R'",
+          "F2",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "R'",
+          "F",
+          "R",
+          "F",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "R'",
+          "F'",
+          "R2",
+          "B",
+          "R'",
+          "F",
+          "R",
+          "B'",
+          "R'",
+          "F'",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 10,
+          "playedTurns": 8,
+          "optimalTurns": 6,
+          "setup": "z2",
+          "best": "L2 F R' D R D2",
+          "hold": "white down, green front",
+          "branch": "z2 L2 F R' D R D2",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "z2 U' F2 B D2 R' U F R' F' U2 F"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 10,
+            "yours": "orange-blue",
+            "theirs": "green-orange",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 6,
+                "setup": "z2",
+                "moves": "D2 F2 D' F' D F2",
+                "confidence": 0.3443681747558115,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "z2",
+                "moves": "R' D R B D B'",
+                "confidence": 0.3308702065273708,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "z2",
+                "moves": "U R D' R2 D R U'",
+                "confidence": 0.3187712291514575,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "z2",
+                "moves": "L F D' L D2 F' L'",
+                "confidence": 0.00599038956536013,
+                "mine": false
+              }
+            ],
+            "wording": "leans slightly towards",
+            "reasons": [
+              "it needs no back-face turns, while orange-blue needs 2"
+            ],
+            "playedTurns": 6,
+            "optimalTurns": 6,
+            "played": "L' U L y' L U L'",
+            "branch": "z2 D2 F2 D' F' D F2",
+            "lookahead": {
+              "label": "blue-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "z2 U R D' R2 D R U' B D B'",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "z2 U R D' R2 D R U'"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "B D B'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 17,
+            "yours": "green-orange",
+            "theirs": "green-orange",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 5,
+                "setup": "x2 y",
+                "moves": "F2 D' F' D F2",
+                "confidence": 0.41984350261407344,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2 y",
+                "moves": "D R D F' R F R2",
+                "confidence": 0.3509232898905973,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2 y",
+                "moves": "D2 R' F' R2 D F R",
+                "confidence": 0.22923320749532936,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 7,
+            "optimalTurns": 5,
+            "played": "R' U R U' R' U' R",
+            "branch": "x2 y F2 D' F' D F2",
+            "lookahead": {
+              "label": "green-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 y F2 D' F' D F2 D2 F R D R' F'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 y F2 D' F' D F2"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D2 F R D R' F'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 24,
+            "yours": "blue-red",
+            "theirs": "blue-red",
+            "options": [
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 4,
+                "setup": "x2 y",
+                "moves": "D2 R D R'",
+                "confidence": 0.6325067858672697,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2 y",
+                "moves": "D R' D2 R2 F' R' F",
+                "confidence": 0.36749321413273023,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 5,
+            "optimalTurns": 4,
+            "played": "U' U' F U F'",
+            "branch": "x2 y D2 R D R'",
+            "lookahead": {
+              "label": "blue-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 4,
+                "branch": "x2 y D2 R D R' R' B' D2 B R",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 y D2 R D R'"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "R' B' D2 B R"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 10,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "z2 U R D' R2 D R U'",
+              "confidence": 0.3187712291514575,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "z2 U R D' R2 D R U' B D B'",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "z2 U R D' R2 D R U'"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "B D B'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "z2 R' D R B D B'",
+              "confidence": 0.3308702065273708,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "z2 R' D R B D B' F2 D' F' D F2",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "z2 R' D R B D B'"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "F2 D' F' D F2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 6,
+              "moves": "z2 D2 F2 D' F' D F2",
+              "confidence": 0.3443681747558115,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 13,
+                "solvedPairs": 2,
+                "branch": "z2 D2 F2 D' F' D F2 D R' D2 R B' D' B",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "z2 D2 F2 D' F' D F2"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D R' D2 R B' D' B"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "z2 L F D' L D2 F' L'",
+              "confidence": 0.00599038956536013,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 17,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 5,
+              "moves": "x2 y F2 D' F' D F2",
+              "confidence": 0.41984350261407344,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 y F2 D' F' D F2 D2 F R D R' F'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 y F2 D' F' D F2"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D2 F R D R' F'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 y D2 R' F' R2 D F R",
+              "confidence": 0.22923320749532936,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 13,
+                "solvedPairs": 3,
+                "branch": "x2 y D2 R' F' R2 D F R B2 D' L' D L B2",
+                "steps": [
+                  {
+                    "label": "red-green",
+                    "moves": "x2 y D2 R' F' R2 D F R"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "B2 D' L' D L B2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "x2 y D R D F' R F R2",
+              "confidence": 0.3509232898905973,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 3100,
+      "scramble": "D F2 U2 B2 U' R2 U' B2 R2 U L' B L2 U R' B' D2 U' R2",
+      "solution": "y2 Rw' R' F' D' R2 D2 F' L' U L U' L' U' L U' R' F R F' R' U' R U R U' R' U y' L' U' L R' U R U' R' U' R U' R' U R U' R U R' U R U' U' R' R' U R' U' y R' F' R2 U' R' U R' F R F U'",
+      "crossFace": 4,
+      "grip": {
+        "rotation": "x'",
+        "firstTurn": 1,
+        "moveText": [
+          "z2",
+          "Rw'",
+          "R'",
+          "D'",
+          "B'",
+          "R2",
+          "B2",
+          "D'",
+          "L'",
+          "F",
+          "L",
+          "F'",
+          "L'",
+          "F'",
+          "L",
+          "F'",
+          "R'",
+          "D",
+          "R",
+          "D'",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "z'",
+          "L'",
+          "F'",
+          "L",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R",
+          "F",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "F'",
+          "R'",
+          "R'",
+          "F",
+          "R'",
+          "F'",
+          "z",
+          "R'",
+          "D'",
+          "R2",
+          "F'",
+          "R'",
+          "F",
+          "R'",
+          "D",
+          "R",
+          "D",
+          "F'"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 8,
+          "playedTurns": 7,
+          "optimalTurns": 7,
+          "setup": "x y2",
+          "best": "R D F' R2 D F' R",
+          "hold": "blue down, white front",
+          "branch": "x y2 R D F' R2 D F' R",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 12,
+            "branch": "x y' F D' R' U' F2 D' R2 F' L F2 U L'"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 8,
+            "yours": "white-red",
+            "theirs": "white-red",
+            "options": [
+              {
+                "slot": "UR",
+                "label": "white-red",
+                "optimal": 5,
+                "setup": "x y2",
+                "moves": "R2 F' R' F R2",
+                "confidence": 0.7610310207726251,
+                "mine": true
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 6,
+                "setup": "x y2",
+                "moves": "U' F U L' F2 L",
+                "confidence": 0.1762631747484001,
+                "mine": false
+              },
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 7,
+                "setup": "x y2",
+                "moves": "U F2 U' F' D' F' D",
+                "confidence": 0.046791603651474965,
+                "mine": false
+              },
+              {
+                "slot": "UL",
+                "label": "white-orange",
+                "optimal": 8,
+                "setup": "x y2",
+                "moves": "U L B2 R2 D F' B2 L'",
+                "confidence": 0.015914200827499912,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 7,
+            "optimalTurns": 5,
+            "played": "L' U L U' L' U' L",
+            "branch": "x y2 R2 F' R' F R2",
+            "lookahead": {
+              "label": "white-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x y2 R2 F' R' F R2 F' D' F' D",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x y2 R2 F' R' F R2"
+                  },
+                  {
+                    "label": "yellow-red",
+                    "moves": "F' D' F' D"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 15,
+            "yours": "yellow-orange",
+            "theirs": "yellow-red",
+            "options": [
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 4,
+                "setup": "x y2",
+                "moves": "F' D' F' D",
+                "confidence": 0.6733222256667986,
+                "mine": false
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 7,
+                "setup": "x y2",
+                "moves": "U' F U2 L' U' F2 L",
+                "confidence": 0.2272466504878581,
+                "mine": true
+              },
+              {
+                "slot": "UL",
+                "label": "white-orange",
+                "optimal": 7,
+                "setup": "x y2",
+                "moves": "U B' U2 R2 U2 B U'",
+                "confidence": 0.09943112384534339,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [
+              "yellow-red sits beside the pair you had just finished, so your hands were already there",
+              "yellow-red's edge was up top rather than stuck in a slot"
+            ],
+            "playedTurns": 8,
+            "optimalTurns": 7,
+            "played": "U' R' F R F' R' U' R",
+            "branch": "x y2 F' D' F' D",
+            "lookahead": {
+              "label": "yellow-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x y2 F' D' F' D D F2 D2 B' L' B D",
+                "steps": [
+                  {
+                    "label": "yellow-red",
+                    "moves": "x y2 F' D' F' D"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "D F2 D2 B' L' B D"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 23,
+            "yours": "yellow-red",
+            "theirs": "white-orange",
+            "options": [
+              {
+                "slot": "UL",
+                "label": "white-orange",
+                "optimal": 6,
+                "setup": "x y2",
+                "moves": "F2 R2 U2 R' U2 R'",
+                "confidence": 0.5900942020096179,
+                "mine": false
+              },
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 6,
+                "setup": "x y2",
+                "moves": "F L D' F' D L'",
+                "confidence": 0.40990579799038207,
+                "mine": true
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [
+              "white-orange's edge was up top rather than stuck in a slot",
+              "white-orange's two pieces were closer to being joined"
+            ],
+            "playedTurns": 8,
+            "optimalTurns": 6,
+            "played": "U R U' R' U y' L' U' L",
+            "branch": "x y2 F2 R2 U2 R' U2 R'",
+            "lookahead": {
+              "label": "yellow-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 4,
+                "branch": "x y2 F L D' F' D L' U' F2 R' F2 R U",
+                "steps": [
+                  {
+                    "label": "yellow-red",
+                    "moves": "x y2 F L D' F' D L'"
+                  },
+                  {
+                    "label": "white-orange",
+                    "moves": "U' F2 R' F2 R U"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 8,
+          "crossFace": 4,
+          "ranked": [
+            {
+              "slot": "UR",
+              "label": "white-red",
+              "optimal": 5,
+              "moves": "x y2 R2 F' R' F R2",
+              "confidence": 0.7610310207726251,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x y2 R2 F' R' F R2 F' D' F' D",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x y2 R2 F' R' F R2"
+                  },
+                  {
+                    "label": "yellow-red",
+                    "moves": "F' D' F' D"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DL",
+              "label": "yellow-orange",
+              "optimal": 6,
+              "moves": "x y2 U' F U F L' F L",
+              "confidence": 0.1762631747484001,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "x y2 U' F U F L' F L F R' F' R",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x y2 U' F U F L' F L"
+                  },
+                  {
+                    "label": "white-red",
+                    "moves": "F R' F' R"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DR",
+              "label": "yellow-red",
+              "optimal": 7,
+              "moves": "x y2 U F2 U' F' D' F' D",
+              "confidence": 0.046791603651474965,
+              "lookahead": null
+            },
+            {
+              "slot": "UL",
+              "label": "white-orange",
+              "optimal": 8,
+              "moves": "x y2 U L B2 R2 D F' B2 L'",
+              "confidence": 0.015914200827499912,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 15,
+          "crossFace": 4,
+          "ranked": [
+            {
+              "slot": "DR",
+              "label": "yellow-red",
+              "optimal": 4,
+              "moves": "x y2 F' D' F' D",
+              "confidence": 0.6733222256667986,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x y2 F' D' F' D D F2 D2 B' L' B D",
+                "steps": [
+                  {
+                    "label": "yellow-red",
+                    "moves": "x y2 F' D' F' D"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "D F2 D2 B' L' B D"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "UL",
+              "label": "white-orange",
+              "optimal": 7,
+              "moves": "x y2 U B' U2 R2 U2 B U'",
+              "confidence": 0.09943112384534339,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x y2 U B' U2 R2 U2 B U' B' L' F' L B",
+                "steps": [
+                  {
+                    "label": "white-orange",
+                    "moves": "x y2 U B' U2 R2 U2 B U'"
+                  },
+                  {
+                    "label": "yellow-red",
+                    "moves": "B' L' F' L B"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DL",
+              "label": "yellow-orange",
+              "optimal": 7,
+              "moves": "x y2 U' F U2 L' U' F2 L",
+              "confidence": 0.2272466504878581,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 13,
+                "solvedPairs": 3,
+                "branch": "x y2 U' F U2 L' U' F2 L F2 D2 B' L2 B D2",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x y2 U' F U2 L' U' F2 L"
+                  },
+                  {
+                    "label": "yellow-red",
+                    "moves": "F2 D2 B' L2 B D2"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 3800,
+      "scramble": "F' U' L' D' F L' B U2 B' R F2 D2 L B2 L U2 B2 L' F2 L F2",
+      "solution": "D R' F R2 D R U' R' L' L U2 L' U' L U2 L' U' L' U' L U L' U' L U R' U R U R' U2 R R' U' F' U F R U2 R U R' F' R U R' U' R' F R2 U' R' U'",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 0,
+        "moveText": [
+          "D",
+          "R'",
+          "F",
+          "R2",
+          "D",
+          "R",
+          "U'",
+          "R'",
+          "L'",
+          "L",
+          "U2",
+          "L'",
+          "U'",
+          "L",
+          "U2",
+          "L'",
+          "U'",
+          "L'",
+          "U'",
+          "L",
+          "U",
+          "L'",
+          "U'",
+          "L",
+          "U",
+          "R'",
+          "U",
+          "R",
+          "U",
+          "R'",
+          "U2",
+          "R",
+          "R'",
+          "U'",
+          "F'",
+          "U",
+          "F",
+          "R",
+          "U2",
+          "R",
+          "U",
+          "R'",
+          "F'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R'",
+          "F",
+          "R2",
+          "U'",
+          "R'",
+          "U'"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 9,
+          "playedTurns": 9,
+          "optimalTurns": 6,
+          "setup": "",
+          "best": "D R' F R2 D L'",
+          "hold": "yellow down, green front",
+          "branch": "D R' F R2 D L'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 10,
+            "branch": "y R2 F U2 D' B' R' D' L U' L"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 9,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 5,
+              "moves": "D L U' L' D'",
+              "confidence": 0.40339030421605077,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "D L U' L' D' D L' U' L D'",
+                "steps": [
+                  {
+                    "label": "red-blue",
+                    "moves": "D L U' L' D'"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "D L' U' L D'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 6,
+              "moves": "R' U R2 B2 R' B2",
+              "confidence": 0.4555939815353577,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "R' U R2 B2 R' B2 L2 B2 L B2 U' L",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "R' U R2 B2 R' B2"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "L2 B2 L B2 U' L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 7,
+              "moves": "U L2 B2 L B2 U' L",
+              "confidence": 0.14101571424859163,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 9,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 5,
+              "moves": "D L U' L' D'",
+              "confidence": 0.40339030421605077,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "D L U' L' D' D L' U' L D'",
+                "steps": [
+                  {
+                    "label": "red-blue",
+                    "moves": "D L U' L' D'"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "D L' U' L D'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 6,
+              "moves": "R' U R2 B2 R' B2",
+              "confidence": 0.4555939815353577,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "R' U R2 B2 R' B2 L2 B2 L B2 U' L",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "R' U R2 B2 R' B2"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "L2 B2 L B2 U' L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 7,
+              "moves": "U L2 B2 L B2 U' L",
+              "confidence": 0.14101571424859163,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 4500,
+      "scramble": "F2 U2 B' D R L' B' U' L F2 L D2 R D2 R' B2 R D2 B2 R D'",
+      "solution": "z' y' R D R' F R2 U' Rw' U Rw D D y' U' D D' R' U R L' U L y U R U' R' U R U' R' U U R U' R' Dw R' U2 R U R' U2 R U' R U U' R' R U2 R2 U' R2 U' R2 U2 R U R' U R' U' y R' F' R2 U' R' U Lw' U R U",
+      "crossFace": 1,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 2,
+        "moveText": [
+          "z'",
+          "y'",
+          "R",
+          "D",
+          "R'",
+          "F",
+          "R2",
+          "U'",
+          "Rw'",
+          "U",
+          "Rw",
+          "D",
+          "D",
+          "y'",
+          "U'",
+          "D",
+          "D'",
+          "R'",
+          "U",
+          "R",
+          "L'",
+          "U",
+          "L",
+          "y",
+          "U",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "U",
+          "R",
+          "U'",
+          "R'",
+          "Dw",
+          "R'",
+          "U2",
+          "R",
+          "U",
+          "R'",
+          "U2",
+          "R",
+          "U'",
+          "R",
+          "U",
+          "U'",
+          "R'",
+          "R",
+          "U2",
+          "R2",
+          "U'",
+          "R2",
+          "U'",
+          "R2",
+          "U2",
+          "R",
+          "U",
+          "R'",
+          "U",
+          "R'",
+          "U'",
+          "y",
+          "R'",
+          "F'",
+          "R2",
+          "U'",
+          "R'",
+          "U",
+          "Lw'",
+          "U",
+          "R",
+          "U"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 11,
+          "playedTurns": 9,
+          "optimalTurns": 7,
+          "setup": "z'",
+          "best": "D F2 D2 R' D F D'",
+          "hold": "orange down, green front",
+          "branch": "z' D F2 D2 R' D F D'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 9,
+            "branch": "x' z' F' U R' L2 D U' R2 B' D2"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 11,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        },
+        {
+          "at": 11,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        }
+      ]
+    },
+    {
+      "id": 5200,
+      "scramble": "D' U' L2 F2 L2 U2 F2 D' U2 F D F D2 R U' B' U R' F",
+      "solution": "y' L R' D R R D U' U' D L' U L U' R' U R U L U L' R U R' U R U' R' U R' U R Rw' U' R U M' Rw U R' U' Rw' F R F' U",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 1,
+        "moveText": [
+          "y'",
+          "L",
+          "R'",
+          "D",
+          "R",
+          "R",
+          "D",
+          "U'",
+          "U'",
+          "D",
+          "L'",
+          "U",
+          "L",
+          "U'",
+          "R'",
+          "U",
+          "R",
+          "U",
+          "L",
+          "U",
+          "L'",
+          "R",
+          "U",
+          "R'",
+          "U",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "R'",
+          "U",
+          "R",
+          "Rw'",
+          "U'",
+          "R",
+          "U",
+          "M'",
+          "Rw",
+          "U",
+          "R'",
+          "U'",
+          "Rw'",
+          "F",
+          "R",
+          "F'",
+          "U"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 10,
+          "playedTurns": 9,
+          "optimalTurns": 5,
+          "setup": "y'",
+          "best": "R' L D R2 D2",
+          "hold": "yellow down, orange front",
+          "branch": "y' R' L D R2 D2",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 9,
+            "branch": "y D L U' F2 D' R' U D' F2"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 10,
+            "yours": "blue-orange",
+            "theirs": "blue-orange",
+            "options": [
+              {
+                "slot": "BL",
+                "label": "blue-orange",
+                "optimal": 3,
+                "setup": "y",
+                "moves": "B' U B",
+                "confidence": 0.8828765485098334,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 6,
+                "setup": "y",
+                "moves": "R' U2 B' R' B R",
+                "confidence": 0.07277268685546309,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 6,
+                "setup": "y",
+                "moves": "U2 L' F' U' F L",
+                "confidence": 0.031533804046212206,
+                "mine": false
+              },
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 6,
+                "setup": "y",
+                "moves": "L2 R2 B L2 B' R2",
+                "confidence": 0.012816960588491211,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 3,
+            "optimalTurns": 3,
+            "played": "L' U L",
+            "branch": "y B' U B",
+            "lookahead": {
+              "label": "blue-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 3,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "y B' U B R U F U' F' R'",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y B' U B"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "R U F U' F' R'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 13,
+            "yours": "red-blue",
+            "theirs": "red-blue",
+            "options": [
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 6,
+                "setup": "y",
+                "moves": "L' U L B U B'",
+                "confidence": 0.5359944433350449,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 6,
+                "setup": "y",
+                "moves": "R U F U' F' R'",
+                "confidence": 0.3224689176919129,
+                "mine": false
+              },
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 6,
+                "setup": "y",
+                "moves": "R U F U F' R'",
+                "confidence": 0.14153663897304225,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 8,
+            "optimalTurns": 6,
+            "played": "U' R' U R U L U L'",
+            "branch": "y L' U L B U B'",
+            "lookahead": {
+              "label": "green-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 3,
+                "branch": "y F U2 F' R U R' B U' B'",
+                "steps": [
+                  {
+                    "label": "green-red",
+                    "moves": "y F U2 F' R U R'"
+                  },
+                  {
+                    "label": "red-blue",
+                    "moves": "B U' B'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 21,
+            "yours": "orange-green",
+            "theirs": "orange-green",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 5,
+                "setup": "y",
+                "moves": "F R' F R F2",
+                "confidence": 0.9493643267360662,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 5,
+                "setup": "y",
+                "moves": "L D F' D' L'",
+                "confidence": 0.050635673263933825,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 7,
+            "optimalTurns": 5,
+            "played": "R U R' U R U' R'",
+            "branch": "y F R' F R F2",
+            "lookahead": {
+              "label": "orange-green",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 4,
+                "branch": "y U2 R' F R U2 F' R U R'",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y U2 R' F R U2 F'"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "R U R'"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 10,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 3,
+              "moves": "y B' U B",
+              "confidence": 0.8828765485098334,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 3,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "y B' U B R U F U' F' R'",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y B' U B"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "R U F U' F' R'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "green-red",
+              "optimal": 6,
+              "moves": "y R U2 F U' F' R'",
+              "confidence": 0.031533804046212206,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "y R U2 F U' F' R' B L2 B' L2",
+                "steps": [
+                  {
+                    "label": "green-red",
+                    "moves": "y R U2 F U' F' R'"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "B L2 B' L2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 6,
+              "moves": "y R' U2 B' R' B R",
+              "confidence": 0.07277268685546309,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "y R' U2 B' R' B R L' F' U' F L",
+                "steps": [
+                  {
+                    "label": "red-blue",
+                    "moves": "y R' U2 B' R' B R"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "L' F' U' F L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 6,
+              "moves": "y R U F U F' R'",
+              "confidence": 0.012816960588491211,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "y R U F U F' R' L F' U F L'",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y R U F U F' R'"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "L F' U F L'"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 13,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "FR",
+              "label": "green-red",
+              "optimal": 6,
+              "moves": "y F U2 F' R U R'",
+              "confidence": 0.3224689176919129,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 3,
+                "branch": "y F U2 F' R U R' B U' B'",
+                "steps": [
+                  {
+                    "label": "green-red",
+                    "moves": "y F U2 F' R U R'"
+                  },
+                  {
+                    "label": "red-blue",
+                    "moves": "B U' B'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 6,
+              "moves": "y R2 F2 B' R2 F2 B",
+              "confidence": 0.14153663897304225,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "y R2 F2 B' R2 F2 B R' U' R2 U2 R'",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y R2 F2 B' R2 F2 B"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "R' U' R2 U2 R'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 6,
+              "moves": "y U2 B R U R' U' B'",
+              "confidence": 0.5359944433350449,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 13,
+                "solvedPairs": 3,
+                "branch": "y U2 B R U R' U' B' U F' U2 F2 U F'",
+                "steps": [
+                  {
+                    "label": "red-blue",
+                    "moves": "y U2 B R U R' U' B'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "U F' U2 F2 U F'"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 5900,
+      "scramble": "D2 B2 F2 L2 F2 D R2 U R2 D R' U' R2 B2 D' F D2 U' R' B' L2 U'",
+      "solution": "x' y2 Rw D F' Rw' U F U L U L' D U' R U' R' D' L' U L y U R U' U' R' D D U' U' R U R' U' R U R' D U D U R' F R F' U' Rw Rw' U' F R U R' U' R U R' U' F' F R U' R' U' R U R' F' R U R' U' R' F R F' U",
+      "crossFace": 2,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 2,
+        "moveText": [
+          "x'",
+          "y2",
+          "Rw",
+          "D",
+          "F'",
+          "Rw'",
+          "U",
+          "F",
+          "U",
+          "L",
+          "U",
+          "L'",
+          "D",
+          "U'",
+          "R",
+          "U'",
+          "R'",
+          "D'",
+          "L'",
+          "U",
+          "L",
+          "y",
+          "U",
+          "R",
+          "U'",
+          "U'",
+          "R'",
+          "D",
+          "D",
+          "U'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "D",
+          "U",
+          "D",
+          "U",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "U'",
+          "Rw",
+          "Rw'",
+          "U'",
+          "F",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "F'",
+          "F",
+          "R",
+          "U'",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "F'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "U"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 8,
+          "playedTurns": 6,
+          "optimalTurns": 5,
+          "setup": "x' y",
+          "best": "F L D' R F'",
+          "hold": "green down, red front",
+          "branch": "x' y F L D' R F'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 9,
+            "branch": "x' F R2 U' R D R2 D' B L'"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 8,
+            "yours": "white-red",
+            "theirs": "white-red",
+            "options": [
+              {
+                "slot": "UR",
+                "label": "white-red",
+                "optimal": 4,
+                "setup": "x z2",
+                "moves": "B R B R'",
+                "confidence": 0.7550967906712647,
+                "mine": true
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 5,
+                "setup": "x z2",
+                "moves": "L2 B' L B L2",
+                "confidence": 0.15775575529270733,
+                "mine": false
+              },
+              {
+                "slot": "UL",
+                "label": "white-orange",
+                "optimal": 6,
+                "setup": "x z2",
+                "moves": "B2 U R' B U' R",
+                "confidence": 0.07751480750691224,
+                "mine": false
+              },
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 7,
+                "setup": "x z2",
+                "moves": "U R2 B' R2 B U' R2",
+                "confidence": 0.009632646529115796,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 4,
+            "optimalTurns": 4,
+            "played": "U L U L'",
+            "branch": "x z2 B R B R'",
+            "lookahead": {
+              "label": "white-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x z2 B R B R' R F D2 F' R'",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x z2 B R B R'"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "R F D2 F' R'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 12,
+            "yours": "yellow-orange",
+            "theirs": "white-orange",
+            "options": [
+              {
+                "slot": "UL",
+                "label": "white-orange",
+                "optimal": 6,
+                "setup": "x z2",
+                "moves": "B D L' B' D' L",
+                "confidence": 0.5102355447947862,
+                "mine": false
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 5,
+                "setup": "x z2",
+                "moves": "D R D' R' D'",
+                "confidence": 0.3274958974069887,
+                "mine": true
+              },
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 6,
+                "setup": "x z2",
+                "moves": "R' U' B2 U B' R",
+                "confidence": 0.16226855779822508,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [
+              "white-orange's corner was already up top where you can see it, while yellow-orange's was buried in a slot",
+              "it needs 2 back turns and is still the better pair"
+            ],
+            "playedTurns": 5,
+            "optimalTurns": 5,
+            "played": "D U' R U' R'",
+            "branch": "x z2 B D L' B' D' L",
+            "lookahead": {
+              "label": "yellow-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "x z2 L2 B2 L B2 L2 U R' B R U'",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x z2 L2 B2 L B2 L2"
+                  },
+                  {
+                    "label": "white-orange",
+                    "moves": "U R' B R U'"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 8,
+          "crossFace": 2,
+          "ranked": [
+            {
+              "slot": "UR",
+              "label": "white-red",
+              "optimal": 4,
+              "moves": "x z2 B R B R'",
+              "confidence": 0.7550967906712647,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x z2 B R B R' R F D2 F' R'",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x z2 B R B R'"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "R F D2 F' R'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DL",
+              "label": "yellow-orange",
+              "optimal": 5,
+              "moves": "x z2 F L B' L' F'",
+              "confidence": 0.15775575529270733,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "x z2 F L B' L' F' B2 R2 D' R2 D",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x z2 F L B' L' F'"
+                  },
+                  {
+                    "label": "yellow-red",
+                    "moves": "B2 R2 D' R2 D"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "UL",
+              "label": "white-orange",
+              "optimal": 6,
+              "moves": "x z2 B2 U R' B U' R",
+              "confidence": 0.07751480750691224,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "x z2 B2 U R' B U' R B U' B' U",
+                "steps": [
+                  {
+                    "label": "white-orange",
+                    "moves": "x z2 B2 U R' B U' R"
+                  },
+                  {
+                    "label": "white-red",
+                    "moves": "B U' B' U"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DR",
+              "label": "yellow-red",
+              "optimal": 7,
+              "moves": "x z2 U R2 B' R2 B U' R2",
+              "confidence": 0.009632646529115796,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 12,
+          "crossFace": 2,
+          "ranked": [
+            {
+              "slot": "DL",
+              "label": "yellow-orange",
+              "optimal": 5,
+              "moves": "x z2 L2 B2 L B2 L2",
+              "confidence": 0.3274958974069887,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "x z2 L2 B2 L B2 L2 U R' B R U'",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x z2 L2 B2 L B2 L2"
+                  },
+                  {
+                    "label": "white-orange",
+                    "moves": "U R' B R U'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "UL",
+              "label": "white-orange",
+              "optimal": 6,
+              "moves": "x z2 B D L' B' L D'",
+              "confidence": 0.5102355447947862,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x z2 B D L' B' L D' D R D' R' D'",
+                "steps": [
+                  {
+                    "label": "white-orange",
+                    "moves": "x z2 B D L' B' L D'"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "D R D' R' D'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DR",
+              "label": "yellow-red",
+              "optimal": 6,
+              "moves": "x z2 R' U' B2 U B' R",
+              "confidence": 0.16226855779822508,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x z2 R' U' B2 U B' R F' D' B D F",
+                "steps": [
+                  {
+                    "label": "yellow-red",
+                    "moves": "x z2 R' U' B2 U B' R"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "F' D' B D F"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 6600,
+      "scramble": "R' D2 L' D R L' D2 L2 F L2 B2 L2 F L2 D R2 U2",
+      "solution": "x2 F2 D' R2 U' F F U R U' R2 U' R U2 R R' R U R' U L U L' U L' U L U' L' U L y' R' U2 R U2 R' U R U' F U R U' R' U R U' R' F' U R2 U R U R' R2 R2 R R' U' R' U' R' U R' U'",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 1,
+        "moveText": [
+          "x2",
+          "F2",
+          "D'",
+          "R2",
+          "U'",
+          "F",
+          "F",
+          "U",
+          "R",
+          "U'",
+          "R2",
+          "U'",
+          "R",
+          "U2",
+          "R",
+          "R'",
+          "R",
+          "U",
+          "R'",
+          "U",
+          "L",
+          "U",
+          "L'",
+          "U",
+          "L'",
+          "U",
+          "L",
+          "U'",
+          "L'",
+          "U",
+          "L",
+          "y'",
+          "R'",
+          "U2",
+          "R",
+          "U2",
+          "R'",
+          "U",
+          "R",
+          "U'",
+          "F",
+          "U",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "R",
+          "U'",
+          "R'",
+          "F'",
+          "U",
+          "R2",
+          "U",
+          "R",
+          "U",
+          "R'",
+          "R2",
+          "R2",
+          "R",
+          "R'",
+          "U'",
+          "R'",
+          "U'",
+          "R'",
+          "U",
+          "R'",
+          "U'"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 7,
+          "playedTurns": 6,
+          "optimalTurns": 5,
+          "setup": "x2 y'",
+          "best": "R2 U' L2 D' R2",
+          "hold": "white down, orange front",
+          "branch": "x2 y' R2 U' L2 D' R2",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "x2 y' U' B' L2 D2 L2 D R2 F' R2 F2 R2"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 7,
+            "yours": "red-green",
+            "theirs": "red-green",
+            "options": [
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "D R D' R2 D' R",
+                "confidence": 0.5486986263034491,
+                "mine": true
+              },
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "D2 F U2 B U2 F'",
+                "confidence": 0.2544460008182406,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "L' F' D2 F D' L",
+                "confidence": 0.1340952264057148,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "F2 R F D R' F",
+                "confidence": 0.06276014647259551,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 6,
+            "optimalTurns": 6,
+            "played": "U R U' R2 U' R",
+            "branch": "x2 D R D' R2 D' R",
+            "lookahead": {
+              "label": "orange-blue",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 L' F' D2 F D' L F D F'",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 L' F' D2 F D' L"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "F D F'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 13,
+            "yours": "green-orange",
+            "theirs": "green-orange",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "L' B L' B' L B'",
+                "confidence": 0.4629650503395042,
+                "mine": true
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "F L2 F' L D2 L",
+                "confidence": 0.45558342412135566,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "B' D L2 B' L' B2 L'",
+                "confidence": 0.08145152553914006,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 10,
+            "optimalTurns": 6,
+            "played": "U2 R R' R U R' U L U L'",
+            "branch": "x2 L' B L' B' L B'",
+            "lookahead": {
+              "label": "green-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 B' D2 L B D2 L' B R D2 R' B'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 B' D2 L B D2 L'"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "B R D2 R' B'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 23,
+            "yours": "orange-blue",
+            "theirs": "blue-red",
+            "options": [
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "D L B' L' D2 B",
+                "confidence": 0.7683549359205423,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "D L' D L2 B2 L' B2",
+                "confidence": 0.23164506407945776,
+                "mine": true
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [
+              "blue-red's corner was already up top where you can see it, while orange-blue's was buried in a slot",
+              "blue-red's pieces were further apart, and it was still worth doing first"
+            ],
+            "playedTurns": 8,
+            "optimalTurns": 7,
+            "played": "U L' U L U' L' U L y'",
+            "branch": "x2 D L B' L' D2 B",
+            "lookahead": {
+              "label": "blue-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 4,
+                "branch": "x2 D B' L' D2 L B L' D L2 B' L' B",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 D B' L' D2 L B"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "L' D L2 B' L' B"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 7,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "x2 L' F' D2 F D' L",
+              "confidence": 0.1340952264057148,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 L' F' D2 F D' L F D F'",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 L' F' D2 F D' L"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "F D F'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 6,
+              "moves": "x2 D2 F U2 B U2 F'",
+              "confidence": 0.2544460008182406,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "x2 D2 F U2 B U2 F' D B' D2 B",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 D2 F U2 B U2 F'"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D B' D2 B"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 6,
+              "moves": "x2 F2 B' D B D' F2",
+              "confidence": 0.06276014647259551,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "x2 F2 B' D B D' F2 D R' D' R",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 F2 B' D B D' F2"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "D R' D' R"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 6,
+              "moves": "x2 D' R2 D' R D R2",
+              "confidence": 0.5486986263034491,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 2,
+                "branch": "x2 D' R2 D' R D R2 L' D L2 B2 L' B2",
+                "steps": [
+                  {
+                    "label": "red-green",
+                    "moves": "x2 D' R2 D' R D R2"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "L' D L2 B2 L' B2"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 13,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 6,
+              "moves": "x2 B' D2 L B D2 L'",
+              "confidence": 0.4629650503395042,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 B' D2 L B D2 L' B R D2 R' B'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 B' D2 L B D2 L'"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "B R D2 R' B'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "x2 F L2 F' L D2 L",
+              "confidence": 0.45558342412135566,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 F L2 F' L D2 L R D' R' B' D2 B",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 F L2 F' L D2 L"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "R D' R' B' D2 B"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "x2 B' D L2 B' L' B2 L'",
+              "confidence": 0.08145152553914006,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 7300,
+      "scramble": "B2 L2 D2 R D2 R' B2 R2 U F2 D2 F' L D F' L' U B2 L'",
+      "solution": "D' Rw' U' Rw U' Rw' R Uw' R D D R U' R' U' R' U R y' U L' U L U L' U L U' L' U L R U' R' Dw R' U' R U R U R' U' R' F R F' R U' R U R U R U' R' U' R2",
+      "crossFace": 2,
+      "grip": {
+        "rotation": "x'",
+        "firstTurn": 0,
+        "moveText": [
+          "B'",
+          "Rw'",
+          "F'",
+          "Rw",
+          "F'",
+          "Rw'",
+          "R",
+          "Fw'",
+          "R",
+          "B",
+          "B",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "z'",
+          "F",
+          "L'",
+          "F",
+          "L",
+          "F",
+          "L'",
+          "F",
+          "L",
+          "F'",
+          "L'",
+          "F",
+          "L",
+          "R",
+          "F'",
+          "R'",
+          "Bw",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "R",
+          "F",
+          "R'",
+          "F'",
+          "R'",
+          "D",
+          "R",
+          "D'",
+          "R",
+          "F'",
+          "R",
+          "F",
+          "R",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 11,
+          "playedTurns": 11,
+          "optimalTurns": 6,
+          "setup": "x z2",
+          "best": "F' R' L' D F' L",
+          "hold": "green down, yellow front",
+          "branch": "x z2 F' R' L' D F' L",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "x' y R' B' F' D R' F U2 L2 F' L2 F"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 11,
+            "yours": "white-orange",
+            "theirs": "white-orange",
+            "options": [
+              {
+                "slot": "UL",
+                "label": "white-orange",
+                "optimal": 3,
+                "setup": "x z'",
+                "moves": "U B' U'",
+                "confidence": 0.5553604606273154,
+                "mine": true
+              },
+              {
+                "slot": "UR",
+                "label": "white-red",
+                "optimal": 4,
+                "setup": "x z'",
+                "moves": "U R2 U' R2",
+                "confidence": 0.40907985291708404,
+                "mine": false
+              },
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 7,
+                "setup": "x z'",
+                "moves": "U R B' R2 U' B2 R",
+                "confidence": 0.03397030456781936,
+                "mine": false
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 6,
+                "setup": "x z'",
+                "moves": "D' F2 U' F2 B2 D",
+                "confidence": 0.0015893818877812126,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 3,
+            "optimalTurns": 3,
+            "played": "R U' R'",
+            "branch": "x z' U B' U'",
+            "lookahead": {
+              "label": "white-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 7,
+                "solvedPairs": 2,
+                "branch": "x z' U R' U' R U B' U'",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x z' U R' U' R"
+                  },
+                  {
+                    "label": "white-orange",
+                    "moves": "U B' U'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 14,
+            "yours": "white-red",
+            "theirs": "white-red",
+            "options": [
+              {
+                "slot": "UR",
+                "label": "white-red",
+                "optimal": 4,
+                "setup": "x z'",
+                "moves": "U R2 U' R2",
+                "confidence": 0.8168288278183663,
+                "mine": true
+              },
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 7,
+                "setup": "x z'",
+                "moves": "D2 R2 D2 B2 R' B2 R2",
+                "confidence": 0.17458816863146703,
+                "mine": false
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 6,
+                "setup": "x z'",
+                "moves": "R' D R' D' R D'",
+                "confidence": 0.008583003550166772,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 4,
+            "optimalTurns": 4,
+            "played": "U' R' U R y'",
+            "branch": "x z' U R2 U' R2",
+            "lookahead": {
+              "label": "white-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 3,
+                "branch": "x z' U R2 U' R2 B2 D2 L' D2 L",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x z' U R2 U' R2"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "B2 D2 L' D2 L"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 19,
+            "yours": "yellow-red",
+            "theirs": "yellow-red",
+            "options": [
+              {
+                "slot": "DR",
+                "label": "yellow-red",
+                "optimal": 7,
+                "setup": "x z2",
+                "moves": "D L B L2 D L D2",
+                "confidence": 0.7828473297603603,
+                "mine": true
+              },
+              {
+                "slot": "DL",
+                "label": "yellow-orange",
+                "optimal": 7,
+                "setup": "x z2",
+                "moves": "D B' D' B' D' B' D",
+                "confidence": 0.21715267023963966,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 12,
+            "optimalTurns": 7,
+            "played": "U L' U L U L' U L U' L' U L",
+            "branch": "x z2 D L B L2 D L D2"
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 11,
+          "crossFace": 2,
+          "ranked": [
+            {
+              "slot": "UL",
+              "label": "white-orange",
+              "optimal": 3,
+              "moves": "x z' U B' U'",
+              "confidence": 0.5553604606273154,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 3,
+                "totalTurns": 7,
+                "solvedPairs": 2,
+                "branch": "x z' U B' U' U R2 U' R2",
+                "steps": [
+                  {
+                    "label": "white-orange",
+                    "moves": "x z' U B' U'"
+                  },
+                  {
+                    "label": "white-red",
+                    "moves": "U R2 U' R2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "UR",
+              "label": "white-red",
+              "optimal": 4,
+              "moves": "x z' U R' U' R",
+              "confidence": 0.40907985291708404,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 7,
+                "solvedPairs": 2,
+                "branch": "x z' U R' U' R U B' U'",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x z' U R' U' R"
+                  },
+                  {
+                    "label": "white-orange",
+                    "moves": "U B' U'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DR",
+              "label": "yellow-red",
+              "optimal": 7,
+              "moves": "x z' U R B' R2 U' B2 R",
+              "confidence": 0.03397030456781936,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 7,
+                "solvedPairs": 2,
+                "branch": "x z' U R B' R2 U' B2 R",
+                "steps": [
+                  {
+                    "label": "yellow-red",
+                    "moves": "x z' U R B' R2 U' B2 R"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DL",
+              "label": "yellow-orange",
+              "optimal": 6,
+              "moves": "x z' D' F2 U' F2 B2 D",
+              "confidence": 0.0015893818877812126,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x z' D' F2 U' F2 B2 D U B U'",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x z' D' F2 U' F2 B2 D"
+                  },
+                  {
+                    "label": "white-orange",
+                    "moves": "U B U'"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 14,
+          "crossFace": 2,
+          "ranked": [
+            {
+              "slot": "UR",
+              "label": "white-red",
+              "optimal": 4,
+              "moves": "x z' U R2 U' R2",
+              "confidence": 0.8168288278183663,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 3,
+                "branch": "x z' U R2 U' R2 B2 D2 L' D2 L",
+                "steps": [
+                  {
+                    "label": "white-red",
+                    "moves": "x z' U R2 U' R2"
+                  },
+                  {
+                    "label": "yellow-orange",
+                    "moves": "B2 D2 L' D2 L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DL",
+              "label": "yellow-orange",
+              "optimal": 6,
+              "moves": "x z' R' D R' D' R D'",
+              "confidence": 0.008583003550166772,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x z' R' D R' D' R D' R B' R2 B' R",
+                "steps": [
+                  {
+                    "label": "yellow-orange",
+                    "moves": "x z' R' D R' D' R D'"
+                  },
+                  {
+                    "label": "yellow-red",
+                    "moves": "R B' R2 B' R"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "DR",
+              "label": "yellow-red",
+              "optimal": 7,
+              "moves": "x z' D2 R2 D2 B2 R' B2 R2",
+              "confidence": 0.17458816863146703,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 8000,
+      "scramble": "D L2 B2 D' L2 U L2 B2 D' U' B D2 R' U' R U' B' D2 L2 D2 U2",
+      "solution": "x2 y D' L U D' R D Rw U' Rw' D L U' L' y' R U2 R' L U' L' R U R' U' R U R' U2 Fw R Fw' Rw U2 R' U' R U R' U' R U' Rw' F' U' F R2 Uw R' U R U' R Uw' R2 U'",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 2,
+        "moveText": [
+          "x2",
+          "y",
+          "D'",
+          "L",
+          "U",
+          "D'",
+          "R",
+          "D",
+          "Rw",
+          "U'",
+          "Rw'",
+          "D",
+          "L",
+          "U'",
+          "L'",
+          "y'",
+          "R",
+          "U2",
+          "R'",
+          "L",
+          "U'",
+          "L'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U2",
+          "Fw",
+          "R",
+          "Fw'",
+          "Rw",
+          "U2",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U'",
+          "Rw'",
+          "F'",
+          "U'",
+          "F",
+          "R2",
+          "Uw",
+          "R'",
+          "U",
+          "R",
+          "U'",
+          "R",
+          "Uw'",
+          "R2",
+          "U'"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 12,
+          "playedTurns": 10,
+          "optimalTurns": 6,
+          "setup": "x2 y",
+          "best": "R2 F U' R' F L",
+          "hold": "white down, red front",
+          "branch": "x2 y R2 F U' R' F L",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "x2 R B' F U F' U F2 R' L U2 L'"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 12,
+            "yours": "orange-blue",
+            "theirs": "orange-blue",
+            "options": [
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 3,
+                "setup": "x2 y",
+                "moves": "B D' B'",
+                "confidence": 0.8226802112622854,
+                "mine": true
+              },
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 5,
+                "setup": "x2 y",
+                "moves": "L2 D L D' L2",
+                "confidence": 0.08972967124757977,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 6,
+                "setup": "x2 y",
+                "moves": "D R' D2 R2 D R'",
+                "confidence": 0.07138463994896191,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 6,
+                "setup": "x2 y",
+                "moves": "B' D F B D' F'",
+                "confidence": 0.016205477541172787,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 3,
+            "optimalTurns": 3,
+            "played": "L U' L' y'",
+            "branch": "x2 y B D' B'",
+            "lookahead": {
+              "label": "orange-blue",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 3,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 y B D' B' D' R2 F2 R' F2 R'",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 y B D' B'"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "D' R2 F2 R' F2 R'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 16,
+            "yours": "green-orange",
+            "theirs": "green-orange",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "D' R2 F2 R' F2 R'",
+                "confidence": 0.4636350587449344,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "D2 R' D2 R2 D R'",
+                "confidence": 0.44698244167679074,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "D B' D F B D' F'",
+                "confidence": 0.0893824995782748,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 6,
+            "optimalTurns": 6,
+            "played": "R U2 R' L U' L'",
+            "branch": "x2 D' R2 F2 R' F2 R'",
+            "lookahead": {
+              "label": "blue-red",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 D2 R' D2 R2 D R' D' F R F' R' F'",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 D2 R' D2 R2 D R'"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "D' F R F' R' F'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 22,
+            "yours": "blue-red",
+            "theirs": "red-green",
+            "options": [
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "F D2 F2 U' R' U F",
+                "confidence": 0.6449967917949713,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "D2 R2 F' R' F D2 R'",
+                "confidence": 0.35500320820502873,
+                "mine": true
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [
+              "red-green's corner was already up top where you can see it, while blue-red's was buried in a slot",
+              "red-green sits beside the pair you had just finished, so your hands were already there"
+            ],
+            "playedTurns": 7,
+            "optimalTurns": 7,
+            "played": "R U R' U' R U R'",
+            "branch": "x2 F D2 F2 U' R' U F"
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 12,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 3,
+              "moves": "x2 y B D' B'",
+              "confidence": 0.8226802112622854,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 3,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 y B D' B' D' R2 F2 R' F2 R'",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 y B D' B'"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "D' R2 F2 R' F2 R'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 5,
+              "moves": "x2 y L2 D L D' L2",
+              "confidence": 0.08972967124757977,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "x2 y L2 D L D' L2 B D' B R' B2 R",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 y L2 D L D' L2"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "B D' B R' B2 R"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 6,
+              "moves": "x2 y D R' D2 R2 D R'",
+              "confidence": 0.07138463994896191,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "x2 y D R' D2 R2 D R' D' R F2 R' F2",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 y D R' D2 R2 D R'"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "D' R F2 R' F2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 6,
+              "moves": "x2 y B' D F B D' F'",
+              "confidence": 0.016205477541172787,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 16,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 6,
+              "moves": "x2 L D' F D2 F' L'",
+              "confidence": 0.4636350587449344,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 L D' F D2 F' L' D R' D2 R2 D R'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 L D' F D2 F' L'"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D R' D2 R2 D R'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 6,
+              "moves": "x2 D2 R' D2 R2 D R'",
+              "confidence": 0.44698244167679074,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 D2 R' D2 R2 D R' D' F R F' R' F'",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 D2 R' D2 R2 D R'"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "D' F R F' R' F'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 D B' D F B D' F'",
+              "confidence": 0.0893824995782748,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 8700,
+      "scramble": "B L' U2 F2 R U2 F2 U2 B2 F2 L' U B' D' B L D2 B2 F R",
+      "solution": "z' x L' Uw Lw U' Lw' U R U R' F U R U U' Rw U Rw U Rw' R' Rw Rw2 R2 U2 M' U2 Rw' U' Rw U2 U' R U2 R' U' R U R' U' R U' M' R' U2 M' U2 M' U' M U2 M' U2 M U M U2 M' U2",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "z",
+        "firstTurn": 2,
+        "moveText": [
+          "z'",
+          "y'",
+          "U'",
+          "Rw",
+          "Uw",
+          "R'",
+          "Uw'",
+          "R",
+          "D",
+          "R",
+          "D'",
+          "F",
+          "R",
+          "D",
+          "R",
+          "R'",
+          "Dw",
+          "R",
+          "Dw",
+          "R",
+          "Dw'",
+          "D'",
+          "Dw",
+          "Dw2",
+          "D2",
+          "R2",
+          "E",
+          "R2",
+          "Dw'",
+          "R'",
+          "Dw",
+          "R2",
+          "R'",
+          "D",
+          "R2",
+          "D'",
+          "R'",
+          "D",
+          "R",
+          "D'",
+          "R'",
+          "D",
+          "R'",
+          "E",
+          "D'",
+          "R2",
+          "E",
+          "R2",
+          "E",
+          "R'",
+          "E'",
+          "R2",
+          "E",
+          "R2",
+          "E'",
+          "R",
+          "E'",
+          "R2",
+          "E",
+          "R2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 59,
+          "playedTurns": 57,
+          "optimalTurns": 6,
+          "setup": "",
+          "best": "U2 L F' L D' R'",
+          "hold": "yellow down, green front",
+          "branch": "U2 L F' L D' R'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 14,
+            "branch": "U F D L R' F D2 F R2 F' D B2 D' R2"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 59,
+          "crossFace": 5,
+          "ranked": [],
+          "learned": true
+        },
+        {
+          "at": 59,
+          "crossFace": 5,
+          "ranked": [],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 9400,
+      "scramble": "F2 D' F2 D B' U2 R2 D' R' L2 D2 L2 F2 R2 D B2 L B'",
+      "solution": "x U2 D Rw U' D L' U L D' R2 F R2 R' U R U R R' R U R' R' U R U F U F' U R' U2 R U R' U2 R F R U R' U' R U R' U' F' U' F R U' R' U' R U R' F' R U R' U' R' F R F' U",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "x y",
+        "firstTurn": 1,
+        "moveText": [
+          "z",
+          "R2",
+          "L",
+          "Fw",
+          "R'",
+          "L",
+          "B'",
+          "R",
+          "B",
+          "L'",
+          "F2",
+          "U",
+          "F2",
+          "F'",
+          "R",
+          "F",
+          "R",
+          "F",
+          "F'",
+          "F",
+          "R",
+          "F'",
+          "F'",
+          "R",
+          "F",
+          "R",
+          "U",
+          "R",
+          "U'",
+          "R",
+          "F'",
+          "R2",
+          "F",
+          "R",
+          "F'",
+          "R2",
+          "F",
+          "U",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "U'",
+          "R'",
+          "U",
+          "F",
+          "R'",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "U'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "U",
+          "F",
+          "U'",
+          "R"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 13,
+          "playedTurns": 12,
+          "optimalTurns": 5,
+          "setup": "x2 y",
+          "best": "D2 R F D2 R",
+          "hold": "white down, red front",
+          "branch": "x2 y D2 R F D2 R",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "x2 y' F2 L2 R F R2 U R' F U2 R F'"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 13,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 6,
+              "moves": "x2 D2 B R' D' B' R",
+              "confidence": 0.3360683849391647,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 D2 B R' D' B' R U B' D B U'",
+                "steps": [
+                  {
+                    "label": "red-green",
+                    "moves": "x2 D2 B R' D' B' R"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "U B' D B U'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 7,
+              "moves": "x2 L' F' D' F2 L' F' L2",
+              "confidence": 0.5366425853644851,
+              "lookahead": null
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "x2 D F D R D R' F'",
+              "confidence": 0.12728902969635023,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 13,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 6,
+              "moves": "x2 D2 B R' D' B' R",
+              "confidence": 0.3360683849391647,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 D2 B R' D' B' R U B' D B U'",
+                "steps": [
+                  {
+                    "label": "red-green",
+                    "moves": "x2 D2 B R' D' B' R"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "U B' D B U'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 7,
+              "moves": "x2 L' F' D' F2 L' F' L2",
+              "confidence": 0.5366425853644851,
+              "lookahead": null
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "x2 D F D R D R' F'",
+              "confidence": 0.12728902969635023,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 11000,
+      "scramble": "F2 U L2 U F2 U' R2 F2 L' B R F2 D' L' R2 F' D2 U R2",
+      "solution": "x2 y F D' L F' R D' y' U' R U R' U' L U L' R U R' U' F U F' U2 F' U F R' U2 R y' U' R' U R L' U' L U' L' U2 L R2 U' R2 D R2 U' R2 U R2 D' U R2 U2",
+      "crossFace": 0,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 2,
+        "moveText": [
+          "x2",
+          "y",
+          "F",
+          "D'",
+          "L",
+          "F'",
+          "R",
+          "D'",
+          "y'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "L",
+          "U",
+          "L'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "F",
+          "U",
+          "F'",
+          "U2",
+          "F'",
+          "U",
+          "F",
+          "R'",
+          "U2",
+          "R",
+          "y'",
+          "U'",
+          "R'",
+          "U",
+          "R",
+          "L'",
+          "U'",
+          "L",
+          "U'",
+          "L'",
+          "U2",
+          "L",
+          "R2",
+          "U'",
+          "R2",
+          "D",
+          "R2",
+          "U'",
+          "R2",
+          "U",
+          "R2",
+          "D'",
+          "U",
+          "R2",
+          "U2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 9,
+          "playedTurns": 6,
+          "optimalTurns": 6,
+          "setup": "x2 y",
+          "best": "F D' L F' R D'",
+          "hold": "white down, red front",
+          "branch": "x2 y F D' L F' R D'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 9,
+            "branch": "x2 y D2 R L2 D' R' B' F' L' F"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 9,
+            "yours": "green-orange",
+            "theirs": "green-orange",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "green-orange",
+                "optimal": 5,
+                "setup": "x2",
+                "moves": "L2 D L' D' L2",
+                "confidence": 0.4033763835576031,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 5,
+                "setup": "x2",
+                "moves": "R B R B' R'",
+                "confidence": 0.3570653594006146,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "D B2 D B' D' B2",
+                "confidence": 0.23444371643876122,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "F' D F2 R F R' F'",
+                "confidence": 0.00511454060302111,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 8,
+            "optimalTurns": 5,
+            "played": "U' R U R' U' L U L'",
+            "branch": "x2 L2 D L' D' L2",
+            "lookahead": {
+              "label": "orange-blue",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 D B2 D B' D' B2 L D' L'",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 D B2 D B' D' B2"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "L D' L'"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 17,
+            "yours": "orange-blue",
+            "theirs": "red-green",
+            "options": [
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "R D' R' F D F'",
+                "confidence": 0.3780865476024759,
+                "mine": false
+              },
+              {
+                "slot": "BL",
+                "label": "orange-blue",
+                "optimal": 5,
+                "setup": "x2",
+                "moves": "L U B U' L'",
+                "confidence": 0.3154500018144548,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "U' B' D B2 D' B' U",
+                "confidence": 0.30646345058306923,
+                "mine": false
+              }
+            ],
+            "wording": "leans slightly towards",
+            "reasons": [
+              "red-green's edge was up top rather than stuck in a slot",
+              "there was one clear way to insert red-green, rather than several to choose between"
+            ],
+            "playedTurns": 7,
+            "optimalTurns": 5,
+            "played": "R U R' U' F U F'",
+            "branch": "x2 R D' R' F D F'",
+            "lookahead": {
+              "label": "orange-blue",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 L U B U' L' D B' L B' L' B2",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 L U B U' L'"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D B' L B' L' B2"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 24,
+            "yours": "red-green",
+            "theirs": "red-green",
+            "options": [
+              {
+                "slot": "FR",
+                "label": "red-green",
+                "optimal": 6,
+                "setup": "x2",
+                "moves": "R D2 R' F D F'",
+                "confidence": 0.6611725647626768,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "blue-red",
+                "optimal": 7,
+                "setup": "x2",
+                "moves": "D R D2 R F' R2 F",
+                "confidence": 0.33882743523732306,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 7,
+            "optimalTurns": 6,
+            "played": "U2 F' U F R' U2 R y'",
+            "branch": "x2 R D2 R' F D F'",
+            "lookahead": {
+              "label": "red-green",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 11,
+                "solvedPairs": 4,
+                "branch": "x2 D2 B' D B R' D2 R D2 B' D2 B",
+                "steps": [
+                  {
+                    "label": "red-green",
+                    "moves": "x2 D2 B' D B R' D2 R"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D2 B' D2 B"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 9,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "green-orange",
+              "optimal": 5,
+              "moves": "x2 L2 D L' D' L2",
+              "confidence": 0.4033763835576031,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 L2 D L' D' L2 D2 B D' B'",
+                "steps": [
+                  {
+                    "label": "green-orange",
+                    "moves": "x2 L2 D L' D' L2"
+                  },
+                  {
+                    "label": "orange-blue",
+                    "moves": "D2 B D' B'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 6,
+              "moves": "x2 D B2 D B' D' B2",
+              "confidence": 0.23444371643876122,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "x2 D B2 D B' D' B2 L D' L'",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 D B2 D B' D' B2"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "L D' L'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 5,
+              "moves": "x2 R B R B' R'",
+              "confidence": 0.3570653594006146,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 10,
+                "solvedPairs": 2,
+                "branch": "x2 R B R B' R' F' L' F' L F",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 R B R B' R'"
+                  },
+                  {
+                    "label": "green-orange",
+                    "moves": "F' L' F' L F"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 7,
+              "moves": "x2 F' D F2 R F R' F'",
+              "confidence": 0.00511454060302111,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 17,
+          "crossFace": 0,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "orange-blue",
+              "optimal": 5,
+              "moves": "x2 L U B U' L'",
+              "confidence": 0.3154500018144548,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "x2 L U B U' L' D B' L B' L' B2",
+                "steps": [
+                  {
+                    "label": "orange-blue",
+                    "moves": "x2 L U B U' L'"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "D B' L B' L' B2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "red-green",
+              "optimal": 6,
+              "moves": "x2 R D' R' F D F'",
+              "confidence": 0.3780865476024759,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 R D' R' F D F' L' D2 L B' D2 B",
+                "steps": [
+                  {
+                    "label": "red-green",
+                    "moves": "x2 R D' R' F D F'"
+                  },
+                  {
+                    "label": "blue-red",
+                    "moves": "L' D2 L B' D2 B"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "blue-red",
+              "optimal": 7,
+              "moves": "x2 U' B' D B2 D' B' U",
+              "confidence": 0.30646345058306923,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "x2 U' B' D B2 D' B' U L2 U' F' U L2",
+                "steps": [
+                  {
+                    "label": "blue-red",
+                    "moves": "x2 U' B' D B2 D' B' U"
+                  },
+                  {
+                    "label": "red-green",
+                    "moves": "L2 U' F' U L2"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 11200,
+      "scramble": "D' U' L2 D2 B2 F2 R2 B2 U2 F' L D2 U' L R U2 B' U B2 R2",
+      "solution": "y2 R2 U R' U' R D R' L' U L U' L' U L Rw U' Rw' U Rw U' Rw' R U' R' U R' U' R U' R U R' U' R U R' Rw U R' U R U2 Rw2 U' R U' R' U2 Rw U2 x R' U R' D2 R U' R' D2 R2",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 1,
+        "moveText": [
+          "y2",
+          "R2",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "D",
+          "R'",
+          "L'",
+          "U",
+          "L",
+          "U'",
+          "L'",
+          "U",
+          "L",
+          "Rw",
+          "U'",
+          "Rw'",
+          "U",
+          "Rw",
+          "U'",
+          "Rw'",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "Rw",
+          "U",
+          "R'",
+          "U",
+          "R",
+          "U2",
+          "Rw2",
+          "U'",
+          "R",
+          "U'",
+          "R'",
+          "U2",
+          "Rw",
+          "U2",
+          "x",
+          "R'",
+          "U",
+          "R'",
+          "D2",
+          "R",
+          "U'",
+          "R'",
+          "D2",
+          "R2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 22,
+          "playedTurns": 21,
+          "optimalTurns": 5,
+          "setup": "y2",
+          "best": "R2 D R' U2 F2",
+          "hold": "yellow down, blue front",
+          "branch": "y2 R2 D R' U2 F2",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "D' F2 U' D2 F2 L R U2 R2 U' R"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 22,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 6,
+              "moves": "y2 U' L' U2 L2 U L'",
+              "confidence": 0.5351776860247381,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 4,
+                "branch": "y2 U' L' U2 L2 U L' U' L' U' L",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U' L' U2 L2 U L'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "U' L' U' L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 7,
+              "moves": "y2 D' B D L D' B' D",
+              "confidence": 0.46482231397526186,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 22,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 6,
+              "moves": "y2 U' L' U2 L2 U L'",
+              "confidence": 0.5351776860247381,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 10,
+                "solvedPairs": 4,
+                "branch": "y2 U' L' U2 L2 U L' U' L' U' L",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U' L' U2 L2 U L'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "U' L' U' L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 7,
+              "moves": "y2 D' B D L D' B' D",
+              "confidence": 0.46482231397526186,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 11400,
+      "scramble": "L2 D B2 U' B2 F2 U F2 U2 R2 B2 U' B U' R' D R' U' R U'",
+      "solution": "y2 F2 R U' F' D2 R' L2 U L U' L' U L U' L' R' U' R U R' U2 R2 U2 R' U' L' U L U' R U' R' U2 R U' R' U U R' F' Rw U R U' Rw' F U",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 1,
+        "moveText": [
+          "y2",
+          "F2",
+          "R",
+          "U'",
+          "F'",
+          "D2",
+          "R'",
+          "L2",
+          "U",
+          "L",
+          "U'",
+          "L'",
+          "U",
+          "L",
+          "U'",
+          "L'",
+          "R'",
+          "U'",
+          "R",
+          "U",
+          "R'",
+          "U2",
+          "R2",
+          "U2",
+          "R'",
+          "U'",
+          "L'",
+          "U",
+          "L",
+          "U'",
+          "R",
+          "U'",
+          "R'",
+          "U2",
+          "R",
+          "U'",
+          "R'",
+          "U",
+          "U",
+          "R'",
+          "F'",
+          "Rw",
+          "U",
+          "R",
+          "U'",
+          "Rw'",
+          "F",
+          "U"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 8,
+          "playedTurns": 7,
+          "optimalTurns": 5,
+          "setup": "y2",
+          "best": "F U R2 D2 R",
+          "hold": "yellow down, blue front",
+          "branch": "y2 F U R2 D2 R",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 8,
+            "branch": "y2 U R2 L' D2 B' R2 U R2"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 8,
+            "yours": "green-red",
+            "theirs": "blue-orange",
+            "options": [
+              {
+                "slot": "BL",
+                "label": "blue-orange",
+                "optimal": 4,
+                "setup": "y2",
+                "moves": "U L U L'",
+                "confidence": 0.6441012768139408,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 4,
+                "setup": "y2",
+                "moves": "L' B2 L B2",
+                "confidence": 0.17494168299765547,
+                "mine": false
+              },
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 5,
+                "setup": "y2",
+                "moves": "U2 R2 F2 R2 F2",
+                "confidence": 0.13972151098705718,
+                "mine": false
+              },
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "R F R2 F' U R'",
+                "confidence": 0.04123552920134645,
+                "mine": true
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [
+              "blue-orange's corner was already up top where you can see it, while green-red's was buried in a slot",
+              "it goes in in 4 moves against 6 for green-red"
+            ],
+            "playedTurns": 8,
+            "optimalTurns": 6,
+            "played": "U L U' L' U L U' L'",
+            "branch": "y2 U L U L'",
+            "lookahead": {
+              "label": "blue-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 8,
+                "solvedPairs": 2,
+                "branch": "y2 U L U L' R2 F2 R2 F2",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U L U L'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "R2 F2 R2 F2"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 16,
+            "yours": "orange-green",
+            "theirs": "orange-green",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "U2 L' F' L F L",
+                "confidence": 0.41117599086501483,
+                "mine": true
+              },
+              {
+                "slot": "BL",
+                "label": "blue-orange",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "U L' U L2 U L'",
+                "confidence": 0.4037870704254852,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "U2 L' U B2 L B2",
+                "confidence": 0.18503693870949994,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 9,
+            "optimalTurns": 6,
+            "played": "R' U' R U R' U2 R2 U2 R'",
+            "branch": "y2 U2 L' F' L F L",
+            "lookahead": {
+              "label": "blue-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "y2 U B2 U' R' U R B2 L' U2 L",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U B2 U' R' U R B2"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "L' U2 L"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 25,
+            "yours": "red-blue",
+            "theirs": "red-blue",
+            "options": [
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 4,
+                "setup": "y2",
+                "moves": "U2 R' U2 R",
+                "confidence": 0.7456323654362108,
+                "mine": true
+              },
+              {
+                "slot": "BL",
+                "label": "blue-orange",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "U D' R' U' R D",
+                "confidence": 0.2543676345637893,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 4,
+            "optimalTurns": 4,
+            "played": "U' L' U L",
+            "branch": "y2 U2 R' U2 R",
+            "lookahead": {
+              "label": "blue-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 9,
+                "solvedPairs": 4,
+                "branch": "y2 U' D' B U2 B' D R' U R",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U' D' B U2 B' D"
+                  },
+                  {
+                    "label": "red-blue",
+                    "moves": "R' U R"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 8,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 4,
+              "moves": "y2 U L U L'",
+              "confidence": 0.6441012768139408,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 8,
+                "solvedPairs": 2,
+                "branch": "y2 U L U L' R2 F2 R2 F2",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U L U L'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "R2 F2 R2 F2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 4,
+              "moves": "y2 L' B2 L B2",
+              "confidence": 0.17494168299765547,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "y2 L' B2 L B2 L F U2 F' L'",
+                "steps": [
+                  {
+                    "label": "red-blue",
+                    "moves": "y2 L' B2 L B2"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "L F U2 F' L'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 5,
+              "moves": "y2 U2 F2 L2 F2 L2",
+              "confidence": 0.13972151098705718,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "y2 U2 F2 L2 F2 L2 U' L U L'",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y2 U2 F2 L2 F2 L2"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "U' L U L'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "green-red",
+              "optimal": 6,
+              "moves": "y2 R B U2 B' U R'",
+              "confidence": 0.04123552920134645,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 2,
+                "branch": "y2 R B U2 B' U R' U' L2 U' L U L2",
+                "steps": [
+                  {
+                    "label": "green-red",
+                    "moves": "y2 R B U2 B' U R'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "U' L2 U' L U L2"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 16,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 6,
+              "moves": "y2 U B2 U' R' U R B2",
+              "confidence": 0.4037870704254852,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 7,
+                "totalTurns": 10,
+                "solvedPairs": 3,
+                "branch": "y2 U B2 U' R' U R B2 L' U2 L",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U B2 U' R' U R B2"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "L' U2 L"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 6,
+              "moves": "y2 L' D' B U2 D L",
+              "confidence": 0.41117599086501483,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "y2 L' D' B U2 D L B2 U B' U' B2",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y2 L' D' B U2 D L"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "B2 U B' U' B2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 6,
+              "moves": "y2 U2 L' U B2 L B2",
+              "confidence": 0.18503693870949994,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "y2 U2 L' U B2 L B2 U2 F' L2 F L2",
+                "steps": [
+                  {
+                    "label": "red-blue",
+                    "moves": "y2 U2 L' U B2 L B2"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "U2 F' L2 F L2"
+                  }
+                ]
+              }
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 2000,
+      "scramble": "F2 L2 F2 L' R' F D R2 B2 L' B' F' R2 B' D' B2 R2 F2",
+      "solution": "y2 x R U D' Rw' U' U' R U R' U R' U2 R U' R' U R y' y' U R U' R' U R U' R' U R U' R' U' R' U' R U R' U' U R U R' U' R U R U' R2 Rw U' R U' R' U Rw' R2 U R' x R2 D D R U R' D D R U' R",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "x'",
+        "firstTurn": 2,
+        "moveText": [
+          "z2",
+          "x",
+          "R",
+          "F",
+          "B'",
+          "Rw'",
+          "F'",
+          "F'",
+          "R",
+          "F",
+          "R'",
+          "F",
+          "R'",
+          "F2",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "z'",
+          "z'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "R",
+          "F'",
+          "R'",
+          "F'",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "R'",
+          "F'",
+          "F",
+          "R",
+          "F",
+          "R'",
+          "F'",
+          "R",
+          "F",
+          "R",
+          "F'",
+          "R2",
+          "Rw",
+          "F'",
+          "R",
+          "F'",
+          "R'",
+          "F",
+          "Rw'",
+          "R2",
+          "F",
+          "R'",
+          "x",
+          "R2",
+          "B",
+          "B",
+          "R",
+          "F",
+          "R'",
+          "B",
+          "B",
+          "R",
+          "F'",
+          "R"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 6,
+          "playedTurns": 4,
+          "optimalTurns": 4,
+          "setup": "",
+          "best": "L F' B R'",
+          "hold": "yellow down, green front",
+          "branch": "L F' B R'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 7,
+            "branch": "L U2 F' U2 R' U' B"
+          }
+        },
+        "pairs": [
+          {
+            "step": 0,
+            "at": 6,
+            "yours": "blue-orange",
+            "theirs": "blue-orange",
+            "options": [
+              {
+                "slot": "BL",
+                "label": "blue-orange",
+                "optimal": 4,
+                "setup": "y2",
+                "moves": "U2 L U L'",
+                "confidence": 0.7405315376168671,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 5,
+                "setup": "y2",
+                "moves": "D R' U2 R D'",
+                "confidence": 0.2239619158471833,
+                "mine": false
+              },
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 7,
+                "setup": "y2",
+                "moves": "U B' U' B L' U' L",
+                "confidence": 0.026534337776108953,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "D L2 F2 L2 F2 D'",
+                "confidence": 0.008972208759840518,
+                "mine": false
+              }
+            ],
+            "wording": "would most likely take",
+            "reasons": [],
+            "playedTurns": 5,
+            "optimalTurns": 4,
+            "played": "U' U' R U R'",
+            "branch": "y2 U2 L U L'",
+            "lookahead": {
+              "label": "blue-orange",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "y2 U2 L U L' D' L' U L D",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U2 L U L'"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "D' L' U L D"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 1,
+            "at": 11,
+            "yours": "orange-green",
+            "theirs": "orange-green",
+            "options": [
+              {
+                "slot": "FL",
+                "label": "orange-green",
+                "optimal": 6,
+                "setup": "y2",
+                "moves": "L' F' U2 F U L",
+                "confidence": 0.5144114812269226,
+                "mine": true
+              },
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 5,
+                "setup": "y2",
+                "moves": "D' L' U L D",
+                "confidence": 0.42797070137546317,
+                "mine": false
+              },
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 7,
+                "setup": "y2",
+                "moves": "D2 B2 L B2 U2 D2 R",
+                "confidence": 0.05761781739761419,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 8,
+            "optimalTurns": 6,
+            "played": "U R' U2 R U' R' U R y' y'",
+            "branch": "y2 L' F' U2 F U L",
+            "lookahead": {
+              "label": "orange-green",
+              "forecast": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "y2 L' F' U2 F U L D' R U' R' D",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y2 L' F' U2 F U L"
+                  },
+                  {
+                    "label": "red-blue",
+                    "moves": "D' R U' R' D"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "step": 2,
+            "at": 21,
+            "yours": "green-red",
+            "theirs": "green-red",
+            "options": [
+              {
+                "slot": "FR",
+                "label": "green-red",
+                "optimal": 7,
+                "setup": "",
+                "moves": "U R2 F' U2 F U2 R2",
+                "confidence": 0.5406772228711566,
+                "mine": true
+              },
+              {
+                "slot": "BR",
+                "label": "red-blue",
+                "optimal": 5,
+                "setup": "",
+                "moves": "D' F' U2 F D",
+                "confidence": 0.4593227771288434,
+                "mine": false
+              }
+            ],
+            "wording": "would more often take",
+            "reasons": [],
+            "playedTurns": 12,
+            "optimalTurns": 7,
+            "played": "U R U' R' U R U' R' U R U' R'",
+            "branch": "U R2 F' U2 F U2 R2"
+          }
+        ],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 6,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "BL",
+              "label": "blue-orange",
+              "optimal": 4,
+              "moves": "y2 U2 L U L'",
+              "confidence": 0.7405315376168671,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 4,
+                "totalTurns": 9,
+                "solvedPairs": 2,
+                "branch": "y2 U2 L U L' D' L' U L D",
+                "steps": [
+                  {
+                    "label": "blue-orange",
+                    "moves": "y2 U2 L U L'"
+                  },
+                  {
+                    "label": "green-red",
+                    "moves": "D' L' U L D"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "green-red",
+              "optimal": 5,
+              "moves": "y2 D' F U F' D",
+              "confidence": 0.2239619158471833,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 5,
+                "totalTurns": 11,
+                "solvedPairs": 2,
+                "branch": "y2 D' F U F' D F' L F2 U2 F' L'",
+                "steps": [
+                  {
+                    "label": "green-red",
+                    "moves": "y2 D' F U F' D"
+                  },
+                  {
+                    "label": "blue-orange",
+                    "moves": "F' L F2 U2 F' L'"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 7,
+              "moves": "y2 U B' U' B L' U' L",
+              "confidence": 0.026534337776108953,
+              "lookahead": null
+            },
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 6,
+              "moves": "y2 D L2 F2 L2 F2 D'",
+              "confidence": 0.008972208759840518,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        },
+        {
+          "at": 11,
+          "crossFace": 5,
+          "ranked": [
+            {
+              "slot": "FL",
+              "label": "orange-green",
+              "optimal": 6,
+              "moves": "y2 L' F' U2 F U L",
+              "confidence": 0.5144114812269226,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 11,
+                "solvedPairs": 3,
+                "branch": "y2 L' F' U2 F U L D' R U' R' D",
+                "steps": [
+                  {
+                    "label": "orange-green",
+                    "moves": "y2 L' F' U2 F U L"
+                  },
+                  {
+                    "label": "red-blue",
+                    "moves": "D' R U' R' D"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "FR",
+              "label": "green-red",
+              "optimal": 5,
+              "moves": "y2 U' D B U B' D'",
+              "confidence": 0.42797070137546317,
+              "lookahead": {
+                "depth": 2,
+                "immediateTurns": 6,
+                "totalTurns": 12,
+                "solvedPairs": 3,
+                "branch": "y2 U' D B U B' D' U L' B L' B' L2",
+                "steps": [
+                  {
+                    "label": "green-red",
+                    "moves": "y2 U' D B U B' D'"
+                  },
+                  {
+                    "label": "orange-green",
+                    "moves": "U L' B L' B' L2"
+                  }
+                ]
+              }
+            },
+            {
+              "slot": "BR",
+              "label": "red-blue",
+              "optimal": 7,
+              "moves": "y2 D2 B2 L B2 U2 D2 R",
+              "confidence": 0.05761781739761419,
+              "lookahead": null
+            }
+          ],
+          "learned": true
+        }
+      ]
+    },
+    {
+      "id": 2800,
+      "scramble": "B' F D2 R2 D2 F' U2 F' L2 D2 U' L D' R' D U R2 U B D F'",
+      "solution": "y' R2 F R B U L U' L' U L D' y U2 R U' R' y' L U2 L' U L U' L' R U' R' Dw U R' U' R U' R2 D' R U R' D R2 U R' x U R' D2 R U' R' D2 R2 B2",
+      "crossFace": 5,
+      "grip": {
+        "rotation": "",
+        "firstTurn": 1,
+        "moveText": [
+          "y'",
+          "R2",
+          "F",
+          "R",
+          "B",
+          "U",
+          "L",
+          "U'",
+          "L'",
+          "U",
+          "L",
+          "D'",
+          "y",
+          "U2",
+          "R",
+          "U'",
+          "R'",
+          "y'",
+          "L",
+          "U2",
+          "L'",
+          "U",
+          "L",
+          "U'",
+          "L'",
+          "R",
+          "U'",
+          "R'",
+          "Dw",
+          "U",
+          "R'",
+          "U'",
+          "R",
+          "U'",
+          "R2",
+          "D'",
+          "R",
+          "U",
+          "R'",
+          "D",
+          "R2",
+          "U",
+          "R'",
+          "x",
+          "U",
+          "R'",
+          "D2",
+          "R",
+          "U'",
+          "R'",
+          "D2",
+          "R2",
+          "B2"
+        ]
+      },
+      "diff": {
+        "cross": {
+          "at": 0,
+          "end": 7,
+          "playedTurns": 6,
+          "optimalTurns": 6,
+          "setup": "y'",
+          "best": "R2 F R B L D'",
+          "hold": "yellow down, orange front",
+          "branch": "y' R2 F R B L D'",
+          "lookahead": {
+            "label": "cross + 2 pairs",
+            "turns": 11,
+            "branch": "U' D2 R F' D2 R2 F2 R U2 R' D"
+          }
+        },
+        "pairs": [],
+        "learned": true
+      },
+      "nextPairs": [
+        {
+          "at": 7,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        },
+        {
+          "at": 11,
+          "crossFace": null,
+          "ranked": [],
+          "learned": false
+        }
+      ]
+    }
+  ]
+}

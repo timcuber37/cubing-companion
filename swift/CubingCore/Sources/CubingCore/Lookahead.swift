@@ -180,8 +180,19 @@ public enum Lookahead {
             nodes: nodes, truncated: truncated || uniqueOrder.count > options.beamWidth)
     }
 
+    /// `lookaheadPairs` in `lookahead.ts`: the whole budget across every open slot.
+    ///
+    /// `totalNodes` is that budget, split evenly between the slots, and it is separate from
+    /// `options.maxNodes` because the TypeScript's defaults differ: 1,600,000 here, 400,000 for a
+    /// single `continueF2L`. This once divided `options.maxNodes` — so each slot searched a quarter
+    /// of what the TypeScript searches, found different plans wherever the search is budget-bound,
+    /// and made the S2 benchmark compare a quarter of the work against the whole of it. The review
+    /// oracle (`vectors/review.json`), which records these plans, is what caught it.
+    public static let defaultTotalNodes = 1_600_000
+
     public static func pairs(
-        _ raw: CubeState, _ crossFace: Int, options: Options = Options()
+        _ raw: CubeState, _ crossFace: Int, options: Options = Options(),
+        totalNodes: Int = defaultTotalNodes
     ) -> PairResult {
         let state = raw.normalized
         precondition(crossDistance(state, crossFace) == 0)
@@ -191,7 +202,7 @@ public enum Lookahead {
         let ranked = open.enumerated().map { index, slot -> (Int, PairOption) in
             var slotOptions = options
             slotOptions.firstSlot = slot
-            slotOptions.maxNodes = options.maxNodes / open.count
+            slotOptions.maxNodes = totalNodes / open.count
             let result = continueF2L(
                 state, crossFace, targetPairs: 4 - open.count + depth, options: slotOptions)
             nodes += result.nodes

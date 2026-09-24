@@ -41,6 +41,7 @@ import RECONSTRUCTIONS from "../../packages/engine/test/fixtures/reconstructions
 import { integer, pick, positions, seeded, serialize, type Position } from "./random.ts";
 import { cubeLinkVectors } from "./cubelink.ts";
 import { sessionVectors } from "./session.ts";
+import { reviewVectors } from "./review.ts";
 
 const FACES: Face[] = [0, 1, 2, 3, 4, 5] as Face[];
 
@@ -182,6 +183,7 @@ export const GENERATORS: Readonly<
   // Async: the GAN drivers await their connection, so a replay has to as well.
   cubelink: cubeLinkVectors,
   session: sessionVectors,
+  review: reviewVectors,
 };
 
 export type { Position };

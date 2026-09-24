@@ -34,13 +34,15 @@ describe.each(Object.keys(GENERATORS))("the %s vectors", (name) => {
     const regenerated = await GENERATORS[name]!(file.seed, file.count);
     // Compared as parsed data rather than as text, so formatting is not what fails.
     expect(regenerated).toEqual(file);
-  }, name === "s2" ? 30_000 : name === "cubelink" || name === "session" ? 15_000 : 5_000);
+  }, name === "s2" || name === "review" ? 60_000 : name === "cubelink" || name === "session" ? 15_000 : 5_000);
 
   it("is large enough to be worth trusting", () => {
     // `cubelink` is a set of replays, and its `count` is messages per event type inside them;
     // `session` adds stats cases and a database to its `count` of recorder scripts. Both have their
     // coverage asserted on their own below.
     if (name === "cubelink" || name === "session") return;
+    // `review` is bounded by the twenty committed reconstructions, like `metrics`.
+    if (name === "review") return expect(file.cases.length).toBe(20);
     expect(file.cases.length).toBe(file.count);
     // `metrics` is bounded by the twenty committed reconstructions rather than by a seed — real
     // solves are the only honest input for it, and there are twenty of them. Every other corpus is
@@ -202,5 +204,36 @@ describe("session coverage", () => {
     const rows = db.prepare("SELECT json FROM solves ORDER BY startedAt DESC").all() as { json: string }[];
     db.close();
     expect(rows.map((row) => JSON.parse(row.json))).toEqual(sqlite.solves);
+  });
+});
+
+describe("review coverage", () => {
+  interface Pair { yours: string; theirs: string; reasons: string[]; wording: string; options: { setup: string }[] }
+  interface Case {
+    diff: { cross: { setup: string } | null; pairs: Pair[] } | null;
+    grip: { rotation: string };
+    nextPairs: { crossFace: number | null; ranked: unknown[] }[];
+  }
+  const cases = committed("review").cases as Case[];
+  const pairs = cases.flatMap((c) => c.diff?.pairs ?? []);
+
+  it("includes disagreements with the model, explained", () => {
+    // Agreement alone would never exercise the attribution and its wording.
+    const disagreements = pairs.filter((p) => p.yours !== p.theirs);
+    expect(disagreements.length).toBeGreaterThan(5);
+    expect(disagreements.every((p) => p.reasons.length > 0)).toBe(true);
+    expect(new Set(pairs.map((p) => p.wording)).size).toBe(3);
+  });
+
+  it("carries setup rotations, and grips other than the default", () => {
+    // Real solves are held and rotated; synthetic ones never are, and never reach this code.
+    expect(pairs.some((p) => p.options.some((o) => o.setup !== ""))).toBe(true);
+    expect(cases.some((c) => c.diff?.cross && c.diff.cross.setup !== "")).toBe(true);
+    expect(new Set(cases.map((c) => c.grip.rotation)).size).toBeGreaterThan(2);
+  });
+
+  it("ranks next pairs from four and three open slots", () => {
+    const sizes = new Set(cases.flatMap((c) => c.nextPairs.map((n) => n.ranked.length)));
+    expect(sizes.has(4) && sizes.has(3)).toBe(true);
   });
 });

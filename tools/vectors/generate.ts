@@ -41,6 +41,8 @@ const JOBS: readonly { name: string; seed: number; count: number }[] = [
   { name: "cubelink", seed: 0xc0_be_11_4c, count: 100 },
   // `count` is scripted recorder sessions; the SQLite fixture is written from their solves.
   { name: "session", seed: 0x5e_55_10_4e, count: 100 },
+  // Every committed reconstruction; the seed is unused, the corpus being real solves.
+  { name: "review", seed: 0x2e_71_e0_05, count: 20 },
 ];
 
 mkdirSync(OUT, { recursive: true });

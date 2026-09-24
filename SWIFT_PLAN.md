@@ -284,7 +284,20 @@ produced P5's baseline, two cold launches of a Release build:
 | Next pair + lookahead | 372 ms | **86 ms** | 4.3× |
 
 The TypeScript workload has not moved since P5 — it still measures 2.33 s on the desktop — so the
-comparison is like for like. The phone is 2.7× slower than the desktop for Swift, against 2.4× for
+comparison is like for like.
+
+**Two corrections, made in S5.** The "next pair + lookahead" figures above (32 ms desktop, 86 ms
+phone) were wrong: the Swift `Lookahead.pairs` split `continueF2L`'s 400,000-node default between
+the slots where the TypeScript splits 1,600,000, so it did a quarter of the search. The review
+oracle caught it, because it records the plans that search finds. Fixed, it is **88 ms** on the
+desktop (1.9× the TypeScript's 163) and **170 ms** on the iPhone 11 (2.2× its 372).
+
+And the same phone, re-measured with no engine code changed since, ran the sweep in **2.48 s**, not
+3.74–3.91 s — one colour in 440 ms, not 660. Nothing in the code explains a third; the phone's state
+does (Low Power Mode and heat both throttle), and it cannot be told from here which. The honest
+reading is that a sweep costs **2.5–3.9 s** on this phone depending on its state, **1.4–2.2×** faster
+than the TypeScript's single 5.45 s measurement — and that a fair ratio needs both apps measured in
+one sitting, which has not been done. The phone is 2.7× slower than the desktop for Swift, against 2.4× for
 the JavaScript: the gap to the desktop is the hardware, not the language.
 
 **Running it.** `npm run swift-test` runs the whole suite in a release build: 24 tests in about
@@ -384,7 +397,7 @@ drivers use TypeScript parameter properties, which Node's default type stripping
 vitest had been compiling silently. Open `swift/CubingApp/CubingApp.xcodeproj`, choose the phone,
 Run.
 
-### S4 — Recording and history · 2 weekends · **built; awaiting a session with the cube**
+### S4 — Recording and history · 2 weekends · **done**
 
 Recorder, session stats, and storage in SwiftData (or SQLite directly — the schema in
 `packages/session/src/sqlite.ts` ports as-is). Solve list, per-phase metrics, scoring against the
@@ -404,8 +417,8 @@ apps coexist, and takes over `com.cubingcompanion.app` in S6.
 per-phase durations, the SwiftData models, the importer and the scramble pool; the app gains a Solve
 tab (scramble with progress, live timer, a last-solve card with phase splits and ratings) and a
 History tab (per-session best, mean, ao5 and ao12, solve detail with a phase-by-phase
-reconstruction, sessions, delete). It builds, is installed, and imports correctly; recording a real
-solve with the cube is what remains.
+reconstruction, sessions, delete). Built, installed, and used with the real cube: solves are recorded,
+kept, timed and scored natively.
 
 - **The oracle** is `vectors/session.json`: 100 scripted sessions at the cube — scrambles turned in
   with slips undone, practice from an arbitrary position, inspection rotations, wasted moves,
@@ -433,11 +446,33 @@ P4 are still in the Capacitor app's WebView IndexedDB, which the importer cannot
 Capacitor app has no export. If they matter, the Capacitor app needs a one-off IndexedDB-to-SQLite
 copy (offered at P4, never done) before the cutover.
 
-### S5 — Planning and review · 2–3 weekends
+### S5 — Planning and review · 2–3 weekends · **built; awaiting use with the cube**
 
 The planner panel, replay with scrubbing, and the A5 decision diff. The largest UI surface and the
 most interesting: branch playback with the cube in your hand is better on a phone than it ever was
 on a desktop.
+
+**Where it stands.** A solve's detail screen now replays it — scrubbable, with phase bands, from
+the grip you most likely held — and lists its decisions: the cross against the optimum and the best
+cross with its hold, and each pair choice against the model, with the reasons where they differ and
+your execution against the best insertion. Any alternative plays on the replay cube from the moment
+it diverges. On the Solve tab, a Plan sheet shows crosses, x-crosses and openings for the colours
+chosen, a "which pair" ranking for the cube as it stands, and a practice mode that hides the plan
+for the fifteen seconds of inspection. Planning starts the moment a scramble is armed, from the
+scramble's own position, so it is usually ready before the scramble is turned in.
+
+- **The review logic moved out of the web worker.** `diffSolve` and the pair ranking lived inside
+  `planner.worker.ts`, tangled with its messaging and callable from nowhere else. They are now
+  `packages/planner/src/review.ts`; the worker calls them and its tests still pass.
+- **The oracle** is `vectors/review.json`: the full decision diff, the inferred grip and the replay's
+  move text, and pair rankings at two points, for all twenty real reconstructions, with the shipped
+  model weights. Real solves because review is where the frame bookkeeping lives — rotations, wide
+  moves, setup rotations — and synthetic solves never reach it.
+- **It caught an S2 bug.** `Lookahead.pairs` searched a quarter of the budget the TypeScript does,
+  so it found different plans wherever the search runs out of budget. Fixed; the S2 benchmark figure
+  it inflated is corrected there.
+- **`inferGrip` had `comfortScore`'s tie-breaking bug** — per-turn log sums, so rounding picked
+  between grips that saw the same faces. Fixed in both languages the same way.
 
 ### S6 — The platform, and the cutover · 1–2 weekends
 

@@ -10,6 +10,7 @@ struct CubingApp: App {
     private let container: ModelContainer
     @State private var cube: CubeModel
     @State private var solves: SolveModel
+    @State private var plan: PlanModel
 
     init() {
         let container: ModelContainer
@@ -21,13 +22,18 @@ struct CubingApp: App {
             fatalError("Could not open the solve history: \(error)")
         }
         let cube = CubeModel()
+        let solves = SolveModel(cube: cube, library: SolveLibrary(container))
+        let plan = PlanModel()
+        solves.onPlanTarget = { [weak plan] state in plan?.plan(for: state) }
+        solves.onInspection = { [weak plan] in plan?.inspectionBegan() }
         self.container = container
         _cube = State(initialValue: cube)
-        _solves = State(initialValue: SolveModel(cube: cube, library: SolveLibrary(container)))
+        _solves = State(initialValue: solves)
+        _plan = State(initialValue: plan)
     }
 
     var body: some Scene {
-        WindowGroup { RootView(cube: cube, solves: solves) }
+        WindowGroup { RootView(cube: cube, solves: solves, plan: plan) }
             .modelContainer(container)
     }
 }

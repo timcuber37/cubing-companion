@@ -109,3 +109,19 @@ export {
   type PairLookaheadResult,
   type PairStep,
 } from "./lookahead.ts";
+
+export {
+  diffSolve,
+  forecast,
+  normalisingSetup,
+  rankOpenPairs,
+  type CrossDiff,
+  type DiffOption,
+  type NextPairs,
+  type PairDiff,
+  type PairForecast,
+  type RankedPair,
+  type Scorers,
+  type SolveDiff,
+  type StillWanted,
+} from "./review.ts";

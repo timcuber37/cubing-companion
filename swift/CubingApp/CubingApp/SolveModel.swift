@@ -48,6 +48,11 @@ final class SolveModel {
     private var halves: [Set<String>] = []
     private unowned let cube: CubeModel
 
+    /// The position to plan for — the scramble's, the moment it is armed — and the moment the cube
+    /// matches it, when inspection begins.
+    var onPlanTarget: ((CubeState) -> Void)?
+    var onInspection: (() -> Void)?
+
     private static let sessionKey = "session.current"
     private static let importedKey = "capacitorImport.done"
 
@@ -96,11 +101,13 @@ final class SolveModel {
             state = state.applying([move])
             prefixes.append(Facelets.string(from: state))
         }
+        onPlanTarget?(state)
         sync()
     }
 
     /// Time a solve from the position the cube is in now, without a scramble.
     func startFromHere() {
+        onPlanTarget?(cube.trackedState)
         recorder.startFrom(cube.trackedState)
         scramble = []
         scrambleText = nil
@@ -171,6 +178,7 @@ final class SolveModel {
 
     private func sync() {
         let state = recorder.state
+        if phase != .ready, state.phase == .ready { onInspection?() }
         phase = state.phase
         moveCount = state.moveCount
         if phase != .solving { solveStartedAt = nil }

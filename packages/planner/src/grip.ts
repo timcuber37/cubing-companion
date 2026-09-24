@@ -57,6 +57,9 @@ export const PHASE_FACE_SHARE: Readonly<Record<PhaseGroup, Readonly<Record<strin
 };
 
 /** Which distribution a phase draws from. */
+const GROUPS: readonly PhaseGroup[] = ["cross", "f2l", "lastLayer"];
+const FACE_ORDER = ["U", "D", "L", "R", "F", "B"] as const;
+
 export function phaseGroup(phase: Phase): PhaseGroup | null {
   if (phase === Phase.Cross) return "cross";
   if (phase === Phase.F2L1 || phase === Phase.F2L2 || phase === Phase.F2L3 || phase === Phase.F2L4) {
@@ -110,15 +113,29 @@ export function inferGrip(
   if (candidates.length === 0) throw new RangeError("no candidate grips to choose between");
   if (observations.length === 0) return candidates[0]!;
 
+  // Counted first, then summed in a fixed order. Summed turn by turn, two grips that see the same
+  // faces the same number of times differed in the last bit depending on the order the turns came
+  // in, so rounding picked between them — and the Swift port, with a different `log`, picked the
+  // other one. The same fix as `comfortScore`'s, for the same reason.
+  const counts = new Map<string, number>();
+  for (const { face, group } of observations) {
+    const key = `${group}:${face}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
   let best = candidates[0]!;
   let bestScore = -Infinity;
   for (const candidate of candidates) {
     let score = 0;
-    for (const { face, group } of observations) {
-      // What this turn would have been called, seen from this grip.
-      const seen = candidate.rename[face];
-      const share = seen === undefined ? undefined : PHASE_FACE_SHARE[group][seen];
-      score += Math.log(share ?? Number.MIN_VALUE);
+    for (const group of GROUPS) {
+      for (const face of FACE_ORDER) {
+        const count = counts.get(`${group}:${face}`);
+        if (count === undefined) continue;
+        // What this turn would have been called, seen from this grip.
+        const seen = candidate.rename[face];
+        const share = seen === undefined ? undefined : PHASE_FACE_SHARE[group][seen];
+        score += count * Math.log(share ?? Number.MIN_VALUE);
+      }
     }
     if (score > bestScore) {
       bestScore = score;

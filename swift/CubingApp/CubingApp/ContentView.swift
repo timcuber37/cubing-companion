@@ -7,13 +7,14 @@ import SwiftUI
 struct RootView: View {
     let cube: CubeModel
     let solves: SolveModel
+    let plan: PlanModel
 
     @State private var tab = RootView.initialTab
 
     var body: some View {
         // `.tabItem` rather than `Tab`, which needs iOS 18; the app targets 17.
         TabView(selection: $tab) {
-            SolveScreen(cube: cube, solves: solves)
+            SolveScreen(cube: cube, solves: solves, plan: plan)
                 .tabItem { Label("Solve", systemImage: "cube") }
                 .tag("solve")
             HistoryScreen(solves: solves)
@@ -37,7 +38,9 @@ struct RootView: View {
 struct SolveScreen: View {
     let cube: CubeModel
     let solves: SolveModel
+    let plan: PlanModel
     @State private var scanning = false
+    @State private var planning = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -60,7 +63,10 @@ struct SolveScreen: View {
                         Section { Text(error).foregroundStyle(.red) }
                     }
                     if let last = solves.lastSolve {
-                        Section("Last solve") { SolveSummary(finished: last) }
+                        Section("Last solve") {
+                            SolveSummary(finished: last)
+                            NavigationLink("Review this solve") { SolveDetail(finished: last) }
+                        }
                     }
                     Section {
                         DisclosureGroup("Link diagnostics") { LinkDiagnostics(cube: cube) }
@@ -87,6 +93,7 @@ struct SolveScreen: View {
         .sheet(isPresented: $scanning, onDismiss: cube.stopScan) {
             ScanSheet(model: cube, isPresented: $scanning)
         }
+        .sheet(isPresented: $planning) { PlanSheet(plan: plan, cube: cube) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { cube.resumed() }
         }
@@ -169,6 +176,7 @@ struct SolveScreen: View {
                             .font(.footnote).foregroundStyle(.orange)
                     }
                     HStack {
+                        Button("Plan", systemImage: "lightbulb") { planning = true }
                         Button("New scramble", systemImage: "shuffle", action: solves.newScramble)
                         Button("Start from here", action: solves.startFromHere)
                     }
@@ -180,6 +188,8 @@ struct SolveScreen: View {
                 VStack(spacing: 4) {
                     Text(Format.time(0)).font(.system(size: 56, weight: .semibold, design: .rounded).monospacedDigit())
                     Text("Scrambled. Inspect, then turn to start.").font(.footnote).foregroundStyle(.secondary)
+                    Button("Plan", systemImage: "lightbulb") { planning = true }
+                        .buttonStyle(.bordered).font(.footnote)
                 }
                 .frame(maxWidth: .infinity)
             case .solving:
@@ -273,13 +283,22 @@ struct SolveSummary: View {
 struct PhaseTable: View {
     let segmented: SegmentedSolve
 
+    /// A pair named by its colours: slot names like "UR" are positions in the search frame, and
+    /// mean nothing to someone holding the cube after a rotation.
+    private func pairLabel(_ slot: String?) -> String {
+        guard let slot, let crossFace = segmented.segmentation.segmentation?.crossFace,
+            let match = geometry[crossFace].slots.first(where: { $0.name == slot })
+        else { return "" }
+        return Colours.slot(match)
+    }
+
     var body: some View {
         if let spans = segmented.segmentation.segmentation?.spans {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
                 ForEach(Array(spans.enumerated()), id: \.offset) { i, span in
                     GridRow {
                         Text(Format.phase(span.phase)).font(.footnote)
-                        Text(span.slot ?? "").font(.caption.monospaced()).foregroundStyle(.secondary)
+                        Text(pairLabel(span.slot)).font(.caption).foregroundStyle(.secondary)
                         Text("\(span.turns)").font(.footnote.monospacedDigit()).gridColumnAlignment(.trailing)
                         Text(Format.time(segmented.phaseDurations[i])).font(.footnote.monospacedDigit())
                             .gridColumnAlignment(.trailing)
